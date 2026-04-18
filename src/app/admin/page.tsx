@@ -38,7 +38,7 @@ export default function AdminPage() {
 
   async function loadTournamentData() {
     const [membRes, matchRes] = await Promise.all([
-      supabase.from('tournament_members').select('*, profile:profiles(display_name,email)').eq('tournament_id', selectedTournament).order('joined_at'),
+      supabase.from('tournament_members').select('*, profiles(display_name,email)').eq('tournament_id', selectedTournament).order('joined_at'),
       supabase.from('matches').select('*').eq('tournament_id', selectedTournament).order('kickoff_at'),
     ])
     setPendingMembers((membRes.data || []).filter((m: any) => m.status === 'pending'))
@@ -109,8 +109,8 @@ export default function AdminPage() {
                   {pendingMembers.map((m: any) => (
                     <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 500 }}>{m.profile?.display_name}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{m.profile?.email} · Requested {format(new Date(m.joined_at), 'd MMM yyyy')}</div>
+                        <div style={{ fontWeight: 500 }}>{m.profiles?.display_name}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{m.profiles?.email} · Requested {format(new Date(m.joined_at), 'd MMM yyyy')}</div>
                       </div>
                       <button onClick={() => approveMember(m.id, true)} className="btn btn-primary" style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}>
                         <Check size={13} /> Approve
@@ -129,8 +129,8 @@ export default function AdminPage() {
                 {allMembers.map((m: any, i: number) => (
                   <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1.25rem', borderBottom: i < allMembers.length-1 ? '1px solid var(--dark-border)' : 'none' }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{m.profile?.display_name}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>{m.profile?.email}</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{m.profiles?.display_name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>{m.profiles?.email}</div>
                     </div>
                     <span className={`badge ${m.status === 'approved' ? 'badge-green' : m.status === 'rejected' ? 'badge-red' : 'badge-grey'}`}>{m.status}</span>
                     {m.status === 'approved' && (
