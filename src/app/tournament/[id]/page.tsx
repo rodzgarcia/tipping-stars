@@ -1,368 +1,374 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
-import { isPast, subHours } from 'date-fns'
+import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from 'lucide-react'
+import { format } from 'date-fns'
 
-type Tab = 'tips' | 'leaderboard' | 'predictions'
+type AdminTab = 'tournaments' | 'members' | 'matches' | 'results'
 
-function formatLocalTime(dateStr: string) {
-  const date = new Date(dateStr)
-  return date.toLocaleString(undefined, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-}
-
-export default function TournamentPage() {
-  const params = useParams()
+export default function AdminPage() {
   const router = useRouter()
-  const tournamentId = params.id as string
-  const [tab, setTab] = useState<Tab>('tips')
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [tournament, setTournament] = useState<any>(null)
-  const [membership, setMembership] = useState<any>(null)
+  const [tab, setTab] = useState<AdminTab>('tournaments')
+  const [tournaments, setTournaments] = useState<any[]>([])
+  const [selectedTournament, setSelectedTournament] = useState<string>('')
+  const [pendingMembers, setPendingMembers] = useState<any[]>([])
+  const [allMembers, setAllMembers] = useState<any[]>([])
   const [matches, setMatches] = useState<any[]>([])
-  const [myTips, setMyTips] = useState<Record<string, any>>({})
-  const [leaderboard, setLeaderboard] = useState<any[]>([])
-  const [myTournamentTip, setMyTournamentTip] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
-  useEffect(() => { loadAll() }, [tournamentId])
+  useEffect(() => { init() }, [])
+  useEffect(() => { if (selectedTournament) loadTournamentData() }, [selectedTournament])
 
-  async function loadAll() {
+  async function init() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth'); return }
-    setUser(user)
-
-    const [profRes, tourRes, memberRes, matchRes, tipsRes, lbRes, ttRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
-      supabase.from('tournament_members').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
-      supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('kickoff_at'),
-      supabase.from('match_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id),
-      supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
-      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
-    ])
-
-    setProfile(profRes.data)
-    setTournament(tourRes.data)
-    setMembership(memberRes.data)
-    setMatches(matchRes.data || [])
-    const tipsMap: Record<string, any> = {}
-    tipsRes.data?.forEach((t: any) => { tipsMap[t.match_id] = t })
-    setMyTips(tipsMap)
-    setLeaderboard(lbRes.data || [])
-    setMyTournamentTip(ttRes.data)
+    const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+    if (!prof?.is_super_admin) { router.push('/'); return }
+    setUser(user); setProfile(prof)
+    const { data: tours } = await supabase.from('tournaments').select('*').order('created_at', { ascending: false })
+    setTournaments(tours || [])
+    if (tours?.length) setSelectedTournament(tours[0].id)
     setLoading(false)
   }
 
-  if (loading) return <LoadingScreen />
-  if (membership?.status !== 'approved') return <NotApproved status={membership?.status} />
-
-  const roundOrder = ['group','r32','r16','qf','sf','third_place','final']
-  const roundLabel: Record<string, string> = {
-    group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16',
-    qf: 'Quarter-Finals', sf: 'Semi-Finals', third_place: '3rd Place', final: 'Final'
+  async function loadTournamentData() {
+    const [membRes, matchRes, profilesRes] = await Promise.all([
+      supabase.from('tournament_members').select('*').eq('tournament_id', selectedTournament).order('joined_at'),
+      supabase.from('matches').select('*').eq('tournament_id', selectedTournament).order('kickoff_at'),
+      supabase.from('profiles').select('id,display_name,email'),
+    ])
+    const profiles = profilesRes.data || []
+    const members = (membRes.data || []).map((m: any) => ({
+      ...m,
+      profiles: profiles.find((p: any) => p.id === m.user_id)
+    }))
+    setPendingMembers(members.filter((m: any) => m.status === 'pending'))
+    setAllMembers(members)
+    setMatches(matchRes.data || [])
   }
-  const multiplierLabel: Record<string, number> = {
-    group: tournament.multiplier_group, r32: tournament.multiplier_r32,
-    r16: tournament.multiplier_r16, qf: tournament.multiplier_qf,
-    sf: tournament.multiplier_sf, third_place: tournament.multiplier_sf, final: tournament.multiplier_final
+
+  async function approveMember(memberId: string, approve: boolean) {
+    await supabase.from('tournament_members').update({
+      status: approve ? 'approved' : 'rejected',
+      approved_by: user.id,
+      approved_at: new Date().toISOString()
+    }).eq('id', memberId)
+    loadTournamentData()
   }
 
-  const grouped = roundOrder.reduce((acc, r) => {
-    const ms = matches.filter((m: any) => m.round === r)
-    if (ms.length) acc[r] = ms
-    return acc
-  }, {} as Record<string, any[]>)
+  async function enterResult(matchId: string, homeScore: number, awayScore: number) {
+    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed' }).eq('id', matchId)
+    await supabase.rpc('calculate_match_points', { p_match_id: matchId })
+    loadTournamentData()
+  }
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div style={{ fontFamily: 'var(--font-display)', color: 'var(--green-light)', letterSpacing: '0.1em' }}>LOADING...</div></div>
+
+  const currentTournament = tournaments.find((t: any) => t.id === selectedTournament)
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
       <header style={{ borderBottom: '1px solid var(--dark-border)', background: 'rgba(10,15,13,0.9)', backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 50 }}>
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/" style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center' }}><ChevronLeft size={18} /></Link>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', letterSpacing: '0.06em' }}>{tournament.name}</div>
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{profile?.display_name}</div>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', letterSpacing: '0.08em', flex: 1 }}>ADMIN PANEL</span>
+          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{profile?.display_name}</span>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 pt-6">
-        {/* Tabs */}
-        <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
-          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')}>Match Tips</button>
-          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
-          <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>Tournament Tips</button>
+      <div className="max-w-5xl mx-auto px-4 pt-6 pb-16">
+        {/* Tournament selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          <select value={selectedTournament} onChange={e => setSelectedTournament(e.target.value)} className="input" style={{ maxWidth: 280 }}>
+            {tournaments.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          {pendingMembers.length > 0 && (
+            <span className="badge badge-red">{pendingMembers.length} pending approval</span>
+          )}
         </div>
 
-        {/* Match Tips */}
-        {tab === 'tips' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
-            {Object.entries(grouped).map(([round, roundMatches]) => (
-              <div key={round}>
-                <div className="flex items-center gap-3" style={{ marginBottom: '0.75rem' }}>
-                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)' }}>
-                    {roundLabel[round]}
-                  </h2>
-                  <span className="badge badge-gold">{multiplierLabel[round]}x multiplier</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  {roundMatches.map((match: any) => (
-                    <MatchTipCard
-                      key={match.id}
-                      match={match}
-                      tip={myTips[match.id]}
-                      tournament={tournament}
-                      userId={user.id}
-                      onSave={loadAll}
-                    />
+        {/* Tabs */}
+        <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
+          <button className={`tab-btn ${tab === 'tournaments' ? 'active' : ''}`} onClick={() => setTab('tournaments')}><Settings size={13} style={{display:'inline',marginRight:4}}/>Setup</button>
+          <button className={`tab-btn ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}><Users size={13} style={{display:'inline',marginRight:4}}/>Members {pendingMembers.length > 0 && `(${pendingMembers.length})`}</button>
+          <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}><Calendar size={13} style={{display:'inline',marginRight:4}}/>Matches</button>
+          <button className={`tab-btn ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}><Trophy size={13} style={{display:'inline',marginRight:4}}/>Results</button>
+        </div>
+
+        {/* Tournament Setup */}
+        {tab === 'tournaments' && (
+          <TournamentSetup tournament={currentTournament} onSave={init} onCreate={init} supabase={supabase} />
+        )}
+
+        {/* Members */}
+        {tab === 'members' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {pendingMembers.length > 0 && (
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: '#f87171', marginBottom: '0.75rem' }}>PENDING APPROVAL</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {pendingMembers.map((m: any) => (
+                    <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500 }}>{m.profiles?.display_name}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{m.profiles?.email} · Requested {format(new Date(m.joined_at), 'd MMM yyyy')}</div>
+                      </div>
+                      <button onClick={() => approveMember(m.id, true)} className="btn btn-primary" style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}>
+                        <Check size={13} /> Approve
+                      </button>
+                      <button onClick={() => approveMember(m.id, false)} className="btn btn-danger" style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}>
+                        <X size={13} /> Reject
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
-            ))}
-            {matches.length === 0 && (
-              <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-                Matches haven't been added yet. Check back soon!
-              </div>
             )}
-          </div>
-        )}
-
-        {/* Leaderboard */}
-        {tab === 'leaderboard' && (
-          <div style={{ paddingBottom: '3rem' }}>
-            <div className="card" style={{ overflow: 'hidden' }}>
-              {leaderboard.length === 0 ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No scores yet</div>
-              ) : leaderboard.map((row: any, i: number) => (
-                <div key={row.user_id} className={`${i < 3 ? `rank-${i+1}` : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
-                  <div style={{ width: 28, textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, fontSize: '0.95rem', color: row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
-                      {row.display_name} {row.user_id === user.id && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>(you)</span>}
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.75rem' }}>ALL MEMBERS ({allMembers.length})</h3>
+              <div className="card" style={{ overflow: 'hidden' }}>
+                {allMembers.map((m: any, i: number) => (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1.25rem', borderBottom: i < allMembers.length-1 ? '1px solid var(--dark-border)' : 'none' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{m.profiles?.display_name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>{m.profiles?.email}</div>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
-                      Match: {row.match_points} · Tournament: {row.tournament_points} · Tips: {row.tips_submitted}
-                    </div>
+                    <span className={`badge ${m.status === 'approved' ? 'badge-green' : m.status === 'rejected' ? 'badge-red' : 'badge-grey'}`}>{m.status}</span>
+                    {m.status === 'approved' && (
+                      <EntryFeeToggle member={m} supabase={supabase} onUpdate={loadTournamentData} />
+                    )}
                   </div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', color: i === 0 ? '#fbbf24' : '#e8f5ee' }}>
-                    {row.total_points}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: '1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)', textAlign: 'center' }}>
-              Points include phase multipliers · Leaderboard updates after each match result is entered
+                ))}
+                {allMembers.length === 0 && <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>No members yet</div>}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Tournament Tips */}
-        {tab === 'predictions' && (
-          <TournamentTipForm
-            tournament={tournament}
-            userId={user.id}
-            existing={myTournamentTip}
-            onSave={loadAll}
-          />
+        {/* Matches */}
+        {tab === 'matches' && (
+          <MatchManager matches={matches} tournamentId={selectedTournament} supabase={supabase} onUpdate={loadTournamentData} />
+        )}
+
+        {/* Results */}
+        {tab === 'results' && (
+          <ResultsEntry matches={matches.filter((m: any) => m.status !== 'completed')} onResult={enterResult} />
         )}
       </div>
     </div>
   )
 }
 
-function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
-  const isLocked = match.status !== 'upcoming' || isPast(subHours(new Date(match.kickoff_at), 2))
-  const [home, setHome] = useState(tip?.tip_home ?? '')
-  const [away, setAway] = useState(tip?.tip_away ?? '')
+function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
+  const [form, setForm] = useState(tournament ? { ...tournament } : {})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const supabase = createClient()
+  const [creating, setCreating] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newDesc, setNewDesc] = useState('')
+  const [newFee, setNewFee] = useState('0')
 
-  async function saveTip() {
-    if (home === '' || away === '') return
+  async function saveSettings() {
     setSaving(true)
-    const payload = { match_id: match.id, user_id: userId, tournament_id: tournament.id, tip_home: Number(home), tip_away: Number(away) }
-    if (tip?.id) {
-      await supabase.from('match_tips').update({ tip_home: Number(home), tip_away: Number(away), updated_at: new Date().toISOString() }).eq('id', tip.id)
-    } else {
-      await supabase.from('match_tips').insert(payload)
-    }
-    setSaved(true); setTimeout(() => setSaved(false), 2000)
-    setSaving(false); onSave()
+    await supabase.from('tournaments').update({ ...form, updated_at: new Date().toISOString() }).eq('id', tournament.id)
+    setSaved(true); setTimeout(() => setSaved(false), 2000); onSave(); setSaving(false)
   }
 
-  const multiplier = { group: tournament.multiplier_group, r32: tournament.multiplier_r32, r16: tournament.multiplier_r16, qf: tournament.multiplier_qf, sf: tournament.multiplier_sf, third_place: tournament.multiplier_sf, final: tournament.multiplier_final }[match.round as string] || 1
+  async function createTournament() {
+    if (!newName.trim()) return
+    setCreating(true)
+    await supabase.from('tournaments').insert({ name: newName, description: newDesc, entry_fee: Number(newFee) || 0 })
+    setNewName(''); setNewDesc(''); setNewFee('0'); onCreate(); setCreating(false)
+  }
 
-  return (
-    <div className="card" style={{ padding: '1rem 1.25rem', opacity: isLocked && !tip ? 0.6 : 1 }}>
-      <div className="flex items-center gap-3 flex-wrap">
-        {/* Teams + score display */}
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{match.home_team}</span>
-            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>vs</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{match.away_team}</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
-              <Clock size={11} style={{ display: 'inline', marginRight: 3 }} />
-              {formatLocalTime(match.kickoff_at)}
-            </span>
-            {match.group_name && <span className="badge badge-grey">{match.group_name}</span>}
-            {match.status === 'completed' && match.home_score !== null && (
-              <span className="badge badge-green">Result: {match.home_score}–{match.away_score}</span>
-            )}
-            {isLocked && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />Locked</span>}
-          </div>
-        </div>
-
-        {/* Tip input or display */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {isLocked ? (
-            tip ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem' }}>{tip.tip_home}</span>
-                  <span style={{ color: 'rgba(255,255,255,0.3)' }}>–</span>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem' }}>{tip.tip_away}</span>
-                </div>
-                {tip.pts_with_multiplier > 0 && (
-                  <span className="badge badge-gold">+{tip.pts_with_multiplier} pts</span>
-                )}
-                {match.status === 'completed' && tip.pts_with_multiplier === 0 && (
-                  <span className="badge badge-grey">0 pts</span>
-                )}
-              </div>
-            ) : <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.25)' }}>No tip submitted</span>
-          ) : (
-            <>
-              <input type="number" className="score-input" min={0} max={99} value={home}
-                onChange={e => setHome(e.target.value)} placeholder="0" />
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
-              <input type="number" className="score-input" min={0} max={99} value={away}
-                onChange={e => setAway(e.target.value)} placeholder="0" />
-              <button onClick={saveTip} disabled={saving || home === '' || away === ''} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
-                {saved ? '✔' : saving ? '...' : tip ? 'Update' : 'Tip'}
-              </button>
-            </>
-          )}
-          <div style={{ textAlign: 'right', minWidth: 40 }}>
-            <div style={{ fontSize: '0.65rem', color: 'var(--gold)', fontWeight: 600 }}>{multiplier}x</div>
-          </div>
-        </div>
-      </div>
+  const field = (label: string, key: string, type = 'number') => (
+    <div key={key}>
+      <label className="label">{label}</label>
+      <input type={type} className="input" value={form[key]} onChange={e => setForm({ ...form, [key]: type === 'number' ? Number(e.target.value) : e.target.value })} />
     </div>
   )
-}
-
-function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
-  const [winner, setWinner] = useState(existing?.tip_winner || '')
-  const [second, setSecond] = useState(existing?.tip_second || '')
-  const [third, setThird] = useState(existing?.tip_third || '')
-  const [topScorer, setTopScorer] = useState(existing?.tip_top_scorer || '')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const isLocked = existing?.is_locked
-  const supabase = createClient()
-
-  async function save() {
-    setSaving(true)
-    const payload = { tournament_id: tournament.id, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: topScorer, updated_at: new Date().toISOString() }
-    if (existing?.id) await supabase.from('tournament_tips').update(payload).eq('id', existing.id)
-    else await supabase.from('tournament_tips').insert(payload)
-    setSaved(true); setTimeout(() => setSaved(false), 2000)
-    setSaving(false); onSave()
-  }
-
-  const fields = [
-    { label: 'World Cup Winner', key: 'winner', val: winner, set: setWinner, pts: tournament.pts_tournament_winner },
-    { label: '2nd Place (Runner-up)', key: 'second', val: second, set: setSecond, pts: tournament.pts_second_place },
-    { label: '3rd Place', key: 'third', val: third, set: setThird, pts: tournament.pts_third_place },
-    { label: 'Top Goal Scorer', key: 'topScorer', val: topScorer, set: setTopScorer, pts: tournament.pts_top_scorer },
-  ]
 
   return (
-    <div style={{ maxWidth: 480, paddingBottom: '3rem' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', letterSpacing: '0.06em', marginBottom: '0.35rem' }}>Tournament Predictions</h2>
-        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.35)' }}>
-          Set these before the tournament starts — they lock when the first match kicks off and can't be changed.
-        </p>
-      </div>
-      <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {fields.map(f => (
-          <div key={f.key}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-              <label className="label">{f.label}</label>
-              <span className="badge badge-gold">{f.pts} pts</span>
-            </div>
-            {isLocked ? (
-              <div style={{ padding: '0.65rem 0.9rem', background: 'rgba(255,255,255,0.04)', borderRadius: 10, fontSize: '0.9rem', color: f.val ? '#e8f5ee' : 'rgba(255,255,255,0.25)' }}>
-                {f.val || 'Not submitted'}
-              </div>
-            ) : (
-              <input className="input" type="text" value={f.val} onChange={e => f.set(e.target.value)} placeholder="Team or player name..." />
-            )}
-            {existing && existing[`pts_${f.key === 'topScorer' ? 'top_scorer' : f.key}`] > 0 && (
-              <div style={{ fontSize: '0.75rem', color: '#4ade80', marginTop: '0.25rem' }}>✔ Correct! +{existing[`pts_${f.key === 'topScorer' ? 'top_scorer' : f.key}`]} pts</div>
-            )}
-          </div>
-        ))}
-        {!isLocked && (
-          <button onClick={save} disabled={saving} className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
-            {saved ? '✔ Saved!' : saving ? 'Saving...' : existing ? 'Update predictions' : 'Submit predictions'}
-          </button>
-        )}
-        {isLocked && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'rgba(255,158,11,0.7)', fontSize: '0.82rem' }}>
-            <Lock size={13} /> Predictions locked — tournament has started
-          </div>
-        )}
-      </div>
-      {existing?.pts_total > 0 && (
-        <div className="card" style={{ marginTop: '1rem', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>Tournament prediction points</span>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', color: '#fbbf24' }}>{existing.pts_total}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Create new */}
+      <div className="card" style={{ padding: '1.5rem' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>CREATE NEW TOURNAMENT</h3>
+        <div style={{ display: 'grid', gap: '0.75rem' }}>
+          <div><label className="label">Tournament name</label><input type="text" className="input" placeholder="e.g. Work Crew Cup" value={newName} onChange={e => setNewName(e.target.value)} /></div>
+          <div><label className="label">Description (optional)</label><input type="text" className="input" placeholder="Brief description..." value={newDesc} onChange={e => setNewDesc(e.target.value)} /></div>
+          <div><label className="label">Entry fee (AUD)</label><input type="number" className="input" value={newFee} onChange={e => setNewFee(e.target.value)} /></div>
+          <button onClick={createTournament} disabled={creating || !newName.trim()} className="btn btn-gold"><Plus size={14} />{creating ? 'Creating...' : 'Create tournament'}</button>
         </div>
+      </div>
+
+      {/* Points config */}
+      {tournament && (
+      <div className="card" style={{ padding: '1.5rem' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>POINTS CONFIG — {tournament.name.toUpperCase()}</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
+          {field('Correct winner', 'pts_winner')}
+          {field('Correct goal diff', 'pts_goal_diff')}
+          {field('Exact score', 'pts_exact_score')}
+          {field('Big margin bonus', 'pts_big_margin_bonus')}
+          {field('Big margin threshold (goals)', 'big_margin_threshold')}
+          {field('Qualifying teams (per team)', 'pts_qualify')}
+          {field('Tournament winner', 'pts_tournament_winner')}
+          {field('2nd place', 'pts_second_place')}
+          {field('3rd place', 'pts_third_place')}
+          {field('Top scorer', 'pts_top_scorer')}
+        </div>
+        <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.06em', margin: '1.25rem 0 0.75rem', color: 'rgba(255,255,255,0.4)' }}>PHASE MULTIPLIERS</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
+          {field('Group stage', 'multiplier_group')}
+          {field('Round of 32', 'multiplier_r32')}
+          {field('Round of 16', 'multiplier_r16')}
+          {field('Quarter-finals', 'multiplier_qf')}
+          {field('Semi-finals', 'multiplier_sf')}
+          {field('Final', 'multiplier_final')}
+        </div>
+        <button onClick={saveSettings} disabled={saving} className="btn btn-primary" style={{ marginTop: '1.25rem' }}>
+          {saved ? '✔ Saved!' : saving ? 'Saving...' : 'Save settings'}
+        </button>
+      </div>
       )}
     </div>
   )
 }
 
-function LoadingScreen() {
+function EntryFeeToggle({ member, supabase, onUpdate }: any) {
+  const [paid, setPaid] = useState(member.entry_fee_paid)
+  async function toggle() {
+    const next = !paid
+    await supabase.from('tournament_members').update({ entry_fee_paid: next }).eq('id', member.id)
+    setPaid(next); onUpdate()
+  }
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--green-light)', letterSpacing: '0.1em' }}>LOADING...</div>
+    <button onClick={toggle} className={`badge ${paid ? 'badge-green' : 'badge-grey'}`} style={{ cursor: 'pointer', border: 'none', background: paid ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)' }}>
+      {paid ? '$ Paid' : '$ Unpaid'}
+    </button>
+  )
+}
+
+function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
+  const emptyMatch = { home_team: '', away_team: '', kickoff_at: '', round: 'group', group_name: '', venue: '', tournament_id: tournamentId }
+  const [form, setForm] = useState(emptyMatch)
+  const [saving, setSaving] = useState(false)
+
+  async function addMatch() {
+    if (!form.home_team || !form.away_team || !form.kickoff_at) return
+    setSaving(true)
+    // Convert local browser time to UTC for storage
+    const localDate = new Date(form.kickoff_at)
+    const utcKickoff = localDate.toISOString()
+    await supabase.from('matches').insert({ ...form, kickoff_at: utcKickoff })
+    setForm(emptyMatch); onUpdate(); setSaving(false)
+  }
+
+  async function deleteMatch(id: string) {
+    if (!confirm('Delete this match?')) return
+    await supabase.from('matches').delete().eq('id', id)
+    onUpdate()
+  }
+
+  const rounds = [
+    { value: 'group', label: 'Group stage' }, { value: 'r32', label: 'Round of 32' },
+    { value: 'r16', label: 'Round of 16' }, { value: 'qf', label: 'Quarter-finals' },
+    { value: 'sf', label: 'Semi-finals' }, { value: 'third_place', label: '3rd Place' }, { value: 'final', label: 'Final' }
+  ]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="card" style={{ padding: '1.5rem' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>ADD MATCH</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
+          <div><label className="label">Home team</label><input type="text" className="input" placeholder="e.g. Brazil" value={form.home_team} onChange={e => setForm({...form,home_team:e.target.value})} /></div>
+          <div><label className="label">Away team</label><input type="text" className="input" placeholder="e.g. Argentina" value={form.away_team} onChange={e => setForm({...form,away_team:e.target.value})} /></div>
+          <div><label className="label">Kickoff (local time)</label><input type="datetime-local" className="input" value={form.kickoff_at} onChange={e => setForm({...form,kickoff_at:e.target.value})} /></div>
+          <div><label className="label">Round</label>
+            <select className="input" value={form.round} onChange={e => setForm({...form,round:e.target.value})}>
+              {rounds.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+          <div><label className="label">Group (optional)</label><input type="text" className="input" placeholder="e.g. Group A" value={form.group_name} onChange={e => setForm({...form,group_name:e.target.value})} /></div>
+          <div><label className="label">Venue (optional)</label><input type="text" className="input" placeholder="e.g. SoFi Stadium" value={form.venue} onChange={e => setForm({...form,venue:e.target.value})} /></div>
+        </div>
+        <button onClick={addMatch} disabled={saving} className="btn btn-primary" style={{ marginTop: '1rem' }}>
+          <Plus size={14} />{saving ? 'Adding...' : 'Add match'}
+        </button>
+      </div>
+
+      <div>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>MATCHES ({matches.length})</h3>
+        <div className="card" style={{ overflow: 'hidden' }}>
+          {matches.length === 0 && <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>No matches added yet</div>}
+          {matches.map((m: any, i: number) => (
+            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.875rem 1.25rem', borderBottom: i < matches.length-1 ? '1px solid var(--dark-border)' : 'none' }}>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{m.home_team} vs {m.away_team}</span>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem' }}>{m.round} · {new Date(m.kickoff_at).toLocaleString(undefined, {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</span>
+                {m.group_name && <span className="badge badge-grey" style={{ marginLeft: '0.5rem' }}>{m.group_name}</span>}
+              </div>
+              <span className={`badge ${m.status === 'completed' ? 'badge-green' : m.status === 'live' ? 'badge-gold' : 'badge-grey'}`}>{m.status}</span>
+              {m.status === 'completed' && <span style={{ fontSize: '0.85rem', fontFamily: 'var(--font-display)' }}>{m.home_score}–{m.away_score}</span>}
+              <button onClick={() => deleteMatch(m.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', padding: '0.25rem' }}><X size={14} /></button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
 
-function NotApproved({ status }: { status?: string }) {
+function ResultsEntry({ matches, onResult }: any) {
+  const [scores, setScores] = useState<Record<string, { home: string, away: string }>>({})
+
+  function setScore(matchId: string, key: 'home' | 'away', val: string) {
+    setScores(prev => ({ ...prev, [matchId]: { ...prev[matchId], [key]: val } }))
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div style={{ textAlign: 'center', maxWidth: 380 }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', marginBottom: '1rem' }}>
-          {status === 'pending' ? 'Awaiting approval' : status === 'rejected' ? 'Request rejected' : 'Not a member'}
+    <div>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>ENTER RESULTS</h3>
+      {matches.length === 0 && (
+        <div className="card" style={{ padding: '2.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
+          All match results have been entered — great work!
         </div>
-        <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-          {status === 'pending' ? "The tournament admin hasn't approved your request yet. Sit tight!" : 'Contact the tournament admin for more info.'}
-        </p>
-        <Link href="/" className="btn btn-ghost">← Back to home</Link>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        {matches.filter((m: any) => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).map((m: any) => {
+          const s = scores[m.id] || { home: '', away: '' }
+          return (
+            <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontWeight: 500 }}>{m.home_team} vs {m.away_team}</span>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem' }}>{new Date(m.kickoff_at).toLocaleString(undefined, {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
+                <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
+                <button
+                  className="btn btn-primary"
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
+                  disabled={s.home === '' || s.away === ''}
+                  onClick={() => onResult(m.id, Number(s.home), Number(s.away))}
+                >
+                  Enter result
+                </button>
+              </div>
+            </div>
+          )
+        })}
+        {matches.filter((m: any) => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).length === 0 && matches.length > 0 && (
+          <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
+            No matches have started yet — results will appear here after kickoff.
+          </div>
+        )}
       </div>
     </div>
   )
