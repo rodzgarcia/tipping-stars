@@ -63,7 +63,7 @@ export default function AdminPage() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div style={{ fontFamily: 'var(--font-display)', color: 'var(--green-light)', letterSpacing: '0.1em' }}>LOADING...</div></div>
 
-  const currentTournament = tournaments.find(t => t.id === selectedTournament)
+  const currentTournament = tournaments.find((t: any) => t.id === selectedTournament)
 
   return (
     <div className="min-h-screen">
@@ -79,7 +79,7 @@ export default function AdminPage() {
         {/* Tournament selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           <select value={selectedTournament} onChange={e => setSelectedTournament(e.target.value)} className="input" style={{ maxWidth: 280 }}>
-            {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {tournaments.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
           {pendingMembers.length > 0 && (
             <span className="badge badge-red">{pendingMembers.length} pending approval</span>
@@ -106,7 +106,7 @@ export default function AdminPage() {
               <div>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: '#f87171', marginBottom: '0.75rem' }}>PENDING APPROVAL</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {pendingMembers.map(m => (
+                  {pendingMembers.map((m: any) => (
                     <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 500 }}>{m.profile?.display_name}</div>
@@ -126,7 +126,7 @@ export default function AdminPage() {
             <div>
               <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.75rem' }}>ALL MEMBERS ({allMembers.length})</h3>
               <div className="card" style={{ overflow: 'hidden' }}>
-                {allMembers.map((m, i) => (
+                {allMembers.map((m: any, i: number) => (
                   <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1.25rem', borderBottom: i < allMembers.length-1 ? '1px solid var(--dark-border)' : 'none' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{m.profile?.display_name}</div>
@@ -151,7 +151,7 @@ export default function AdminPage() {
 
         {/* Results */}
         {tab === 'results' && (
-          <ResultsEntry matches={matches.filter(m => m.status !== 'completed')} onResult={enterResult} />
+          <ResultsEntry matches={matches.filter((m: any) => m.status !== 'completed')} onResult={enterResult} />
         )}
       </div>
     </div>
@@ -225,7 +225,7 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
           {field('Final', 'multiplier_final')}
         </div>
         <button onClick={saveSettings} disabled={saving} className="btn btn-primary" style={{ marginTop: '1.25rem' }}>
-          {saved ? '✓ Saved!' : saving ? 'Saving...' : 'Save settings'}
+          {saved ? '✔ Saved!' : saving ? 'Saving...' : 'Save settings'}
         </button>
       </div>
     </div>
@@ -295,7 +295,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>MATCHES ({matches.length})</h3>
         <div className="card" style={{ overflow: 'hidden' }}>
           {matches.length === 0 && <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>No matches added yet</div>}
-          {matches.map((m, i) => (
+          {matches.map((m: any, i: number) => (
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.875rem 1.25rem', borderBottom: i < matches.length-1 ? '1px solid var(--dark-border)' : 'none' }}>
               <div style={{ flex: 1 }}>
                 <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>{m.home_team} vs {m.away_team}</span>
@@ -329,7 +329,7 @@ function ResultsEntry({ matches, onResult }: any) {
         </div>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-        {matches.filter(m => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).map(m => {
+        {matches.filter((m: any) => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).map((m: any) => {
           const s = scores[m.id] || { home: '', away: '' }
           return (
             <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -353,7 +353,7 @@ function ResultsEntry({ matches, onResult }: any) {
             </div>
           )
         })}
-        {matches.filter(m => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).length === 0 && matches.length > 0 && (
+        {matches.filter((m: any) => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).length === 0 && matches.length > 0 && (
           <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
             No matches have started yet — results will appear here after kickoff.
           </div>
