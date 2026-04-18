@@ -157,7 +157,7 @@ export default function AdminPage() {
 
         {/* Results */}
         {tab === 'results' && (
-          <ResultsEntry matches={matches.filter((m: any) => m.status !== 'completed')} onResult={enterResult} />
+          <ResultsEntry matches={matches} onResult={enterResult} onEdit={enterResult} />
         )}
       </div>
     </div>
@@ -323,50 +323,92 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
 
 function ResultsEntry({ matches, onResult }: any) {
   const [scores, setScores] = useState<Record<string, { home: string, away: string }>>({})
+  const [editing, setEditing] = useState<string | null>(null)
 
   function setScore(matchId: string, key: 'home' | 'away', val: string) {
     setScores(prev => ({ ...prev, [matchId]: { ...prev[matchId], [key]: val } }))
   }
 
+  function startEdit(m: any) {
+    setEditing(m.id)
+    setScores(prev => ({ ...prev, [m.id]: { home: String(m.home_score), away: String(m.away_score) } }))
+  }
+
+  const pending = matches.filter((m: any) => m.status !== 'completed')
+  const completed = matches.filter((m: any) => m.status === 'completed')
+
   return (
-    <div>
-      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>ENTER RESULTS</h3>
-      {matches.length === 0 && (
-        <div className="card" style={{ padding: '2.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
-          All match results have been entered — great work!
-        </div>
-      )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-        {matches.filter((m: any) => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).map((m: any) => {
-          const s = scores[m.id] || { home: '', away: '' }
-          return (
-            <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontWeight: 500 }}>{m.home_team} vs {m.away_team}</span>
-                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem' }}>{format(new Date(m.kickoff_at), 'd MMM HH:mm')}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
-                <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
-                <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
-                <button
-                  className="btn btn-primary"
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}
-                  disabled={s.home === '' || s.away === ''}
-                  onClick={() => onResult(m.id, Number(s.home), Number(s.away))}
-                >
-                  Enter result
-                </button>
-              </div>
-            </div>
-          )
-        })}
-        {matches.filter((m: any) => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).length === 0 && matches.length > 0 && (
-          <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
-            No matches have started yet — results will appear here after kickoff.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>ENTER RESULTS</h3>
+        {pending.length === 0 && (
+          <div className="card" style={{ padding: '2.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
+            All match results have been entered — great work!
           </div>
         )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          {pending.filter((m: any) => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).map((m: any) => {
+            const s = scores[m.id] || { home: '', away: '' }
+            return (
+              <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontWeight: 500 }}>{m.home_team} vs {m.away_team}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem' }}>{new Date(m.kickoff_at).toLocaleString(undefined, {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
+                  <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
+                  <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
+                  <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} disabled={s.home === '' || s.away === ''} onClick={() => onResult(m.id, Number(s.home), Number(s.away))}>
+                    Enter result
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
+
+      {completed.length > 0 && (
+        <div>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>COMPLETED — CLICK EDIT TO CORRECT A RESULT</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {completed.map((m: any) => {
+              const s = scores[m.id] || { home: String(m.home_score), away: String(m.away_score) }
+              const isEditing = editing === m.id
+              return (
+                <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontWeight: 500 }}>{m.home_team} vs {m.away_team}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem' }}>{new Date(m.kickoff_at).toLocaleString(undefined, {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</span>
+                  </div>
+                  {isEditing ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input type="number" className="score-input" min={0} max={99} value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
+                      <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
+                      <input type="number" className="score-input" min={0} max={99} value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
+                      <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} onClick={() => { onResult(m.id, Number(s.home), Number(s.away)); setEditing(null) }}>
+                        Save
+                      </button>
+                      <button className="btn btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} onClick={() => setEditing(null)}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem' }}>{m.home_score}–{m.away_score}</span>
+                      <span className="badge badge-green">completed</span>
+                      <button className="btn btn-ghost" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => startEdit(m)}>
+                        Edit
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
