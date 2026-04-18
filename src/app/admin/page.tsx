@@ -95,7 +95,7 @@ export default function AdminPage() {
         </div>
 
         {/* Tournament Setup */}
-        {tab === 'tournaments' && currentTournament && (
+        {tab === 'tournaments' && (
           <TournamentSetup tournament={currentTournament} onSave={init} onCreate={init} supabase={supabase} />
         )}
 
@@ -159,7 +159,7 @@ export default function AdminPage() {
 }
 
 function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
-  const [form, setForm] = useState({ ...tournament })
+  const [form, setForm] = useState(tournament ? { ...tournament } : {})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [creating, setCreating] = useState(false)
