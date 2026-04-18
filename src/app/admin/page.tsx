@@ -45,7 +45,7 @@ export default function AdminPage() {
     const profiles = profilesRes.data || []; console.log('profiles:', JSON.stringify(profiles)); console.log('members raw:', JSON.stringify(membRes.data));
     const members = (membRes.data || []).map((m: any) => ({
       ...m,
-      profiles: profiles.find((p: any) => p.id === m.user_id)
+      profiles: profiles.find((p: any) => p.id === m.user_id) || {display_name: m.user_id, email: ''}
     }))
     setPendingMembers(members.filter((m: any) => m.status === 'pending'))
     setAllMembers(members)
