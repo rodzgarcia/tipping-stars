@@ -254,10 +254,99 @@ function EntryFeeToggle({ member, supabase, onUpdate }: any) {
   )
 }
 
+const FIFA2026_MATCHES = [
+  { home_team: 'Mexico', away_team: 'South Africa', kickoff_at: '2026-06-11T19:00:00Z', round: 'group', group_name: 'Group A', venue: 'Mexico City' },
+  { home_team: 'South Korea', away_team: 'Czechia', kickoff_at: '2026-06-12T02:00:00Z', round: 'group', group_name: 'Group A', venue: 'Guadalajara' },
+  { home_team: 'Czechia', away_team: 'South Africa', kickoff_at: '2026-06-18T16:00:00Z', round: 'group', group_name: 'Group A', venue: 'Atlanta' },
+  { home_team: 'Mexico', away_team: 'South Korea', kickoff_at: '2026-06-19T03:00:00Z', round: 'group', group_name: 'Group A', venue: 'Guadalajara' },
+  { home_team: 'Czechia', away_team: 'Mexico', kickoff_at: '2026-06-25T01:00:00Z', round: 'group', group_name: 'Group A', venue: 'Mexico City' },
+  { home_team: 'South Africa', away_team: 'South Korea', kickoff_at: '2026-06-25T01:00:00Z', round: 'group', group_name: 'Group A', venue: 'Guadalajara' },
+  { home_team: 'Canada', away_team: 'Bosnia and Herzegovina', kickoff_at: '2026-06-12T19:00:00Z', round: 'group', group_name: 'Group B', venue: 'Toronto' },
+  { home_team: 'Qatar', away_team: 'Switzerland', kickoff_at: '2026-06-13T19:00:00Z', round: 'group', group_name: 'Group B', venue: 'Santa Clara' },
+  { home_team: 'Switzerland', away_team: 'Bosnia and Herzegovina', kickoff_at: '2026-06-18T19:00:00Z', round: 'group', group_name: 'Group B', venue: 'Los Angeles' },
+  { home_team: 'Canada', away_team: 'Qatar', kickoff_at: '2026-06-18T22:00:00Z', round: 'group', group_name: 'Group B', venue: 'Vancouver' },
+  { home_team: 'Switzerland', away_team: 'Canada', kickoff_at: '2026-06-24T19:00:00Z', round: 'group', group_name: 'Group B', venue: 'Vancouver' },
+  { home_team: 'Bosnia and Herzegovina', away_team: 'Qatar', kickoff_at: '2026-06-24T19:00:00Z', round: 'group', group_name: 'Group B', venue: 'Seattle' },
+  { home_team: 'Brazil', away_team: 'Morocco', kickoff_at: '2026-06-13T22:00:00Z', round: 'group', group_name: 'Group C', venue: 'East Rutherford' },
+  { home_team: 'Haiti', away_team: 'Scotland', kickoff_at: '2026-06-14T01:00:00Z', round: 'group', group_name: 'Group C', venue: 'Foxborough' },
+  { home_team: 'Scotland', away_team: 'Morocco', kickoff_at: '2026-06-19T22:00:00Z', round: 'group', group_name: 'Group C', venue: 'Foxborough' },
+  { home_team: 'Brazil', away_team: 'Haiti', kickoff_at: '2026-06-20T01:00:00Z', round: 'group', group_name: 'Group C', venue: 'Philadelphia' },
+  { home_team: 'Scotland', away_team: 'Brazil', kickoff_at: '2026-06-24T22:00:00Z', round: 'group', group_name: 'Group C', venue: 'Miami' },
+  { home_team: 'Morocco', away_team: 'Haiti', kickoff_at: '2026-06-24T22:00:00Z', round: 'group', group_name: 'Group C', venue: 'Atlanta' },
+  { home_team: 'USA', away_team: 'Paraguay', kickoff_at: '2026-06-13T01:00:00Z', round: 'group', group_name: 'Group D', venue: 'Los Angeles' },
+  { home_team: 'Australia', away_team: 'Turkey', kickoff_at: '2026-06-14T04:00:00Z', round: 'group', group_name: 'Group D', venue: 'Vancouver' },
+  { home_team: 'USA', away_team: 'Australia', kickoff_at: '2026-06-19T19:00:00Z', round: 'group', group_name: 'Group D', venue: 'Seattle' },
+  { home_team: 'Turkey', away_team: 'Paraguay', kickoff_at: '2026-06-20T04:00:00Z', round: 'group', group_name: 'Group D', venue: 'Santa Clara' },
+  { home_team: 'Turkey', away_team: 'USA', kickoff_at: '2026-06-25T02:00:00Z', round: 'group', group_name: 'Group D', venue: 'Los Angeles' },
+  { home_team: 'Paraguay', away_team: 'Australia', kickoff_at: '2026-06-25T02:00:00Z', round: 'group', group_name: 'Group D', venue: 'Santa Clara' },
+  { home_team: 'Germany', away_team: 'Curacao', kickoff_at: '2026-06-14T17:00:00Z', round: 'group', group_name: 'Group E', venue: 'Houston' },
+  { home_team: 'Ivory Coast', away_team: 'Ecuador', kickoff_at: '2026-06-14T23:00:00Z', round: 'group', group_name: 'Group E', venue: 'Philadelphia' },
+  { home_team: 'Germany', away_team: 'Ivory Coast', kickoff_at: '2026-06-20T20:00:00Z', round: 'group', group_name: 'Group E', venue: 'Toronto' },
+  { home_team: 'Ecuador', away_team: 'Curacao', kickoff_at: '2026-06-21T00:00:00Z', round: 'group', group_name: 'Group E', venue: 'Kansas City' },
+  { home_team: 'Ecuador', away_team: 'Germany', kickoff_at: '2026-06-25T20:00:00Z', round: 'group', group_name: 'Group E', venue: 'East Rutherford' },
+  { home_team: 'Curacao', away_team: 'Ivory Coast', kickoff_at: '2026-06-25T20:00:00Z', round: 'group', group_name: 'Group E', venue: 'Philadelphia' },
+  { home_team: 'Netherlands', away_team: 'Japan', kickoff_at: '2026-06-14T20:00:00Z', round: 'group', group_name: 'Group F', venue: 'Arlington' },
+  { home_team: 'Sweden', away_team: 'Tunisia', kickoff_at: '2026-06-15T02:00:00Z', round: 'group', group_name: 'Group F', venue: 'Guadalajara' },
+  { home_team: 'Netherlands', away_team: 'Sweden', kickoff_at: '2026-06-20T17:00:00Z', round: 'group', group_name: 'Group F', venue: 'Houston' },
+  { home_team: 'Tunisia', away_team: 'Japan', kickoff_at: '2026-06-21T04:00:00Z', round: 'group', group_name: 'Group F', venue: 'Guadalajara' },
+  { home_team: 'Japan', away_team: 'Sweden', kickoff_at: '2026-06-25T23:00:00Z', round: 'group', group_name: 'Group F', venue: 'Dallas' },
+  { home_team: 'Tunisia', away_team: 'Netherlands', kickoff_at: '2026-06-25T23:00:00Z', round: 'group', group_name: 'Group F', venue: 'Kansas City' },
+  { home_team: 'Belgium', away_team: 'Egypt', kickoff_at: '2026-06-15T22:00:00Z', round: 'group', group_name: 'Group G', venue: 'Seattle' },
+  { home_team: 'Iran', away_team: 'New Zealand', kickoff_at: '2026-06-16T04:00:00Z', round: 'group', group_name: 'Group G', venue: 'Los Angeles' },
+  { home_team: 'Belgium', away_team: 'Iran', kickoff_at: '2026-06-21T19:00:00Z', round: 'group', group_name: 'Group G', venue: 'Los Angeles' },
+  { home_team: 'New Zealand', away_team: 'Egypt', kickoff_at: '2026-06-22T01:00:00Z', round: 'group', group_name: 'Group G', venue: 'Vancouver' },
+  { home_team: 'New Zealand', away_team: 'Belgium', kickoff_at: '2026-06-26T20:00:00Z', round: 'group', group_name: 'Group G', venue: 'Seattle' },
+  { home_team: 'Egypt', away_team: 'Iran', kickoff_at: '2026-06-26T20:00:00Z', round: 'group', group_name: 'Group G', venue: 'Vancouver' },
+  { home_team: 'Spain', away_team: 'Cape Verde', kickoff_at: '2026-06-15T17:00:00Z', round: 'group', group_name: 'Group H', venue: 'Atlanta' },
+  { home_team: 'Saudi Arabia', away_team: 'Uruguay', kickoff_at: '2026-06-15T22:00:00Z', round: 'group', group_name: 'Group H', venue: 'Miami' },
+  { home_team: 'Spain', away_team: 'Saudi Arabia', kickoff_at: '2026-06-21T16:00:00Z', round: 'group', group_name: 'Group H', venue: 'Atlanta' },
+  { home_team: 'Uruguay', away_team: 'Cape Verde', kickoff_at: '2026-06-21T22:00:00Z', round: 'group', group_name: 'Group H', venue: 'Miami' },
+  { home_team: 'Cape Verde', away_team: 'Saudi Arabia', kickoff_at: '2026-06-26T00:00:00Z', round: 'group', group_name: 'Group H', venue: 'Houston' },
+  { home_team: 'Uruguay', away_team: 'Spain', kickoff_at: '2026-06-27T00:00:00Z', round: 'group', group_name: 'Group H', venue: 'Guadalajara' },
+  { home_team: 'France', away_team: 'Senegal', kickoff_at: '2026-06-16T19:00:00Z', round: 'group', group_name: 'Group I', venue: 'East Rutherford' },
+  { home_team: 'Iraq', away_team: 'Norway', kickoff_at: '2026-06-16T22:00:00Z', round: 'group', group_name: 'Group I', venue: 'Foxborough' },
+  { home_team: 'France', away_team: 'Iraq', kickoff_at: '2026-06-22T21:00:00Z', round: 'group', group_name: 'Group I', venue: 'Philadelphia' },
+  { home_team: 'Norway', away_team: 'Senegal', kickoff_at: '2026-06-23T00:00:00Z', round: 'group', group_name: 'Group I', venue: 'East Rutherford' },
+  { home_team: 'Norway', away_team: 'France', kickoff_at: '2026-06-27T19:00:00Z', round: 'group', group_name: 'Group I', venue: 'Foxborough' },
+  { home_team: 'Senegal', away_team: 'Iraq', kickoff_at: '2026-06-27T19:00:00Z', round: 'group', group_name: 'Group I', venue: 'Toronto' },
+  { home_team: 'Argentina', away_team: 'Algeria', kickoff_at: '2026-06-17T01:00:00Z', round: 'group', group_name: 'Group J', venue: 'Kansas City' },
+  { home_team: 'Austria', away_team: 'Jordan', kickoff_at: '2026-06-17T04:00:00Z', round: 'group', group_name: 'Group J', venue: 'Santa Clara' },
+  { home_team: 'Argentina', away_team: 'Austria', kickoff_at: '2026-06-22T17:00:00Z', round: 'group', group_name: 'Group J', venue: 'Dallas' },
+  { home_team: 'Jordan', away_team: 'Algeria', kickoff_at: '2026-06-23T03:00:00Z', round: 'group', group_name: 'Group J', venue: 'Santa Clara' },
+  { home_team: 'Algeria', away_team: 'Austria', kickoff_at: '2026-06-27T23:00:00Z', round: 'group', group_name: 'Group J', venue: 'Kansas City' },
+  { home_team: 'Jordan', away_team: 'Argentina', kickoff_at: '2026-06-28T02:00:00Z', round: 'group', group_name: 'Group J', venue: 'Miami' },
+  { home_team: 'Portugal', away_team: 'DR Congo', kickoff_at: '2026-06-17T17:00:00Z', round: 'group', group_name: 'Group K', venue: 'Houston' },
+  { home_team: 'Uzbekistan', away_team: 'Colombia', kickoff_at: '2026-06-18T02:00:00Z', round: 'group', group_name: 'Group K', venue: 'Mexico City' },
+  { home_team: 'Portugal', away_team: 'Uzbekistan', kickoff_at: '2026-06-23T17:00:00Z', round: 'group', group_name: 'Group K', venue: 'Houston' },
+  { home_team: 'Colombia', away_team: 'DR Congo', kickoff_at: '2026-06-24T02:00:00Z', round: 'group', group_name: 'Group K', venue: 'Guadalajara' },
+  { home_team: 'Colombia', away_team: 'Portugal', kickoff_at: '2026-06-28T19:00:00Z', round: 'group', group_name: 'Group K', venue: 'Dallas' },
+  { home_team: 'DR Congo', away_team: 'Uzbekistan', kickoff_at: '2026-06-28T22:00:00Z', round: 'group', group_name: 'Group K', venue: 'Seattle' },
+  { home_team: 'England', away_team: 'Croatia', kickoff_at: '2026-06-17T20:00:00Z', round: 'group', group_name: 'Group L', venue: 'Dallas' },
+  { home_team: 'Ghana', away_team: 'Panama', kickoff_at: '2026-06-17T23:00:00Z', round: 'group', group_name: 'Group L', venue: 'Toronto' },
+  { home_team: 'England', away_team: 'Ghana', kickoff_at: '2026-06-23T20:00:00Z', round: 'group', group_name: 'Group L', venue: 'Foxborough' },
+  { home_team: 'Panama', away_team: 'Croatia', kickoff_at: '2026-06-23T23:00:00Z', round: 'group', group_name: 'Group L', venue: 'Toronto' },
+  { home_team: 'Croatia', away_team: 'Ghana', kickoff_at: '2026-06-28T23:00:00Z', round: 'group', group_name: 'Group L', venue: 'Boston' },
+  { home_team: 'Panama', away_team: 'England', kickoff_at: '2026-06-29T02:00:00Z', round: 'group', group_name: 'Group L', venue: 'Miami' },
+]
+
 function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   const emptyMatch = { home_team: '', away_team: '', kickoff_at: '', round: 'group', group_name: '', venue: '', tournament_id: tournamentId }
   const [form, setForm] = useState(emptyMatch)
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importDone, setImportDone] = useState(false)
+
+  async function importFIFA2026() {
+    if (!confirm('This will add all 72 FIFA World Cup 2026 group stage matches. Continue?')) return
+    setImporting(true)
+    const toInsert = FIFA2026_MATCHES.map(m => ({ ...m, tournament_id: tournamentId }))
+    for (let i = 0; i < toInsert.length; i += 20) {
+      await supabase.from('matches').insert(toInsert.slice(i, i + 20))
+    }
+    setImportDone(true)
+    setImporting(false)
+    onUpdate()
+  }
 
   async function addMatch() {
     if (!form.home_team || !form.away_team || !form.kickoff_at) return
@@ -280,8 +369,16 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="card" style={{ padding: '1.5rem', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.5rem', color: 'var(--gold)' }}>🌍 FIFA WORLD CUP 2026 — AUTO IMPORT</h3>
+        <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>Automatically add all 72 group stage matches with correct times (stored in UTC). Times will display in each user's local timezone.</p>
+        <button onClick={importFIFA2026} disabled={importing || importDone} className="btn btn-gold">
+          {importDone ? '✔ All 72 matches imported!' : importing ? 'Importing...' : '⚡ Import all FIFA 2026 group stage matches'}
+        </button>
+      </div>
+
       <div className="card" style={{ padding: '1.5rem' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>ADD MATCH</h3>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>ADD MATCH MANUALLY</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
           <div><label className="label">Home team</label><input type="text" className="input" placeholder="e.g. Brazil" value={form.home_team} onChange={e => setForm({...form,home_team:e.target.value})} /></div>
           <div><label className="label">Away team</label><input type="text" className="input" placeholder="e.g. Argentina" value={form.away_team} onChange={e => setForm({...form,away_team:e.target.value})} /></div>
