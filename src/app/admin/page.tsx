@@ -201,6 +201,7 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
       </div>
 
       {/* Points config */}
+      {tournament && (
       <div className="card" style={{ padding: '1.5rem' }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>POINTS CONFIG — {tournament.name.toUpperCase()}</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
@@ -228,6 +229,7 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
           {saved ? '✔ Saved!' : saving ? 'Saving...' : 'Save settings'}
         </button>
       </div>
+      )}
     </div>
   )
 }
