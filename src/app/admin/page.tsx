@@ -40,7 +40,7 @@ export default function AdminPage() {
     const [membRes, matchRes, profilesRes] = await Promise.all([
       supabase.from('tournament_members').select('*').eq('tournament_id', selectedTournament).order('joined_at'),
       supabase.from('matches').select('*').eq('tournament_id', selectedTournament).order('kickoff_at'),
-      supabase.from('profiles').select('id,display_name,email'),
+      supabase.from('profiles').select('*'),
     ])
     const profiles = profilesRes.data || []
     const members = (membRes.data || []).map((m: any) => ({
