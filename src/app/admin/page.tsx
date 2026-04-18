@@ -42,7 +42,7 @@ export default function AdminPage() {
       supabase.from('matches').select('*').eq('tournament_id', selectedTournament).order('kickoff_at'),
       supabase.from('profiles').select('*'),
     ])
-    const profiles = profilesRes.data || []
+    const profiles = profilesRes.data || []; console.log('profiles:', JSON.stringify(profiles)); console.log('members raw:', JSON.stringify(membRes.data));
     const members = (membRes.data || []).map((m: any) => ({
       ...m,
       profiles: profiles.find((p: any) => p.id === m.user_id)
