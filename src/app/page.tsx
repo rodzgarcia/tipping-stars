@@ -61,7 +61,7 @@ export default function HomePage() {
             {user ? (
               <>
                 {profile?.is_super_admin && (
-                  <Link href="/admin" className="btn btn-ghost" style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}>
+                  <Link href="/standings" className="btn btn-ghost" style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}>Standings</Link><Link href="/admin" className="btn btn-ghost" style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}
                     <Settings size={14} /> Admin
                   </Link>
                 )}
