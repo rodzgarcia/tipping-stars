@@ -4,9 +4,21 @@ import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
-import { format, isPast, subHours } from 'date-fns'
+import { isPast, subHours } from 'date-fns'
 
 type Tab = 'tips' | 'leaderboard' | 'predictions'
+
+function formatLocalTime(dateStr: string) {
+  const date = new Date(dateStr)
+  return date.toLocaleString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
 
 export default function TournamentPage() {
   const params = useParams()
@@ -68,7 +80,7 @@ export default function TournamentPage() {
   }
 
   const grouped = roundOrder.reduce((acc, r) => {
-    const ms = matches.filter(m => m.round === r)
+    const ms = matches.filter((m: any) => m.round === r)
     if (ms.length) acc[r] = ms
     return acc
   }, {} as Record<string, any[]>)
@@ -106,7 +118,7 @@ export default function TournamentPage() {
                   <span className="badge badge-gold">{multiplierLabel[round]}x multiplier</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  {roundMatches.map(match => (
+                  {roundMatches.map((match: any) => (
                     <MatchTipCard
                       key={match.id}
                       match={match}
@@ -133,7 +145,7 @@ export default function TournamentPage() {
             <div className="card" style={{ overflow: 'hidden' }}>
               {leaderboard.length === 0 ? (
                 <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No scores yet</div>
-              ) : leaderboard.map((row, i) => (
+              ) : leaderboard.map((row: any, i: number) => (
                 <div key={row.user_id} className={`${i < 3 ? `rank-${i+1}` : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
                   <div style={{ width: 28, textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
@@ -209,7 +221,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
               <Clock size={11} style={{ display: 'inline', marginRight: 3 }} />
-              {format(new Date(match.kickoff_at), 'EEE d MMM, HH:mm')}
+              {formatLocalTime(match.kickoff_at)}
             </span>
             {match.group_name && <span className="badge badge-grey">{match.group_name}</span>}
             {match.status === 'completed' && match.home_score !== null && (
@@ -245,7 +257,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
               <input type="number" className="score-input" min={0} max={99} value={away}
                 onChange={e => setAway(e.target.value)} placeholder="0" />
               <button onClick={saveTip} disabled={saving || home === '' || away === ''} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
-                {saved ? '✓' : saving ? '...' : tip ? 'Update' : 'Tip'}
+                {saved ? '✔' : saving ? '...' : tip ? 'Update' : 'Tip'}
               </button>
             </>
           )}
@@ -307,13 +319,13 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
               <input className="input" type="text" value={f.val} onChange={e => f.set(e.target.value)} placeholder="Team or player name..." />
             )}
             {existing && existing[`pts_${f.key === 'topScorer' ? 'top_scorer' : f.key}`] > 0 && (
-              <div style={{ fontSize: '0.75rem', color: '#4ade80', marginTop: '0.25rem' }}>✓ Correct! +{existing[`pts_${f.key === 'topScorer' ? 'top_scorer' : f.key}`]} pts</div>
+              <div style={{ fontSize: '0.75rem', color: '#4ade80', marginTop: '0.25rem' }}>✔ Correct! +{existing[`pts_${f.key === 'topScorer' ? 'top_scorer' : f.key}`]} pts</div>
             )}
           </div>
         ))}
         {!isLocked && (
           <button onClick={save} disabled={saving} className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
-            {saved ? '✓ Saved!' : saving ? 'Saving...' : existing ? 'Update predictions' : 'Submit predictions'}
+            {saved ? '✔ Saved!' : saving ? 'Saving...' : existing ? 'Update predictions' : 'Submit predictions'}
           </button>
         )}
         {isLocked && (
@@ -348,7 +360,7 @@ function NotApproved({ status }: { status?: string }) {
           {status === 'pending' ? 'Awaiting approval' : status === 'rejected' ? 'Request rejected' : 'Not a member'}
         </div>
         <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-          {status === 'pending' ? 'The tournament admin hasn\'t approved your request yet. Sit tight!' : 'Contact the tournament admin for more info.'}
+          {status === 'pending' ? "The tournament admin hasn't approved your request yet. Sit tight!" : 'Contact the tournament admin for more info.'}
         </p>
         <Link href="/" className="btn btn-ghost">← Back to home</Link>
       </div>
