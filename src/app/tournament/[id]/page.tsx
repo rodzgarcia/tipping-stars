@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Lock, Clock } from 'lucide-react'
 import { isPast, subHours } from 'date-fns'
+import { useLang } from '../../LanguageContext'
 
 type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers'
 
@@ -48,6 +49,7 @@ const GROUP_LOCK_TIMES: Record<string, string> = {
 }
 
 export default function TournamentPage() {
+  const { t } = useLang()
   const params = useParams()
   const router = useRouter()
   const tournamentId = params.id as string
@@ -97,8 +99,8 @@ export default function TournamentPage() {
 
   const roundOrder = ['group','r32','r16','qf','sf','third_place','final']
   const roundLabel: Record<string, string> = {
-    group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16',
-    qf: 'Quarter-Finals', sf: 'Semi-Finals', third_place: '3rd Place', final: 'Final'
+    group: t.groupStage, r32: t.roundOf32, r16: t.roundOf16,
+    qf: t.quarterFinals, sf: t.semiFinals, third_place: t.thirdPlace, final: t.final
   }
   const multiplierLabel: Record<string, number> = {
     group: tournament.multiplier_group, r32: tournament.multiplier_r32,
@@ -133,10 +135,10 @@ export default function TournamentPage() {
 
       <div className="max-w-4xl mx-auto px-4 pt-6">
         <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
-          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')}>Match Tips</button>
-          <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')}>Group Qualifiers</button>
-          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
-          <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>Tournament Tips</button>
+          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')}>{t.matchTips}</button>
+          <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')}>{t.groupQualifiers}</button>
+          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>{t.leaderboard}</button>
+          <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>{t.tournamentTips}</button>
         </div>
 
         {/* Match Tips — sorted by lock time */}
@@ -166,7 +168,7 @@ export default function TournamentPage() {
             ))}
             {matches.length === 0 && (
               <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-                Matches haven't been added yet. Check back soon!
+                {t.noMatchesYet}
               </div>
             )}
           </div>
@@ -179,6 +181,7 @@ export default function TournamentPage() {
             userId={user.id}
             existing={myTournamentTip}
             onSave={loadAll}
+            t={t}
           />
         )}
 
@@ -187,7 +190,7 @@ export default function TournamentPage() {
           <div style={{ paddingBottom: '3rem' }}>
             <div className="card" style={{ overflow: 'hidden' }}>
               {leaderboard.length === 0 ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No scores yet</div>
+                <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>{t.noScoresYet}</div>
               ) : leaderboard.map((row: any, i: number) => (
                 <div key={row.user_id} className={`${i < 3 ? `rank-${i+1}` : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
@@ -196,7 +199,7 @@ export default function TournamentPage() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 500, fontSize: '0.95rem', color: row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
-                      {row.display_name} {row.user_id === user.id && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>(you)</span>}
+                      {row.display_name} {row.user_id === user.id && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>({t.you})</span>}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
                       Match: {row.match_points} · Tournament: {row.tournament_points} · Tips: {row.tips_submitted}
@@ -209,7 +212,7 @@ export default function TournamentPage() {
               ))}
             </div>
             <div style={{ marginTop: '1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)', textAlign: 'center' }}>
-              Points include phase multipliers · Leaderboard updates after each match result is entered
+              {t.pointsNote}
             </div>
           </div>
         )}
@@ -221,6 +224,7 @@ export default function TournamentPage() {
             userId={user.id}
             existing={myTournamentTip}
             onSave={loadAll}
+            t={t}
           />
         )}
       </div>
@@ -228,7 +232,7 @@ export default function TournamentPage() {
   )
 }
 
-function GroupQualifierTips({ tournament, userId, existing, onSave }: any) {
+function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
   const supabase = createClient()
   const [picks, setPicks] = useState<Record<string, { first: string, second: string }>>(() => {
     const init: Record<string, { first: string, second: string }> = {}
@@ -304,7 +308,7 @@ function GroupQualifierTips({ tournament, userId, existing, onSave }: any) {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>🥇 1st Place</label>
+                    <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>{t.firstPlace ? '🥇 ' + t.firstPlace : '🥇 1st Place'}</label>
                     <select
                       className="input"
                       value={picks[group]?.first || ''}
@@ -315,7 +319,7 @@ function GroupQualifierTips({ tournament, userId, existing, onSave }: any) {
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>🥈 2nd Place</label>
+                    <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>{t.secondPlace ? '🥈 ' + t.secondPlace : '🥈 2nd Place'}</label>
                     <select
                       className="input"
                       value={picks[group]?.second || ''}
@@ -334,7 +338,7 @@ function GroupQualifierTips({ tournament, userId, existing, onSave }: any) {
 
       {unlockedGroups.length > 0 && (
         <button onClick={save} disabled={saving} className="btn btn-primary" style={{ marginBottom: '2rem' }}>
-          {saved ? '✔ Saved!' : saving ? 'Saving...' : 'Save qualifier picks'}
+          {saved ? t.savedBang : saving ? t.saving : t.saveQualifierPicks}
         </button>
       )}
 
@@ -428,7 +432,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
                 {tip.pts_with_multiplier > 0 && <span className="badge badge-gold">+{tip.pts_with_multiplier} pts</span>}
                 {match.status === 'completed' && tip.pts_with_multiplier === 0 && <span className="badge badge-grey">0 pts</span>}
               </div>
-            ) : <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.25)' }}>No tip submitted</span>
+            ) : <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.25)' }}>{t.noTipSubmitted}</span>
           ) : (
             <>
               <input type="number" className="score-input" min={0} max={99} value={home} onChange={e => setHome(e.target.value)} placeholder="0" />
@@ -448,7 +452,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   )
 }
 
-function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
+function TournamentTipForm({ tournament, userId, existing, onSave, t }: any) {
   const [winner, setWinner] = useState(existing?.tip_winner || '')
   const [second, setSecond] = useState(existing?.tip_second || '')
   const [third, setThird] = useState(existing?.tip_third || '')
@@ -468,10 +472,10 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
   }
 
   const fields = [
-    { label: 'World Cup Winner', key: 'winner', val: winner, set: setWinner, pts: tournament.pts_tournament_winner },
-    { label: '2nd Place (Runner-up)', key: 'second', val: second, set: setSecond, pts: tournament.pts_second_place },
-    { label: '3rd Place', key: 'third', val: third, set: setThird, pts: tournament.pts_third_place },
-    { label: 'Top Goal Scorer', key: 'topScorer', val: topScorer, set: setTopScorer, pts: tournament.pts_top_scorer },
+    { label: t.worldCupWinner, key: 'winner', val: winner, set: setWinner, pts: tournament.pts_tournament_winner },
+    { label: t.runnerUp, key: 'second', val: second, set: setSecond, pts: tournament.pts_second_place },
+    { label: t.thirdPlacePred, key: 'third', val: third, set: setThird, pts: tournament.pts_third_place },
+    { label: t.topGoalScorer, key: 'topScorer', val: topScorer, set: setTopScorer, pts: tournament.pts_top_scorer },
   ]
 
   return (
@@ -503,7 +507,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
         ))}
         {!isLocked && (
           <button onClick={save} disabled={saving} className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
-            {saved ? '✔ Saved!' : saving ? 'Saving...' : existing ? 'Update predictions' : 'Submit predictions'}
+            {saved ? t.savedBang : saving ? t.saving : existing ? t.updatePredictions : t.submitPredictions}
           </button>
         )}
         {isLocked && (
@@ -535,10 +539,10 @@ function NotApproved({ status }: { status?: string }) {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div style={{ textAlign: 'center', maxWidth: 380 }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', marginBottom: '1rem' }}>
-          {status === 'pending' ? 'Awaiting approval' : status === 'rejected' ? 'Request rejected' : 'Not a member'}
+          {status === 'pending' ? t.awaitingApproval : status === 'rejected' ? t.requestRejected : t.notAMember}
         </div>
         <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-          {status === 'pending' ? "The tournament admin hasn't approved your request yet. Sit tight!" : 'Contact the tournament admin for more info.'}
+          {status === 'pending' ? t.awaitingApprovalMsg : t.contactAdmin}
         </p>
         <Link href="/" className="btn btn-ghost">← Back to home</Link>
       </div>
