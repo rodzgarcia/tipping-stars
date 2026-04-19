@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
 import { isPast, subHours } from 'date-fns'
+import { useLang } from '../../LanguageContext'
 
 type Tab = 'tips' | 'leaderboard' | 'predictions'
 
