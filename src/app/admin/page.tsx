@@ -5,12 +5,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
-import { useLang } from '../LanguageContext'
 
 type AdminTab = 'tournaments' | 'members' | 'matches' | 'results'
 
 export default function AdminPage() {
-  const { t } = useLang()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -96,10 +94,10 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
-          <button className={`tab-btn ${tab === 'tournaments' ? 'active' : ''}`} onClick={() => setTab('tournaments')}><Settings size={13} style={{display:'inline',marginRight:4}}/>{t.setup}</button>
-          <button className={`tab-btn ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}><Users size={13} style={{display:'inline',marginRight:4}}/>{t.members} {pendingMembers.length > 0 && `(${pendingMembers.length})`}</button>
-          <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}><Calendar size={13} style={{display:'inline',marginRight:4}}/>{t.matches}</button>
-          <button className={`tab-btn ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}><Trophy size={13} style={{display:'inline',marginRight:4}}/>{t.results}</button>
+          <button className={`tab-btn ${tab === 'tournaments' ? 'active' : ''}`} onClick={() => setTab('tournaments')}><Settings size={13} style={{display:'inline',marginRight:4}}/>Setup</button>
+          <button className={`tab-btn ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}><Users size={13} style={{display:'inline',marginRight:4}}/>Members {pendingMembers.length > 0 && `(${pendingMembers.length})`}</button>
+          <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}><Calendar size={13} style={{display:'inline',marginRight:4}}/>Matches</button>
+          <button className={`tab-btn ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}><Trophy size={13} style={{display:'inline',marginRight:4}}/>Results</button>
         </div>
 
         {/* Tournament Setup */}
@@ -121,10 +119,10 @@ export default function AdminPage() {
                         <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{m.profiles?.email} · Requested {format(new Date(m.joined_at), 'd MMM yyyy')}</div>
                       </div>
                       <button onClick={() => approveMember(m.id, true)} className="btn btn-primary" style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}>
-                        <Check size={13} />{t.approve}
+                        <Check size={13} /> Approve
                       </button>
                       <button onClick={() => approveMember(m.id, false)} className="btn btn-danger" style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}>
-                        <X size={13} />{t.reject}
+                        <X size={13} /> Reject
                       </button>
                     </div>
                   ))}
@@ -243,6 +241,7 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
 }
 
 function EntryFeeToggle({ member, supabase, onUpdate }: any) {
+  const { t } = useLang()
   const [paid, setPaid] = useState(member.entry_fee_paid)
   async function toggle() {
     const next = !paid
@@ -251,7 +250,7 @@ function EntryFeeToggle({ member, supabase, onUpdate }: any) {
   }
   return (
     <button onClick={toggle} className={`badge ${paid ? 'badge-green' : 'badge-grey'}`} style={{ cursor: 'pointer', border: 'none', background: paid ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.06)' }}>
-      {paid ? t.paid : t.unpaid}
+      {paid ? '$ Paid' : '$ Unpaid'}
     </button>
   )
 }
