@@ -19,6 +19,9 @@ export const T = {
     admin: 'Admin',
     standings: 'Standings',
     entry: 'Entry',
+    statusUpcoming: 'Upcoming',
+    statusActive: 'Active',
+    statusCompleted: 'Completed',
 
     // Auth
     createAccount: 'Create account',
@@ -150,6 +153,9 @@ export const T = {
     admin: 'Admin',
     standings: 'Classificação',
     entry: 'Entrada',
+    statusUpcoming: 'Em breve',
+    statusActive: 'Ativo',
+    statusCompleted: 'Encerrado',
 
     // Auth
     createAccount: 'Criar conta',

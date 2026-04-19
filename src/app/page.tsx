@@ -109,7 +109,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: '0.5rem' }}>
                         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', letterSpacing: '0.05em', color: '#e8f5ee' }}>{tournament.name}</h3>
                         <span className={`badge ${tournament.status === 'active' ? 'badge-green' : tournament.status === 'completed' ? 'badge-grey' : 'badge-gold'}`}>
-                          {tournament.status}
+                          {tournament.status === 'upcoming' ? t.statusUpcoming : tournament.status === 'active' ? t.statusActive : t.statusCompleted}
                         </span>
                       </div>
                       {tournament.description && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{tournament.description}</p>}
