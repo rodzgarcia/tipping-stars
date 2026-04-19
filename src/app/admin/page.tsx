@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
+import { useLang } from '../LanguageContext'
 
 type AdminTab = 'tournaments' | 'members' | 'matches' | 'results'
 
