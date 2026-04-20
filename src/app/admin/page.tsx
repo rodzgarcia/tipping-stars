@@ -6,9 +6,9 @@ import Link from 'next/link'
 import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 import { useLang } from '../LanguageContext'
-
+ 
 type AdminTab = 'tournaments' | 'members' | 'matches' | 'results'
-
+ 
 export default function AdminPage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -21,10 +21,10 @@ export default function AdminPage() {
   const [matches, setMatches] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
-
+ 
   useEffect(() => { init() }, [])
   useEffect(() => { if (selectedTournament) loadTournamentData() }, [selectedTournament])
-
+ 
   async function init() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth'); return }
@@ -36,7 +36,7 @@ export default function AdminPage() {
     if (tours?.length) setSelectedTournament(tours[0].id)
     setLoading(false)
   }
-
+ 
   async function loadTournamentData() {
     const [membRes, matchRes, profilesRes] = await Promise.all([
       supabase.from('tournament_members').select('*').eq('tournament_id', selectedTournament).order('joined_at'),
@@ -52,7 +52,7 @@ export default function AdminPage() {
     setAllMembers(members)
     setMatches(matchRes.data || [])
   }
-
+ 
   async function approveMember(memberId: string, approve: boolean) {
     await supabase.from('tournament_members').update({
       status: approve ? 'approved' : 'rejected',
@@ -61,17 +61,45 @@ export default function AdminPage() {
     }).eq('id', memberId)
     loadTournamentData()
   }
-
+ 
+  async function saveResult(matchId: string, homeScore: number, awayScore: number) {
+    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore }).eq('id', matchId)
+    loadTournamentData()
+  }
+ 
+  async function goLive(matchId: string) {
+    await supabase.from('matches').update({ status: 'live', home_score: 0, away_score: 0 }).eq('id', matchId)
+    loadTournamentData()
+  }
+ 
+  async function updateLiveScore(matchId: string, homeScore: number, awayScore: number) {
+    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore }).eq('id', matchId)
+    await supabase.rpc('calculate_match_points', { p_match_id: matchId })
+    loadTournamentData()
+  }
+ 
+  async function endLive(matchId: string, homeScore: number, awayScore: number) {
+    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed', result_locked: true }).eq('id', matchId)
+    await supabase.rpc('calculate_match_points', { p_match_id: matchId })
+    loadTournamentData()
+  }
+ 
+  async function lockResult(matchId: string, homeScore: number, awayScore: number) {
+    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed', result_locked: true }).eq('id', matchId)
+    await supabase.rpc('calculate_match_points', { p_match_id: matchId })
+    loadTournamentData()
+  }
+ 
   async function enterResult(matchId: string, homeScore: number, awayScore: number) {
     await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed' }).eq('id', matchId)
     await supabase.rpc('calculate_match_points', { p_match_id: matchId })
     loadTournamentData()
   }
-
+ 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div style={{ fontFamily: 'var(--font-display)', color: 'var(--green-light)', letterSpacing: '0.1em' }}>LOADING...</div></div>
-
+ 
   const currentTournament = tournaments.find((t: any) => t.id === selectedTournament)
-
+ 
   return (
     <div className="min-h-screen">
       <header style={{ borderBottom: '1px solid var(--dark-border)', background: 'rgba(10,15,13,0.9)', backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 50 }}>
@@ -81,7 +109,7 @@ export default function AdminPage() {
           <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{profile?.display_name}</span>
         </div>
       </header>
-
+ 
       <div className="max-w-5xl mx-auto px-4 pt-6 pb-16">
         {/* Tournament selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -92,7 +120,7 @@ export default function AdminPage() {
             <span className="badge badge-red">{pendingMembers.length} pending approval</span>
           )}
         </div>
-
+ 
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
           <button className={`tab-btn ${tab === 'tournaments' ? 'active' : ''}`} onClick={() => setTab('tournaments')}><Settings size={13} style={{display:'inline',marginRight:4}}/>Setup</button>
@@ -100,12 +128,12 @@ export default function AdminPage() {
           <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}><Calendar size={13} style={{display:'inline',marginRight:4}}/>Matches</button>
           <button className={`tab-btn ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}><Trophy size={13} style={{display:'inline',marginRight:4}}/>Results</button>
         </div>
-
+ 
         {/* Tournament Setup */}
         {tab === 'tournaments' && (
           <TournamentSetup tournament={currentTournament} onSave={init} onCreate={init} supabase={supabase} />
         )}
-
+ 
         {/* Members */}
         {tab === 'members' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -150,21 +178,21 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-
+ 
         {/* Matches */}
         {tab === 'matches' && (
           <MatchManager matches={matches} tournamentId={selectedTournament} supabase={supabase} onUpdate={loadTournamentData} />
         )}
-
+ 
         {/* Results */}
         {tab === 'results' && (
-          <ResultsEntry matches={matches} onResult={enterResult} onEdit={enterResult} />
+          <ResultsEntry matches={matches} onSave={saveResult} onLock={lockResult} onEdit={lockResult} onGoLive={goLive} onUpdateLive={updateLiveScore} onEndLive={endLive} />
         )}
       </div>
     </div>
   )
 }
-
+ 
 function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
   const [form, setForm] = useState(tournament ? { ...tournament } : {})
   const [saving, setSaving] = useState(false)
@@ -173,27 +201,27 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
   const [newName, setNewName] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newFee, setNewFee] = useState('0')
-
+ 
   async function saveSettings() {
     setSaving(true)
     await supabase.from('tournaments').update({ ...form, updated_at: new Date().toISOString() }).eq('id', tournament.id)
     setSaved(true); setTimeout(() => setSaved(false), 2000); onSave(); setSaving(false)
   }
-
+ 
   async function createTournament() {
     if (!newName.trim()) return
     setCreating(true)
     await supabase.from('tournaments').insert({ name: newName, description: newDesc, entry_fee: Number(newFee) || 0 })
     setNewName(''); setNewDesc(''); setNewFee('0'); onCreate(); setCreating(false)
   }
-
+ 
   const field = (label: string, key: string, type = 'number') => (
     <div key={key}>
       <label className="label">{label}</label>
       <input type={type} className="input" value={form[key]} onChange={e => setForm({ ...form, [key]: type === 'number' ? Number(e.target.value) : e.target.value })} />
     </div>
   )
-
+ 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Create new */}
@@ -206,7 +234,7 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
           <button onClick={createTournament} disabled={creating || !newName.trim()} className="btn btn-gold"><Plus size={14} />{creating ? 'Creating...' : 'Create tournament'}</button>
         </div>
       </div>
-
+ 
       {/* Points config */}
       {tournament && (
       <div className="card" style={{ padding: '1.5rem' }}>
@@ -240,7 +268,7 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
     </div>
   )
 }
-
+ 
 function EntryFeeToggle({ member, supabase, onUpdate }: any) {
   const { t } = useLang()
   const [paid, setPaid] = useState(member.entry_fee_paid)
@@ -255,7 +283,7 @@ function EntryFeeToggle({ member, supabase, onUpdate }: any) {
     </button>
   )
 }
-
+ 
 const FIFA2026_MATCHES = [
   { home_team: 'Mexico', away_team: 'South Africa', kickoff_at: '2026-06-11T19:00:00Z', round: 'group', group_name: 'Group A', venue: 'Mexico City' },
   { home_team: 'South Korea', away_team: 'Czechia', kickoff_at: '2026-06-12T02:00:00Z', round: 'group', group_name: 'Group A', venue: 'Guadalajara' },
@@ -330,14 +358,14 @@ const FIFA2026_MATCHES = [
   { home_team: 'Croatia', away_team: 'Ghana', kickoff_at: '2026-06-28T23:00:00Z', round: 'group', group_name: 'Group L', venue: 'Boston' },
   { home_team: 'Panama', away_team: 'England', kickoff_at: '2026-06-29T02:00:00Z', round: 'group', group_name: 'Group L', venue: 'Miami' },
 ]
-
+ 
 function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   const emptyMatch = { home_team: '', away_team: '', kickoff_at: '', round: 'group', group_name: '', venue: '', tournament_id: tournamentId }
   const [form, setForm] = useState(emptyMatch)
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importDone, setImportDone] = useState(false)
-
+ 
   async function importFIFA2026() {
     if (!confirm('This will add all 72 FIFA World Cup 2026 group stage matches. Continue?')) return
     setImporting(true)
@@ -349,26 +377,26 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
     setImporting(false)
     onUpdate()
   }
-
+ 
   async function addMatch() {
     if (!form.home_team || !form.away_team || !form.kickoff_at) return
     setSaving(true)
     await supabase.from('matches').insert(form)
     setForm(emptyMatch); onUpdate(); setSaving(false)
   }
-
+ 
   async function deleteMatch(id: string) {
     if (!confirm('Delete this match?')) return
     await supabase.from('matches').delete().eq('id', id)
     onUpdate()
   }
-
+ 
   const rounds = [
     { value: 'group', label: 'Group stage' }, { value: 'r32', label: 'Round of 32' },
     { value: 'r16', label: 'Round of 16' }, { value: 'qf', label: 'Quarter-finals' },
     { value: 'sf', label: 'Semi-finals' }, { value: 'third_place', label: '3rd Place' }, { value: 'final', label: 'Final' }
   ]
-
+ 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div className="card" style={{ padding: '1.5rem', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)' }}>
@@ -378,7 +406,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
           {importDone ? '✔ All 72 matches imported!' : importing ? 'Importing...' : '⚡ Import all FIFA 2026 group stage matches'}
         </button>
       </div>
-
+ 
       <div className="card" style={{ padding: '1.5rem' }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>ADD MATCH MANUALLY</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
@@ -397,7 +425,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
           <Plus size={14} />{saving ? 'Adding...' : 'Add match'}
         </button>
       </div>
-
+ 
       <div>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>MATCHES ({matches.length})</h3>
         <div className="card" style={{ overflow: 'hidden' }}>
@@ -419,47 +447,113 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
     </div>
   )
 }
-
-function ResultsEntry({ matches, onResult }: any) {
+ 
+function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive, onEndLive }: any) {
   const [scores, setScores] = useState<Record<string, { home: string, away: string }>>({})
   const [editing, setEditing] = useState<string | null>(null)
-
+  const [saving, setSaving] = useState<string | null>(null)
+ 
   function setScore(matchId: string, key: 'home' | 'away', val: string) {
     setScores(prev => ({ ...prev, [matchId]: { ...prev[matchId], [key]: val } }))
   }
-
+ 
   function startEdit(m: any) {
     setEditing(m.id)
     setScores(prev => ({ ...prev, [m.id]: { home: String(m.home_score), away: String(m.away_score) } }))
   }
-
-  const pending = matches.filter((m: any) => m.status !== 'completed')
+ 
+  async function handleSave(matchId: string) {
+    const s = scores[matchId]
+    if (!s || s.home === '' || s.away === '') return
+    setSaving(matchId)
+    await onSave(matchId, Number(s.home), Number(s.away))
+    setSaving(null)
+  }
+ 
+  async function handleLock(matchId: string) {
+    const s = scores[matchId]
+    if (!s || s.home === '' || s.away === '') return
+    if (!confirm('Lock this result? Points will be calculated and players will see the score.')) return
+    setSaving(matchId)
+    await onLock(matchId, Number(s.home), Number(s.away))
+    setSaving(null)
+  }
+ 
+  const live = matches.filter((m: any) => m.status === 'live')
+  const pending = matches.filter((m: any) => m.status !== 'completed' && m.status !== 'live')
   const completed = matches.filter((m: any) => m.status === 'completed')
-
+ 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {live.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: '#f87171' }}>🔴 LIVE NOW</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {live.map((m: any) => {
+              const s = scores[m.id] || { home: String(m.home_score ?? 0), away: String(m.away_score ?? 0) }
+              const isSaving = saving === m.id
+              return (
+                <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(248,113,113,0.3)', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f87171', display: 'inline-block' }} />
+                      <span style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 600 }}>LIVE</span>
+                    </div>
+                    <span style={{ fontWeight: 600 }}>{m.home_team} vs {m.away_team}</span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', marginLeft: '1rem', color: '#f87171' }}>{m.home_score}–{m.away_score}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <input type="number" className="score-input" min={0} max={99} value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
+                    <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
+                    <input type="number" className="score-input" min={0} max={99} value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
+                    <button className="btn btn-ghost" style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem', color: '#f87171' }} disabled={isSaving} onClick={async () => { setSaving(m.id); await onUpdateLive(m.id, Number(s.home), Number(s.away)); setSaving(null) }}>
+                      {isSaving ? '...' : '⚡ Update Score'}
+                    </button>
+                    <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: 'rgba(34,197,94,0.2)', borderColor: '#4ade80', color: '#4ade80' }} disabled={isSaving} onClick={async () => { if(confirm('End match and lock final result?')) { setSaving(m.id); await onEndLive(m.id, Number(s.home), Number(s.away)); setSaving(null) } }}>
+                      ✔ Full Time
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+ 
       <div>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>ENTER RESULTS</h3>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.5)' }}>PENDING RESULTS</h3>
+        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', marginBottom: '0.75rem' }}>
+          Enter the score and click <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Save</strong> to store it privately, or <strong style={{ color: '#4ade80' }}>Lock Result</strong> to publish it and calculate points.
+        </p>
         {pending.length === 0 && (
           <div className="card" style={{ padding: '2.5rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
-            All match results have been entered — great work!
+            All match results have been locked — great work!
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          {pending.filter((m: any) => m.status !== 'upcoming' || new Date(m.kickoff_at) <= new Date()).map((m: any) => {
-            const s = scores[m.id] || { home: '', away: '' }
+          {pending.map((m: any) => {
+            const s = scores[m.id] || { home: m.home_score !== null ? String(m.home_score) : '', away: m.away_score !== null ? String(m.away_score) : '' }
+            const isSaving = saving === m.id
+            const hasSavedScore = m.home_score !== null && m.away_score !== null
             return (
               <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontWeight: 500 }}>{m.home_team} vs {m.away_team}</span>
                   <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem' }}>{new Date(m.kickoff_at).toLocaleString(undefined, {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</span>
+                  {hasSavedScore && <span className="badge badge-grey" style={{ marginLeft: '0.5rem' }}>Draft: {m.home_score}–{m.away_score}</span>}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
                   <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
                   <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
-                  <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} disabled={s.home === '' || s.away === ''} onClick={() => onResult(m.id, Number(s.home), Number(s.away))}>
-                    Enter result
+                  <button className="btn btn-ghost" style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem' }} disabled={isSaving || s.home === '' || s.away === ''} onClick={() => handleSave(m.id)}>
+                    {isSaving ? '...' : 'Save'}
+                  </button>
+                  <button className="btn btn-ghost" style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem', color: '#f87171' }} disabled={isSaving} onClick={() => onGoLive(m.id)}>
+                    🔴 Go Live
+                  </button>
+                  <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: 'rgba(34,197,94,0.2)', borderColor: '#4ade80', color: '#4ade80' }} disabled={isSaving || s.home === '' || s.away === ''} onClick={() => handleLock(m.id)}>
+                    🔒 Lock Result
                   </button>
                 </div>
               </div>
@@ -467,14 +561,15 @@ function ResultsEntry({ matches, onResult }: any) {
           })}
         </div>
       </div>
-
+ 
       {completed.length > 0 && (
         <div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>COMPLETED — CLICK EDIT TO CORRECT A RESULT</h3>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>LOCKED RESULTS — CLICK EDIT TO CORRECT</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {completed.map((m: any) => {
               const s = scores[m.id] || { home: String(m.home_score), away: String(m.away_score) }
               const isEditing = editing === m.id
+              const isSaving = saving === m.id
               return (
                 <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <div style={{ flex: 1 }}>
@@ -486,8 +581,8 @@ function ResultsEntry({ matches, onResult }: any) {
                       <input type="number" className="score-input" min={0} max={99} value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
                       <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
                       <input type="number" className="score-input" min={0} max={99} value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
-                      <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} onClick={() => { onResult(m.id, Number(s.home), Number(s.away)); setEditing(null) }}>
-                        Save
+                      <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} disabled={isSaving} onClick={async () => { setSaving(m.id); await onEdit(m.id, Number(s.home), Number(s.away)); setSaving(null); setEditing(null) }}>
+                        {isSaving ? '...' : 'Save & Lock'}
                       </button>
                       <button className="btn btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} onClick={() => setEditing(null)}>
                         Cancel
@@ -496,7 +591,7 @@ function ResultsEntry({ matches, onResult }: any) {
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem' }}>{m.home_score}–{m.away_score}</span>
-                      <span className="badge badge-green">completed</span>
+                      <span className="badge badge-green">locked</span>
                       <button className="btn btn-ghost" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => startEdit(m)}>
                         Edit
                       </button>

@@ -392,6 +392,11 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             {match.status === 'completed' && match.home_score !== null && (
               <span className="badge badge-green">Result: {match.home_score}–{match.away_score}</span>
             )}
+            {match.status === 'live' && match.home_score !== null && (
+              <span className="badge" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
+                🔴 LIVE {match.home_score}–{match.away_score}
+              </span>
+            )}
             {isLocked && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />Locked</span>}
           </div>
         </div>
