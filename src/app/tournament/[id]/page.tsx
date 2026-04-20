@@ -1,6 +1,3 @@
-Tournament page · TSX
-Copy
-
 'use client'
  
 import { useEffect, useState } from 'react'
