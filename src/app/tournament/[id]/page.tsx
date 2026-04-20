@@ -46,6 +46,7 @@ const GROUP_LOCK_TIMES: Record<string, string> = {
   K: '2026-06-17T17:00:00Z', L: '2026-06-17T20:00:00Z',
 }
 export default function TournamentPage() {
+  const { t } = useLang()
   const params = useParams()
   const router = useRouter()
   const tournamentId = params.id as string
@@ -531,4 +532,3 @@ function NotApproved({ status }: { status?: string }) {
     </div>
   )
 }
- 
