@@ -422,10 +422,10 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
           ) : (
             <>
               <input type="number" className="score-input" min={0} max={15} value={home}
-                onChange={e => setHome(e.target.value)} placeholder="0" />
+                onChange={e => { const v = parseInt(e.target.value); setHome(isNaN(v) ? "" : String(Math.min(15, Math.max(0, v)))) }} placeholder="0" />
               <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
               <input type="number" className="score-input" min={0} max={15} value={away}
-                onChange={e => setAway(e.target.value)} placeholder="0" />
+                onChange={e => { const v = parseInt(e.target.value); setAway(isNaN(v) ? "" : String(Math.min(15, Math.max(0, v)))) }} placeholder="0" />
               <button onClick={saveTip} disabled={saving || home === '' || away === ''} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
                 {saved ? '✔' : saving ? '...' : tip ? 'Update' : 'Tip'}
               </button>
