@@ -1,5 +1,5 @@
 'use client'
- 
+
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
 import { isPast, subHours } from 'date-fns'
 import { useLang } from '../../LanguageContext'
- 
+
 const WC2026_TEAMS = [
   'Algeria','Argentina','Australia','Austria','Belgium','Bosnia and Herzegovina',
   'Brazil','Canada','Cape Verde','Colombia','Croatia','Curacao','Czechia',
@@ -17,21 +17,12 @@ const WC2026_TEAMS = [
   'Scotland','Senegal','South Africa','South Korea','Spain','Sweden','Switzerland',
   'Tunisia','Turkey','Uruguay','USA','Uzbekistan'
 ].sort()
- 
- 
-const WC2026_TEAMS = [
-  'Algeria','Argentina','Australia','Austria','Belgium','Bosnia and Herzegovina',
-  'Brazil','Canada','Cape Verde','Colombia','Croatia','Curacao','Czechia',
-  'DR Congo','Ecuador','Egypt','England','France','Germany','Ghana','Haiti',
-  'Iran','Iraq','Ivory Coast','Japan','Jordan','Mexico','Morocco','Netherlands',
-  'New Zealand','Norway','Panama','Paraguay','Portugal','Qatar','Saudi Arabia',
-  'Scotland','Senegal','South Africa','South Korea','Spain','Sweden','Switzerland',
-  'Tunisia','Turkey','Uruguay','USA','Uzbekistan'
-].sort()
- 
- 
+
+
+
+
 type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers'
- 
+
 function formatLocalTime(dateStr: string) {
   const date = new Date(dateStr)
   return date.toLocaleString(undefined, {
@@ -43,8 +34,8 @@ function formatLocalTime(dateStr: string) {
     hour12: false,
   })
 }
- 
- 
+
+
 const GROUPS: Record<string, string[]> = {
   A: ['Mexico', 'South Africa', 'South Korea', 'Czechia'],
   B: ['Canada', 'Bosnia and Herzegovina', 'Qatar', 'Switzerland'],
@@ -59,7 +50,7 @@ const GROUPS: Record<string, string[]> = {
   K: ['Portugal', 'DR Congo', 'Uzbekistan', 'Colombia'],
   L: ['England', 'Croatia', 'Ghana', 'Panama'],
 }
- 
+
 const GROUP_LOCK_TIMES: Record<string, string> = {
   A: '2026-06-11T19:00:00Z', B: '2026-06-12T19:00:00Z',
   C: '2026-06-13T22:00:00Z', D: '2026-06-13T01:00:00Z',
@@ -84,14 +75,14 @@ export default function TournamentPage() {
   const [myTournamentTip, setMyTournamentTip] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
- 
+
   useEffect(() => { loadAll() }, [tournamentId])
- 
+
   async function loadAll() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth'); return }
     setUser(user)
- 
+
     const [profRes, tourRes, memberRes, matchRes, tipsRes, lbRes, ttRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
@@ -101,7 +92,7 @@ export default function TournamentPage() {
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
     ])
- 
+
     setProfile(profRes.data)
     setTournament(tourRes.data)
     setMembership(memberRes.data)
@@ -113,10 +104,10 @@ export default function TournamentPage() {
     setMyTournamentTip(ttRes.data)
     setLoading(false)
   }
- 
+
   if (loading) return <LoadingScreen />
   if (membership?.status !== 'approved') return <NotApproved status={membership?.status} />
- 
+
   const roundOrder = ['group','r32','r16','qf','sf','third_place','final']
   const roundLabel: Record<string, string> = {
     group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16',
@@ -127,13 +118,13 @@ export default function TournamentPage() {
     r16: tournament.multiplier_r16, qf: tournament.multiplier_qf,
     sf: tournament.multiplier_sf, third_place: tournament.multiplier_sf, final: tournament.multiplier_final
   }
- 
+
   const grouped = roundOrder.reduce((acc, r) => {
     const ms = matches.filter((m: any) => m.round === r)
     if (ms.length) acc[r] = ms
     return acc
   }, {} as Record<string, any[]>)
- 
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -146,7 +137,7 @@ export default function TournamentPage() {
           <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{profile?.display_name}</div>
         </div>
       </header>
- 
+
       <div className="max-w-4xl mx-auto px-4 pt-6">
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
@@ -155,7 +146,7 @@ export default function TournamentPage() {
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>Tournament Tips</button>
         </div>
- 
+
         {/* Match Tips */}
         {tab === 'tips' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
@@ -188,8 +179,8 @@ export default function TournamentPage() {
             )}
           </div>
         )}
- 
- 
+
+
         {/* Group Qualifiers */}
         {tab === 'qualifiers' && (
           <GroupQualifierTips
@@ -200,7 +191,7 @@ export default function TournamentPage() {
             t={t}
           />
         )}
- 
+
         {/* Leaderboard */}
         {tab === 'leaderboard' && (
           <div style={{ paddingBottom: '3rem' }}>
@@ -257,7 +248,7 @@ export default function TournamentPage() {
             </div>
           </div>
         )}
- 
+
         {/* Tournament Tips */}
         {tab === 'predictions' && (
           <TournamentTipForm
@@ -271,8 +262,8 @@ export default function TournamentPage() {
     </div>
   )
 }
- 
- 
+
+
 function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
   const supabase = createClient()
   const [picks, setPicks] = useState<Record<string, { first: string, second: string }>>(() => {
@@ -287,15 +278,15 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
- 
+
   const ptsPerGroup = tournament.pts_qualify || 0
- 
+
   function isGroupLocked(group: string) {
     const lockTime = GROUP_LOCK_TIMES[group]
     if (!lockTime) return false
     return isPast(subHours(new Date(lockTime), 2))
   }
- 
+
   async function save() {
     setSaving(true)
     const payload: Record<string, any> = { tournament_id: tournament.id, user_id: userId }
@@ -311,10 +302,10 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
     setSaved(true); setTimeout(() => setSaved(false), 2500)
     setSaving(false); onSave()
   }
- 
+
   const unlockedGroups = Object.keys(GROUPS).filter(g => !isGroupLocked(g))
   const lockedGroups = Object.keys(GROUPS).filter(g => isGroupLocked(g))
- 
+
   return (
     <div style={{ paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
@@ -325,7 +316,7 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
         </p>
         {ptsPerGroup > 0 && <div style={{ marginTop: '0.5rem', fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)' }}>{ptsPerGroup} {t.pts} per correct team</div>}
       </div>
- 
+
       {unlockedGroups.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
           {unlockedGroups.map(group => {
@@ -362,13 +353,13 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
           })}
         </div>
       )}
- 
+
       {unlockedGroups.length > 0 && (
         <button onClick={save} disabled={saving} className="btn btn-primary" style={{ marginBottom: '2rem' }}>
           {saved ? t.savedBang : saving ? t.saving : t.saveQualifierPicks}
         </button>
       )}
- 
+
       {lockedGroups.length > 0 && (
         <div>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: '0.75rem' }}>{t.lockedGroups}</h3>
@@ -396,7 +387,7 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
     </div>
   )
 }
- 
+
 function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
   const isLocked = match.status !== 'upcoming' || isPast(subHours(new Date(match.kickoff_at), 2))
@@ -405,7 +396,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const supabase = createClient()
- 
+
   async function saveTip() {
     if (home === '' || away === '') return
     setSaving(true)
@@ -418,9 +409,9 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
     setSaved(true); setTimeout(() => setSaved(false), 2000)
     setSaving(false); onSave()
   }
- 
+
   const multiplier = { group: tournament.multiplier_group, r32: tournament.multiplier_r32, r16: tournament.multiplier_r16, qf: tournament.multiplier_qf, sf: tournament.multiplier_sf, third_place: tournament.multiplier_sf, final: tournament.multiplier_final }[match.round as string] || 1
- 
+
   return (
     <div className="card" style={{ padding: '1rem 1.25rem', opacity: isLocked && !tip ? 0.6 : 1 }}>
       <div className="flex items-center gap-3 flex-wrap">
@@ -448,7 +439,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             {isLocked && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />Locked</span>}
           </div>
         </div>
- 
+
         {/* Tip input or display */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {isLocked ? (
@@ -487,7 +478,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
     </div>
   )
 }
- 
+
 function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
   const [winner, setWinner] = useState(existing?.tip_winner || '')
   const [second, setSecond] = useState(existing?.tip_second || '')
@@ -497,7 +488,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
   const [saved, setSaved] = useState(false)
   const isLocked = existing?.is_locked
   const supabase = createClient()
- 
+
   async function save() {
     setSaving(true)
     const payload = { tournament_id: tournament.id, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: topScorer, updated_at: new Date().toISOString() }
@@ -506,13 +497,13 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
     setSaved(true); setTimeout(() => setSaved(false), 2000)
     setSaving(false); onSave()
   }
- 
+
   const teamFields = [
     { label: 'World Cup Winner', key: 'winner', val: winner, set: setWinner, pts: tournament.pts_tournament_winner },
     { label: '2nd Place (Runner-up)', key: 'second', val: second, set: setSecond, pts: tournament.pts_second_place },
     { label: '3rd Place', key: 'third', val: third, set: setThird, pts: tournament.pts_third_place },
   ]
- 
+
   return (
     <div style={{ maxWidth: 480, paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
@@ -601,7 +592,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
     </div>
   )
 }
- 
+
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -609,7 +600,7 @@ function LoadingScreen() {
     </div>
   )
 }
- 
+
 function NotApproved({ status }: { status?: string }) {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -625,4 +616,3 @@ function NotApproved({ status }: { status?: string }) {
     </div>
   )
 }
- 
