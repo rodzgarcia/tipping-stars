@@ -390,7 +390,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             </span>
             {match.group_name && <span className="badge badge-grey">{match.group_name}</span>}
             {match.status === 'completed' && match.home_score !== null && (
-              <span className="badge badge-green">Result: {match.home_score}–{match.away_score}</span>
+              <span className="badge badge-green">Result: {match.home_score ?? 0}–{match.away_score ?? 0}</span>
             )}
             {match.status === 'live' && match.home_score !== null && (
               <span className="badge" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
@@ -407,9 +407,9 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             tip ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem' }}>{tip.tip_home}</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem' }}>{tip.tip_home ?? 0}</span>
                   <span style={{ color: 'rgba(255,255,255,0.3)' }}>–</span>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem' }}>{tip.tip_away}</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem' }}>{tip.tip_away ?? 0}</span>
                 </div>
                 {tip.pts_with_multiplier > 0 && (
                   <span className="badge badge-gold">+{tip.pts_with_multiplier} pts</span>

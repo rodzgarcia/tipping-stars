@@ -68,13 +68,16 @@ export default function AdminPage() {
   }
  
   async function goLive(matchId: string) {
-    await supabase.from('matches').update({ status: 'live', home_score: 0, away_score: 0 }).eq('id', matchId)
+    await supabase.from('matches').update({ status: 'live', home_score: 0, away_score: 0, result_locked: false }).eq('id', matchId)
     loadTournamentData()
   }
  
   async function updateLiveScore(matchId: string, homeScore: number, awayScore: number) {
-    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore }).eq('id', matchId)
+    // Set scores first, then calc points (function only needs home_score not null)
+    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed' }).eq('id', matchId)
     await supabase.rpc('calculate_match_points', { p_match_id: matchId })
+    // Revert status back to live
+    await supabase.from('matches').update({ status: 'live' }).eq('id', matchId)
     loadTournamentData()
   }
  
@@ -490,7 +493,7 @@ function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive,
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: '#f87171' }}>🔴 LIVE NOW</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {live.map((m: any) => {
-              const s = scores[m.id] || { home: String(m.home_score ?? 0), away: String(m.away_score ?? 0) }
+              const s = scores[m.id] !== undefined ? scores[m.id] : { home: String(m.home_score ?? 0), away: String(m.away_score ?? 0) }
               const isSaving = saving === m.id
               return (
                 <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(248,113,113,0.3)', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -500,7 +503,7 @@ function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive,
                       <span style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 600 }}>LIVE</span>
                     </div>
                     <span style={{ fontWeight: 600 }}>{m.home_team} vs {m.away_team}</span>
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', marginLeft: '1rem', color: '#f87171' }}>{m.home_score}–{m.away_score}</span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', marginLeft: '1rem', color: '#f87171' }}>{m.home_score ?? 0}–{m.away_score ?? 0}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <input type="number" className="score-input" min={0} max={99} value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
