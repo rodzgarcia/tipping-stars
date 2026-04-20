@@ -1,3 +1,14 @@
+ 
+const WC2026_TEAMS = [
+  'Algeria','Argentina','Australia','Austria','Belgium','Bosnia and Herzegovina',
+  'Brazil','Canada','Cape Verde','Colombia','Croatia','Curacao','Czechia',
+  'DR Congo','Ecuador','Egypt','England','France','Germany','Ghana','Haiti',
+  'Iran','Iraq','Ivory Coast','Japan','Jordan','Mexico','Morocco','Netherlands',
+  'New Zealand','Norway','Panama','Paraguay','Portugal','Qatar','Saudi Arabia',
+  'Scotland','Senegal','South Africa','South Korea','Spain','Sweden','Switzerland',
+  'Tunisia','Turkey','Uruguay','USA','Uzbekistan'
+].sort()
+ 
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
@@ -484,11 +495,10 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
     setSaving(false); onSave()
   }
  
-  const fields = [
+  const teamFields = [
     { label: 'World Cup Winner', key: 'winner', val: winner, set: setWinner, pts: tournament.pts_tournament_winner },
     { label: '2nd Place (Runner-up)', key: 'second', val: second, set: setSecond, pts: tournament.pts_second_place },
     { label: '3rd Place', key: 'third', val: third, set: setThird, pts: tournament.pts_third_place },
-    { label: 'Top Goal Scorer', key: 'topScorer', val: topScorer, set: setTopScorer, pts: tournament.pts_top_scorer },
   ]
  
   return (
@@ -500,7 +510,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
         </p>
       </div>
       <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {fields.map(f => (
+        {teamFields.map(f => (
           <div key={f.key}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
               <label className="label">{f.label}</label>
@@ -511,13 +521,54 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
                 {f.val || 'Not submitted'}
               </div>
             ) : (
-              <input className="input" type="text" value={f.val} onChange={e => f.set(e.target.value)} placeholder="Team or player name..." />
+              <select className="input" value={f.val} onChange={e => f.set(e.target.value)}>
+                <option value="">— Select a team —</option>
+                {WC2026_TEAMS.map(team => <option key={team} value={team}>{team}</option>)}
+              </select>
             )}
-            {existing && existing[`pts_${f.key === 'topScorer' ? 'top_scorer' : f.key}`] > 0 && (
-              <div style={{ fontSize: '0.75rem', color: '#4ade80', marginTop: '0.25rem' }}>✔ Correct! +{existing[`pts_${f.key === 'topScorer' ? 'top_scorer' : f.key}`]} pts</div>
+            {existing && existing[`pts_${f.key}`] > 0 && (
+              <div style={{ fontSize: '0.75rem', color: '#4ade80', marginTop: '0.25rem' }}>✔ Correct! +{existing[`pts_${f.key}`]} pts</div>
             )}
           </div>
         ))}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+            <label className="label">Top Goal Scorer</label>
+            <span className="badge badge-gold">{tournament.pts_top_scorer} pts</span>
+          </div>
+          {isLocked ? (
+            <div style={{ padding: '0.65rem 0.9rem', background: 'rgba(255,255,255,0.04)', borderRadius: 10, fontSize: '0.9rem', color: topScorer ? '#e8f5ee' : 'rgba(255,255,255,0.25)' }}>
+              {topScorer || 'Not submitted'}
+            </div>
+          ) : (
+            <>
+              <input className="input" type="text" list="scorer-list" value={topScorer} onChange={e => setTopScorer(e.target.value)} placeholder="Type a player name..." />
+              <datalist id="scorer-list">
+                {['Lionel Messi','Kylian Mbappe','Erling Haaland','Vinicius Jr','Neymar Jr','Harry Kane',
+                  'Lautaro Martinez','Antoine Griezmann','Bukayo Saka','Phil Foden','Jude Bellingham',
+                  'Florian Wirtz','Jamal Musiala','Leroy Sane','Kai Havertz','Niclas Fullkrug',
+                  'Raphinha','Rodrygo','Gabriel Martinelli','Richarlison','Endrick',
+                  'Darwin Nunez','Luis Suarez','Rodrigo Bentancur','Facundo Pellistri',
+                  'Alvaro Morata','Mikel Oyarzabal','Ferran Torres','Lamine Yamal','Pedri',
+                  'Memphis Depay','Cody Gakpo','Wout Weghorst','Virgil van Dijk',
+                  'Heung-min Son','Hwang Hee-chan','Paulo Dybala','Julian Alvarez',
+                  'Riyad Mahrez','Youssef En-Nesyri','Achraf Hakimi','Hakim Ziyech',
+                  'Sadio Mane','Ismaila Sarr','Kalidou Koulibaly',
+                  'Cristiano Ronaldo','Bruno Fernandes','Bernardo Silva','Joao Felix',
+                  'Oliver Giroud','Ousmane Dembele','Marcus Thuram',
+                  'Alvaro Morata','Gavi','Rodri','Dani Olmo',
+                  'Romelu Lukaku','Kevin De Bruyne','Lois Openda',
+                  'Andre Silva','Diogo Jota','Rafael Leao'].map(p => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+              <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.3rem' }}>Start typing to see suggestions</p>
+            </>
+          )}
+          {existing?.pts_top_scorer > 0 && (
+            <div style={{ fontSize: '0.75rem', color: '#4ade80', marginTop: '0.25rem' }}>✔ Correct! +{existing.pts_top_scorer} pts</div>
+          )}
+        </div>
         {!isLocked && (
           <button onClick={save} disabled={saving} className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
             {saved ? '✔ Saved!' : saving ? 'Saving...' : existing ? 'Update predictions' : 'Submit predictions'}
