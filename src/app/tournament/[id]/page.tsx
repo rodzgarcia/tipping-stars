@@ -182,30 +182,55 @@ export default function TournamentPage() {
         {tab === 'leaderboard' && (
           <div style={{ paddingBottom: '3rem' }}>
             <div className="card" style={{ overflow: 'hidden' }}>
+              {/* Header */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2rem 1fr repeat(4, 4rem)', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+                <div></div>
+                <div>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
+                <div style={{ textAlign: 'center' }} title="Exact scores">🎯</div>
+                <div style={{ textAlign: 'center' }} title="Correct goal difference">⚖️</div>
+                <div style={{ textAlign: 'center' }} title="Correct winner">✅</div>
+                <div style={{ textAlign: 'center' }}>{t.lang === 'pt' ? 'PTS' : 'PTS'}</div>
+              </div>
               {leaderboard.length === 0 ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No scores yet</div>
-              ) : leaderboard.map((row: any, i: number) => (
-                <div key={row.user_id} className={`${i < 3 ? `rank-${i+1}` : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
-                  <div style={{ width: 28, textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
+                <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>{t.noScoresYet}</div>
+              ) : [...leaderboard].sort((a: any, b: any) => {
+                  if (b.total_points !== a.total_points) return b.total_points - a.total_points
+                  if (b.exact_scores !== a.exact_scores) return b.exact_scores - a.exact_scores
+                  return b.correct_goal_diff - a.correct_goal_diff
+                }).map((row: any, i: number) => (
+                <div key={row.user_id}
+                  style={{ display: 'grid', gridTemplateColumns: '2rem 1fr repeat(4, 4rem)', gap: '0.5rem', alignItems: 'center', padding: '0.9rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, fontSize: '0.95rem', color: row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
-                      {row.display_name} {row.user_id === user.id && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>(you)</span>}
+                  <div>
+                    <div style={{ fontWeight: 500, fontSize: '0.9rem', color: row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
+                      {row.display_name} {row.user_id === user.id && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>({t.you})</span>}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
-                      Match: {row.match_points} · Tournament: {row.tournament_points} · Tips: {row.tips_submitted}
+                    <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.1rem' }}>
+                      {t.lang === 'pt' ? `${row.tips_submitted} palpites` : `${row.tips_submitted} tips`}
                     </div>
                   </div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', color: i === 0 ? '#fbbf24' : '#e8f5ee' }}>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: row.exact_scores > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>
+                    {row.exact_scores ?? 0}
+                  </div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: row.correct_goal_diff > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>
+                    {row.correct_goal_diff ?? 0}
+                  </div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: row.correct_winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>
+                    {row.correct_winners ?? 0}
+                  </div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
                     {row.total_points}
                   </div>
                 </div>
               ))}
             </div>
-            <div style={{ marginTop: '1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)', textAlign: 'center' }}>
-              Points include phase multipliers · Leaderboard updates after each match result is entered
+            <div style={{ marginTop: '0.75rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <span>🎯 {t.lang === 'pt' ? 'Placar exato' : 'Exact score'}</span>
+              <span>⚖️ {t.lang === 'pt' ? 'Saldo de gols' : 'Goal difference'}</span>
+              <span>✅ {t.lang === 'pt' ? 'Vencedor correto' : 'Correct winner'}</span>
+              <span>{t.lang === 'pt' ? 'Desempate: placar exato → saldo de gols' : 'Tiebreak: exact scores → goal diff'}</span>
             </div>
           </div>
         )}
