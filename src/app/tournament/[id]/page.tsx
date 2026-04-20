@@ -1,3 +1,15 @@
+Tournament page · TSX
+Copy
+
+'use client'
+ 
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase'
+import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
+import { isPast, subHours } from 'date-fns'
+import { useLang } from '../../LanguageContext'
  
 const WC2026_TEAMS = [
   'Algeria','Argentina','Australia','Austria','Belgium','Bosnia and Herzegovina',
@@ -9,14 +21,17 @@ const WC2026_TEAMS = [
   'Tunisia','Turkey','Uruguay','USA','Uzbekistan'
 ].sort()
  
-'use client'
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
-import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
-import { isPast, subHours } from 'date-fns'
-import { useLang } from '../../LanguageContext'
+ 
+const WC2026_TEAMS = [
+  'Algeria','Argentina','Australia','Austria','Belgium','Bosnia and Herzegovina',
+  'Brazil','Canada','Cape Verde','Colombia','Croatia','Curacao','Czechia',
+  'DR Congo','Ecuador','Egypt','England','France','Germany','Ghana','Haiti',
+  'Iran','Iraq','Ivory Coast','Japan','Jordan','Mexico','Morocco','Netherlands',
+  'New Zealand','Norway','Panama','Paraguay','Portugal','Qatar','Saudi Arabia',
+  'Scotland','Senegal','South Africa','South Korea','Spain','Sweden','Switzerland',
+  'Tunisia','Turkey','Uruguay','USA','Uzbekistan'
+].sort()
+ 
  
 type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers'
  
@@ -613,3 +628,4 @@ function NotApproved({ status }: { status?: string }) {
     </div>
   )
 }
+ 
