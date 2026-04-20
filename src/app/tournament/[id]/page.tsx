@@ -127,6 +127,7 @@ export default function TournamentPage() {
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
           <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')}>Match Tips</button>
+          <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')}>Group Qualifiers</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>Tournament Tips</button>
         </div>
