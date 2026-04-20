@@ -177,7 +177,7 @@ export default function TournamentPage() {
           />
         )}
  
-        {/* Leaderboard */
+        {/* Leaderboard */}
         {tab === 'leaderboard' && (
           <div style={{ paddingBottom: '3rem' }}>
             <div className="card" style={{ overflow: 'hidden' }}>
@@ -531,3 +531,4 @@ function NotApproved({ status }: { status?: string }) {
     </div>
   )
 }
+ 
