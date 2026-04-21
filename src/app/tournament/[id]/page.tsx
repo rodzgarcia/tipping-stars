@@ -408,8 +408,8 @@ function LeaderboardCharts({ leaderboard, allTips, t }: any) {
   const completedMatchIds = Array.from(new Set(
     allTips
       .filter((tip: any) => tip.pts_with_multiplier > 0 || tip.match?.status === 'completed')
-      .map((tip: any) => tip.match_id)
-  ))
+      .map((tip: any) => tip.match_id as string)
+  )) as string[]
  
   // Build a sorted list of match IDs by kickoff time
   const matchMeta: Record<string, any> = {}
@@ -773,4 +773,3 @@ function NotApproved({ status }: { status?: string }) {
     </div>
   )
 }
- 
