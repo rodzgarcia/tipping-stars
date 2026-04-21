@@ -10,6 +10,7 @@ import { useLang } from '../LanguageContext'
 type AdminTab = 'tournaments' | 'members' | 'matches' | 'results'
  
 export default function AdminPage() {
+  const { t } = useLang()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
