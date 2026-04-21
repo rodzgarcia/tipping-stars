@@ -249,4 +249,3 @@ function JoinModal({ tournamentId, userId, onJoin, onClose }: any) {
     </div>
   )
 }
- 

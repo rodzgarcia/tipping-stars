@@ -78,6 +78,7 @@ export default function TournamentPage() {
   const [allTips, setAllTips] = useState<any[]>([])
   const [avatars, setAvatars] = useState<Record<string, string>>({})
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
+  const [approvedCount, setApprovedCount] = useState(0)
   const [sortKey, setSortKey] = useState<SortKey>('total_points')
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -89,7 +90,7 @@ export default function TournamentPage() {
     if (!user) { router.push('/auth'); return }
     setUser(user)
  
-    const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, ttRes] = await Promise.all([
+    const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
       supabase.from('tournament_members').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
@@ -98,6 +99,7 @@ export default function TournamentPage() {
       supabase.from('match_tips').select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)').eq('tournament_id', tournamentId),
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
       supabase.from('profiles').select('id, display_name, avatar_url, jersey_team, tip_position'),
+      supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
     ])
  
@@ -118,6 +120,7 @@ export default function TournamentPage() {
     })
     setAvatars(avatarMap)
     setProfilesMap(profileMap)
+    setApprovedCount(approvedMembersRes.data?.length || 0)
     setMyTournamentTip(ttRes.data)
     setLoading(false)
   }
@@ -156,6 +159,11 @@ export default function TournamentPage() {
       </header>
  
       <div className="max-w-4xl mx-auto px-4 pt-6">
+        {/* Prize Pool Banner */}
+        {tournament.entry_fee > 0 && (
+          <PrizeBanner tournament={tournament} approvedCount={approvedCount} leaderboard={leaderboard} t={t} />
+        )}
+ 
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
           <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')}>Match Tips</button>
@@ -410,6 +418,59 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
 }
  
  
+ 
+ 
+function PrizeBanner({ tournament, approvedCount, leaderboard, t }: any) {
+  const pool = (tournament.entry_fee || 0) * approvedCount
+  const split1 = Number(tournament.prize_split_1st) || 60
+  const split2 = Number(tournament.prize_split_2nd) || 30
+  const split3 = Number(tournament.prize_split_3rd) || 10
+  const prize1 = Math.floor(pool * split1 / 100)
+  const prize2 = Math.floor(pool * split2 / 100)
+  const prize3 = Math.floor(pool * split3 / 100)
+  const currency = tournament.currency || 'AUD'
+ 
+  // Get current top 3
+  const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
+  const top3 = sorted.slice(0, 3)
+ 
+  return (
+    <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem', border: '1px solid rgba(251,191,36,0.2)', background: 'rgba(251,191,36,0.04)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div>
+          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', fontWeight: 600 }}>
+            {t.lang === 'pt' ? 'PREMIAÇÃO TOTAL' : 'TOTAL PRIZE POOL'}
+          </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: '#fbbf24', letterSpacing: '0.02em', lineHeight: 1 }}>
+            {currency} ${pool.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.2rem' }}>
+            {approvedCount} {t.lang === 'pt' ? 'jogadores' : 'players'} × {currency} ${tournament.entry_fee}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {[
+            { emoji: '🥇', label: `${split1}%`, amount: prize1, name: top3[0]?.display_name },
+            { emoji: '🥈', label: `${split2}%`, amount: prize2, name: top3[1]?.display_name },
+            { emoji: '🥉', label: `${split3}%`, amount: prize3, name: top3[2]?.display_name },
+          ].map(({ emoji, label, amount, name }) => (
+            <div key={emoji} style={{ textAlign: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.04)', borderRadius: 10, minWidth: 80 }}>
+              <div style={{ fontSize: '1.1rem' }}>{emoji}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: '#fbbf24' }}>${amount.toLocaleString()}</div>
+              <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)' }}>{label}</div>
+              {name && <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.15rem', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name.split(' ')[0]}</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+      {pool === 0 && (
+        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)' }}>
+          {t.lang === 'pt' ? 'Premiação atualiza conforme os jogadores são aprovados.' : 'Prize pool updates as players get approved.'}
+        </div>
+      )}
+    </div>
+  )
+}
  
 // Jersey colors per team
 const JERSEY_COLORS: Record<string, { primary: string, secondary: string, accent: string }> = {

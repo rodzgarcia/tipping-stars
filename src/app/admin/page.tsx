@@ -291,6 +291,35 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
           {field('Semi-finals', 'multiplier_sf')}
           {field('Final', 'multiplier_final')}
         </div>
+        <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.06em', margin: '1.25rem 0 0.75rem', color: 'rgba(255,255,255,0.4)' }}>PRIZE POOL SPLIT</h4>
+        <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', marginBottom: '0.75rem' }}>
+          Set the % each place receives. Must total 100%. Prize pool = entry fee × approved members.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '0.5rem' }}>
+          <div>
+            <label className="label">🥇 1st place %</label>
+            <input type="number" className="input" min={0} max={100} value={form.prize_split_1st ?? 60}
+              onChange={e => setForm({ ...form, prize_split_1st: Number(e.target.value) })} />
+          </div>
+          <div>
+            <label className="label">🥈 2nd place %</label>
+            <input type="number" className="input" min={0} max={100} value={form.prize_split_2nd ?? 30}
+              onChange={e => setForm({ ...form, prize_split_2nd: Number(e.target.value) })} />
+          </div>
+          <div>
+            <label className="label">🥉 3rd place %</label>
+            <input type="number" className="input" min={0} max={100} value={form.prize_split_3rd ?? 10}
+              onChange={e => setForm({ ...form, prize_split_3rd: Number(e.target.value) })} />
+          </div>
+        </div>
+        {(() => {
+          const total = (Number(form.prize_split_1st) || 0) + (Number(form.prize_split_2nd) || 0) + (Number(form.prize_split_3rd) || 0)
+          return (
+            <div style={{ fontSize: '0.78rem', marginBottom: '0.5rem', color: total === 100 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+              Total: {total}% {total === 100 ? '✔ Good' : `— must equal 100%`}
+            </div>
+          )
+        })()}
         <button onClick={saveSettings} disabled={saving} className="btn btn-primary" style={{ marginTop: '1.25rem' }}>
           {saved ? '✔ Saved!' : saving ? 'Saving...' : 'Save settings'}
         </button>
@@ -681,4 +710,3 @@ function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive,
     </div>
   )
 }
- 
