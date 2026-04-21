@@ -151,7 +151,7 @@ export default function HomePage() {
               )
             })}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   )
@@ -249,3 +249,4 @@ function JoinModal({ tournamentId, userId, onJoin, onClose }: any) {
     </div>
   )
 }
+ 
