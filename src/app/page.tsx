@@ -200,7 +200,7 @@ function JoinModal({ tournamentId, userId, onJoin, onClose }: any) {
       let avatarUrl = null
       if (file) {
         const ext = file.name.split('.').pop()
-        const path = \`\${userId}/avatar.\${ext}\`
+        const path = `${userId}/avatar.${ext}`
         const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
         if (uploadError) throw uploadError
         const { data } = supabase.storage.from('avatars').getPublicUrl(path)
