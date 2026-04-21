@@ -22,7 +22,7 @@ const WC2026_TEAMS = [
  
  
  
-type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers'
+type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers' | 'rules'
 type SortKey = 'total_points' | 'exact_scores' | 'correct_winners' | 'correct_goal_diff'
  
 function formatLocalTime(dateStr: string) {
@@ -170,6 +170,7 @@ export default function TournamentPage() {
           <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')}>Group Qualifiers</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>Tournament Tips</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
+          <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')}>📋 {t.lang === 'pt' ? 'Regras' : 'Rules'}</button>
         </div>
  
         {/* Match Tips */}
@@ -281,6 +282,11 @@ export default function TournamentPage() {
           </div>
         )}
  
+        {/* Rules */}
+        {tab === 'rules' && (
+          <TournamentRules tournament={tournament} approvedCount={approvedCount} t={t} />
+        )}
+
         {/* Tournament Tips */}
         {tab === 'predictions' && (
           <TournamentTipForm
@@ -423,6 +429,144 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
  
  
  
+
+function TournamentRules({ tournament: tn, approvedCount, t }: any) {
+  const ispt = t.lang === 'pt'
+  const pool = (tn.entry_fee || 0) * approvedCount
+  const prize1 = Math.floor(pool * (tn.prize_split_1st || 60) / 100)
+  const prize2 = Math.floor(pool * (tn.prize_split_2nd || 30) / 100)
+  const prize3 = Math.floor(pool * (tn.prize_split_3rd || 10) / 100)
+  const cur = tn.currency || 'AUD'
+
+  const Section = ({ emoji, title, children }: any) => (
+    <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        <span style={{ fontSize: '1.2rem' }}>{emoji}</span>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: '#e8f5ee' }}>{title}</h3>
+      </div>
+      {children}
+    </div>
+  )
+
+  const Row = ({ label, value, highlight }: any) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>{label}</span>
+      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: highlight || '#e8f5ee' }}>{value}</span>
+    </div>
+  )
+
+  return (
+    <div style={{ maxWidth: 600, paddingBottom: '3rem' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
+          📋 {tn.name} — {ispt ? 'Regras' : 'Rules'}
+        </h2>
+        <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.35)' }}>
+          {ispt ? 'Tudo que você precisa saber para jogar e ganhar.' : 'Everything you need to know to play and win.'}
+        </p>
+      </div>
+
+      {/* How to tip */}
+      <Section emoji="⚽" title={ispt ? 'COMO FUNCIONA' : 'HOW IT WORKS'}>
+        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
+          {ispt
+            ? `Para cada jogo, você deve acertar o placar. Quanto mais preciso, mais pontos você ganha. As dicas ficam bloqueadas 2 horas antes do início de cada partida.`
+            : `For each match, tip the final score. The more accurate your prediction, the more points you earn. Tips lock 2 hours before each match kicks off.`}
+        </p>
+      </Section>
+
+      {/* Points */}
+      <Section emoji="🎯" title={ispt ? 'PONTUAÇÃO' : 'POINTS SYSTEM'}>
+        <Row label={ispt ? '✅ Vencedor correto' : '✅ Correct winner'} value={`${tn.pts_winner || 2} pts`} highlight="#4ade80" />
+        <Row label={ispt ? '⚖️ Saldo de gols correto' : '⚖️ Correct goal difference'} value={`${tn.pts_goal_diff || 3} pts`} highlight="#60a5fa" />
+        <Row label={ispt ? '🎯 Placar exato' : '🎯 Exact score'} value={`${tn.pts_exact_score || 5} pts`} highlight="#fbbf24" />
+        {(tn.pts_big_margin_bonus || 0) > 0 && (
+          <Row label={ispt ? `🚀 Bônus goleada (${tn.big_margin_threshold}+ gols de diferença)` : `🚀 Big margin bonus (${tn.big_margin_threshold}+ goal difference)`} value={`+${tn.pts_big_margin_bonus} pts`} highlight="#f87171" />
+        )}
+        <div style={{ marginTop: '0.75rem', padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 8, fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>
+          {ispt
+            ? '💡 Os pontos são cumulativos — acertar o placar exato também conta como vencedor correto e saldo de gols.'
+            : '💡 Points are cumulative — an exact score also counts as correct winner and correct goal difference.'}
+        </div>
+      </Section>
+
+      {/* Multipliers */}
+      <Section emoji="✖️" title={ispt ? 'MULTIPLICADORES POR FASE' : 'PHASE MULTIPLIERS'}>
+        <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.5rem' }}>
+          {ispt ? 'Todos os pontos são multiplicados de acordo com a fase do torneio:' : 'All points are multiplied based on the tournament phase:'}
+        </p>
+        {[
+          [ispt ? 'Fase de Grupos' : 'Group Stage', tn.multiplier_group],
+          [ispt ? 'Oitavas' : 'Round of 32', tn.multiplier_r32],
+          [ispt ? 'Oitavas de Final' : 'Round of 16', tn.multiplier_r16],
+          [ispt ? 'Quartas de Final' : 'Quarter-Finals', tn.multiplier_qf],
+          [ispt ? 'Semifinais' : 'Semi-Finals', tn.multiplier_sf],
+          [ispt ? 'Final' : 'Final', tn.multiplier_final],
+        ].filter(([, v]) => v > 0).map(([label, val]) => (
+          <Row key={String(label)} label={String(label)} value={`${val}x`} highlight={Number(val) > 1 ? '#fbbf24' : undefined} />
+        ))}
+      </Section>
+
+      {/* Lock times */}
+      <Section emoji="🔒" title={ispt ? 'BLOQUEIO DAS DICAS' : 'TIP LOCK TIMES'}>
+        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
+          {ispt
+            ? '• Dicas de partidas: bloqueiam 2 horas antes do apito inicial.
+• Classificados por grupo: bloqueiam 2 horas antes do primeiro jogo de cada grupo.
+• Previsões do torneio (campeão, artilheiro): bloqueiam antes do primeiro jogo do torneio.'
+            : '• Match tips lock 2 hours before each match kicks off.
+• Group qualifier picks lock 2 hours before each group's first match.
+• Tournament predictions (winner, top scorer) lock before the first match of the tournament.'}
+        </p>
+      </Section>
+
+      {/* Tournament predictions */}
+      <Section emoji="🏆" title={ispt ? 'PREVISÕES DO TORNEIO' : 'TOURNAMENT PREDICTIONS'}>
+        <Row label={ispt ? 'Campeão' : 'Tournament winner'} value={`${tn.pts_tournament_winner || 10} pts`} highlight="#fbbf24" />
+        <Row label={ispt ? 'Vice-campeão' : 'Runner-up'} value={`${tn.pts_second_place || 6} pts`} highlight="#9ca3af" />
+        <Row label={ispt ? '3º lugar' : '3rd place'} value={`${tn.pts_third_place || 4} pts`} highlight="#b87333" />
+        <Row label={ispt ? 'Artilheiro' : 'Top scorer'} value={`${tn.pts_top_scorer || 8} pts`} highlight="#4ade80" />
+      </Section>
+
+      {/* Group qualifiers */}
+      {(tn.pts_qualify || 0) > 0 && (
+        <Section emoji="📊" title={ispt ? 'CLASSIFICADOS POR GRUPO' : 'GROUP QUALIFIERS'}>
+          <Row label={ispt ? 'Pontos por equipe (posição correta)' : 'Points per team (correct position)'} value={`${tn.pts_qualify} pts`} highlight="#4ade80" />
+          <Row label={ispt ? 'Pontos por equipe (posição errada)' : 'Points per team (wrong position)'} value={`${Math.floor(tn.pts_qualify / 2)} pts`} highlight="#60a5fa" />
+        </Section>
+      )}
+
+      {/* Prize pool */}
+      {pool > 0 && (
+        <Section emoji="💰" title={ispt ? 'PREMIAÇÃO' : 'PRIZE POOL'}>
+          <Row label={ispt ? 'Premiação total' : 'Total prize pool'} value={`${cur} $${pool.toLocaleString()}`} highlight="#fbbf24" />
+          <Row label={`🥇 ${ispt ? '1º lugar' : '1st place'} (${tn.prize_split_1st || 60}%)`} value={`${cur} $${prize1.toLocaleString()}`} highlight="#fbbf24" />
+          <Row label={`🥈 ${ispt ? '2º lugar' : '2nd place'} (${tn.prize_split_2nd || 30}%)`} value={`${cur} $${prize2.toLocaleString()}`} highlight="#9ca3af" />
+          <Row label={`🥉 ${ispt ? '3º lugar' : '3rd place'} (${tn.prize_split_3rd || 10}%)`} value={`${cur} $${prize3.toLocaleString()}`} highlight="#b87333" />
+          <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
+            {ispt
+              ? `* Baseado em ${approvedCount} jogadores × ${cur} $${tn.entry_fee} de entrada. Atualiza conforme novos jogadores são aprovados.`
+              : `* Based on ${approvedCount} players × ${cur} $${tn.entry_fee} entry fee. Updates as new players are approved.`}
+          </div>
+        </Section>
+      )}
+
+      {/* Tiebreak */}
+      <Section emoji="⚖️" title={ispt ? 'DESEMPATE' : 'TIEBREAKER'}>
+        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
+          {ispt
+            ? 'Em caso de empate em pontos, o desempate é feito pela ordem: 1. Maior número de placares exatos → 2. Maior número de saldos de gols corretos → 3. Maior número de vencedores corretos.'
+            : 'If players are tied on points, the tiebreaker order is: 1. Most exact scores → 2. Most correct goal differences → 3. Most correct winners.'}
+        </p>
+      </Section>
+
+      <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'rgba(255,255,255,0.2)', marginTop: '1rem' }}>
+        {ispt ? '⚽ Boa sorte a todos!' : '⚽ Good luck everyone!'}
+      </div>
+    </div>
+  )
+}
+
 function PrizeBanner({ tournament, approvedCount, leaderboard, t }: any) {
   const pool = (tournament.entry_fee || 0) * approvedCount
   const split1 = Number(tournament.prize_split_1st) || 60
