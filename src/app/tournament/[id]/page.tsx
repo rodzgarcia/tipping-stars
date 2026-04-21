@@ -228,8 +228,9 @@ export default function TournamentPage() {
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}
                   </div>
-                  <div>
-                    <div style={{ fontWeight: 500, fontSize: '0.9rem', color: row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
+                  <Avatar userId={row.user_id} avatars={avatars} size={34} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, fontSize: '0.88rem', color: row.user_id === user.id ? '#4ade80' : '#e8f5ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {row.display_name} {row.user_id === user.id && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>({t.you})</span>}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.1rem' }}>
