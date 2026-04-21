@@ -504,27 +504,27 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
  
   const isGold = variant === 'gold'
   const isGrey = variant === 'grey'
- 
   const cardBg = isGold
     ? 'radial-gradient(ellipse at 35% 25%, #5a3a00, #2d1c00 55%, #120b00)'
     : isGrey
     ? 'radial-gradient(ellipse at 35% 25%, #2a2a2a, #141414 55%, #080808)'
     : `radial-gradient(ellipse at 35% 25%, ${colors.primary}cc, #060d0a 65%)`
- 
   const borderColor = isGold ? '#c9a227' : isGrey ? '#4a4a4a' : colors.secondary + 'aa'
   const textColor = isGold ? '#ffd700' : isGrey ? '#777' : '#ffffff'
-  const subColor = isGold ? '#c9a227' : isGrey ? '#555' : 'rgba(255,255,255,0.55)'
+  const subColor = isGold ? '#c9a227' : isGrey ? '#555' : 'rgba(255,255,255,0.5)'
  
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       {label && <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', color: isGold ? '#c9a227' : isGrey ? '#555' : 'rgba(255,255,255,0.35)', textAlign: 'center' }}>{label}</div>}
-      <div style={{ width: 170, height: 300, position: 'relative', borderRadius: '12px 12px 46% 46% / 12px 12px 26px 26px', overflow: 'hidden', flexShrink: 0, boxShadow: isGold ? '0 0 30px rgba(201,162,39,0.3)' : 'none' }}>
+      <div style={{ width: 175, height: 310, position: 'relative', borderRadius: '12px 12px 46% 46% / 12px 12px 26px 26px', overflow: 'hidden', flexShrink: 0, boxShadow: isGold ? '0 0 30px rgba(201,162,39,0.3)' : 'none' }}>
+        {/* BG */}
         <div style={{ position: 'absolute', inset: 0, background: cardBg }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(255,255,255,0.1) 0%,transparent 50%)', zIndex: 9, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', inset: 3, borderRadius: '10px 10px 43% 43% / 10px 10px 22px 22px', border: `${isGold ? '2.5px' : '2px'} ${isGrey ? 'dashed' : 'solid'} ${borderColor}`, zIndex: 10, pointerEvents: 'none' }} />
         {isGold && <div style={{ position: 'absolute', inset: 7, borderRadius: '8px 8px 41% 41% / 8px 8px 20px 20px', border: '1px solid rgba(201,162,39,0.25)', zIndex: 8, pointerEvents: 'none' }} />}
  
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', zIndex: 5 }}>
+          {/* Top badge */}
           {(isGold || isGrey) && (
             <div style={{ textAlign: 'center', padding: '5px 0 0', fontSize: '7px', fontWeight: 700, letterSpacing: '0.13em', color: isGold ? '#c9a227' : '#555' }}>
               {isGold ? '⭐ TIPPER OF THE DAY ⭐' : '😩 DEFLATED BALL 😩'}
@@ -532,60 +532,73 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
           )}
  
           {/* Rating + position + flag */}
-          <div style={{ display: 'flex', padding: isGold || isGrey ? '2px 12px 0' : '7px 12px 0' }}>
-            <div>
-              <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 0.88, letterSpacing: -2, color: textColor, fontFamily: 'var(--font-sans)' }}>{rating}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: subColor, marginTop: 3, fontFamily: 'var(--font-sans)' }}>{position}</div>
-              {/* Flag as image */}
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: `1.5px solid ${borderColor}`, overflow: 'hidden', marginTop: 5, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {flagUrl
-                  ? <img src={flagUrl} alt={team} style={{ width: '150%', height: '150%', objectFit: 'cover', objectPosition: 'center' }} />
-                  : <span style={{ fontSize: 14 }}>🌍</span>
-                }
-              </div>
+          <div style={{ padding: isGold || isGrey ? '2px 12px 0' : '7px 12px 0' }}>
+            <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 0.88, letterSpacing: -2, color: textColor }}>{rating}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: subColor, marginTop: 2 }}>{position}</div>
+            <div style={{ width: 28, height: 20, borderRadius: 3, overflow: 'hidden', marginTop: 4, border: `1px solid ${borderColor}` }}>
+              {flagUrl
+                ? <img src={flagUrl} alt={team} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <div style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.1)' }} />
+              }
             </div>
           </div>
  
-          {/* Photo + jersey area */}
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
-            {/* Jersey behind photo */}
-            <JerseySVG colors={colors} isGrey={isGrey} />
-            {/* Face photo — circular crop, positioned above jersey collar */}
-            <div style={{ position: 'relative', zIndex: 3, marginBottom: 6 }}>
-              <div style={{ width: 88, height: 88, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${borderColor}`, background: 'rgba(0,0,0,0.3)' }}>
-                {avatarUrl
-                  ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '180%', objectFit: 'cover', objectPosition: 'center top', marginTop: '-15%' }} />
-                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, filter: isGrey ? 'grayscale(1)' : 'none' }}>👤</div>
-                }
-              </div>
+          {/* Player image area — face on top, jersey below, no circle */}
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+            {/* Jersey SVG at bottom */}
+            <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', zIndex: 1 }}>
+              <JerseySVG colors={colors} isGrey={isGrey} />
             </div>
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 30, background: `linear-gradient(to top, ${isGold ? 'rgba(18,11,0,0.8)' : isGrey ? 'rgba(8,8,8,0.8)' : 'rgba(4,10,4,0.8)'}, transparent)`, zIndex: 2 }} />
+            {/* Face photo — full bleed, no circle, fades at bottom */}
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                style={{
+                  position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+                  width: 130, height: 130,
+                  objectFit: 'cover', objectPosition: 'center top',
+                  zIndex: 2,
+                  filter: isGrey ? 'grayscale(1) opacity(0.7)' : 'none',
+                  borderRadius: '50% 50% 0 0',
+                }}
+              />
+            ) : (
+              <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', width: 100, height: 100, zIndex: 2, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                <svg viewBox="0 0 80 80" width="80" height="80" style={{ filter: isGrey ? 'grayscale(1)' : 'none', opacity: 0.5 }}>
+                  <circle cx="40" cy="28" r="18" fill="rgba(255,255,255,0.3)"/>
+                  <path d="M5 80 Q5 50 40 50 Q75 50 75 80" fill="rgba(255,255,255,0.3)"/>
+                </svg>
+              </div>
+            )}
+            {/* Fade at bottom */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(to top, ${isGold ? 'rgba(18,11,0,1)' : isGrey ? 'rgba(8,8,8,1)' : 'rgba(4,8,4,1)'}, transparent)`, zIndex: 3 }} />
           </div>
  
           {/* Name */}
-          <div style={{ textAlign: 'center', padding: '3px 8px 4px', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: textColor, background: isGold ? 'rgba(18,11,0,0.6)' : isGrey ? 'rgba(8,8,8,0.6)' : 'rgba(4,10,4,0.6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-sans)' }}>
+          <div style={{ textAlign: 'center', padding: '2px 8px 3px', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {row.display_name.toUpperCase()}
           </div>
  
           {/* Divider */}
           <div style={{ margin: '0 12px', height: 1, background: borderColor, opacity: 0.3 }} />
  
-          {/* Stats — cleaner smaller font */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', padding: '4px 12px 6px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {([['PTS', pts], ['EXC', exact], ['ACC', `${acc}%`]] as [string, any][]).map(([lbl, val]) => (
-                <div key={lbl} style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: textColor, minWidth: 22, fontFamily: 'var(--font-sans)' }}>{val}</span>
-                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: subColor, fontFamily: 'var(--font-sans)' }}>{lbl}</span>
+          {/* Stats — 6 in 2 cols, smaller to fit */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', padding: '3px 10px 5px', gap: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {([['PTS', pts], ['EXC', exact], ['ACC', acc + '%']] as [string, any][]).map(([lbl, val]) => (
+                <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 3, lineHeight: 1.5 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: textColor, minWidth: 26 }}>{val}</span>
+                  <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: '0.1em', color: subColor }}>{lbl}</span>
                 </div>
               ))}
             </div>
             <div style={{ width: 1, margin: '0 4px', background: borderColor, opacity: 0.3 }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, paddingLeft: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, paddingLeft: 6 }}>
               {([['WIN', winners], ['GDF', gdf], ['STK', streak]] as [string, any][]).map(([lbl, val]) => (
-                <div key={lbl} style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: textColor, minWidth: 22, fontFamily: 'var(--font-sans)' }}>{val}</span>
-                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: subColor, fontFamily: 'var(--font-sans)' }}>{lbl}</span>
+                <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 3, lineHeight: 1.5 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: textColor, minWidth: 26 }}>{val}</span>
+                  <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: '0.1em', color: subColor }}>{lbl}</span>
                 </div>
               ))}
             </div>
