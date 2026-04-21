@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { Trophy, Star, Users, ChevronRight, LogOut, Settings } from 'lucide-react'
+import { useLang, LangSwitcher } from './LanguageContext'
 
 export default function HomePage() {
+  const { t } = useLang()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [tournaments, setTournaments] = useState<any[]>([])
