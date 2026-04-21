@@ -135,6 +135,7 @@ export default function AdminPage() {
 
         {/* Tournament Setup */}
         {tab === 'tournaments' && (
+          <>
           <TournamentSetup tournament={currentTournament} onSave={init} onCreate={init} supabase={supabase} />
           {currentTournament?.invite_code && (
             <div className="card" style={{ padding: '1.25rem', marginTop: '1rem' }}>
@@ -153,6 +154,7 @@ export default function AdminPage() {
               </p>
             </div>
           )}
+          </>
         )}
 
         {/* Members */}
