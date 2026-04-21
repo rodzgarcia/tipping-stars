@@ -6,11 +6,7 @@ import Link from 'next/link'
 import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from 'lucide-react'
 import { format } from 'date-fns'
 import { useLang } from '../LanguageContext'
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
 type AdminTab = 'tournaments' | 'members' | 'matches' | 'results'
  
 export default function AdminPage() {
@@ -65,29 +61,17 @@ export default function AdminPage() {
     }).eq('id', memberId)
     loadTournamentData()
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function saveResult(matchId: string, homeScore: number, awayScore: number) {
     await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore }).eq('id', matchId)
     loadTournamentData()
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function goLive(matchId: string) {
     await supabase.from('matches').update({ status: 'live', home_score: 0, away_score: 0, result_locked: false }).eq('id', matchId)
     loadTournamentData()
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function updateLiveScore(matchId: string, homeScore: number, awayScore: number) {
     // Set scores first, then calc points (function only needs home_score not null)
     await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed' }).eq('id', matchId)
@@ -96,31 +80,19 @@ export default function AdminPage() {
     await supabase.from('matches').update({ status: 'live' }).eq('id', matchId)
     loadTournamentData()
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function endLive(matchId: string, homeScore: number, awayScore: number) {
     await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed', result_locked: true }).eq('id', matchId)
     await supabase.rpc('calculate_match_points', { p_match_id: matchId })
     loadTournamentData()
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function lockResult(matchId: string, homeScore: number, awayScore: number) {
     await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed', result_locked: true }).eq('id', matchId)
     await supabase.rpc('calculate_match_points', { p_match_id: matchId })
     loadTournamentData()
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function enterResult(matchId: string, homeScore: number, awayScore: number) {
     await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed' }).eq('id', matchId)
     await supabase.rpc('calculate_match_points', { p_match_id: matchId })
@@ -163,6 +135,23 @@ export default function AdminPage() {
         {/* Tournament Setup */}
         {tab === 'tournaments' && (
           <TournamentSetup tournament={currentTournament} onSave={init} onCreate={init} supabase={supabase} />
+          {currentTournament?.invite_code && (
+            <div className="card" style={{ padding: '1.25rem', marginTop: '1rem' }}>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.5rem', fontWeight: 600, letterSpacing: '0.06em' }}>📨 INVITE LINK</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <code style={{ flex: 1, fontSize: '0.78rem', color: '#4ade80', background: 'rgba(74,222,128,0.08)', padding: '0.5rem 0.75rem', borderRadius: 8, wordBreak: 'break-all' }}>
+                  {typeof window !== 'undefined' ? `${window.location.origin}/join/${currentTournament.invite_code}` : `/join/${currentTournament.invite_code}`}
+                </code>
+                <button className="btn btn-primary" style={{ padding: '0.5rem 0.9rem', fontSize: '0.8rem', flexShrink: 0 }}
+                  onClick={() => { const url = `${window.location.origin}/join/${currentTournament.invite_code}`; navigator.clipboard.writeText(url).then(() => alert('Invite link copied! Share it on WhatsApp 🎉')) }}>
+                  Copy link
+                </button>
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.5rem' }}>
+                Link expires once the first match result is entered.
+              </p>
+            </div>
+          )}
         )}
  
         {/* Members */}
@@ -343,11 +332,7 @@ function EntryFeeToggle({ member, supabase, onUpdate }: any) {
     </button>
   )
 }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
 const FIFA2026_MATCHES = [
   { home_team: 'Mexico', away_team: 'South Africa', kickoff_at: '2026-06-11T19:00:00Z', round: 'group', group_name: 'Group A', venue: 'Mexico City' },
   { home_team: 'South Korea', away_team: 'Czechia', kickoff_at: '2026-06-12T02:00:00Z', round: 'group', group_name: 'Group A', venue: 'Guadalajara' },
@@ -422,22 +407,14 @@ const FIFA2026_MATCHES = [
   { home_team: 'Croatia', away_team: 'Ghana', kickoff_at: '2026-06-28T23:00:00Z', round: 'group', group_name: 'Group L', venue: 'Boston' },
   { home_team: 'Panama', away_team: 'England', kickoff_at: '2026-06-29T02:00:00Z', round: 'group', group_name: 'Group L', venue: 'Miami' },
 ]
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
 function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   const emptyMatch = { home_team: '', away_team: '', kickoff_at: '', round: 'group', group_name: '', venue: '', tournament_id: tournamentId }
   const [form, setForm] = useState(emptyMatch)
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importDone, setImportDone] = useState(false)
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function importFIFA2026() {
     if (!confirm('This will add all 72 FIFA World Cup 2026 group stage matches. Continue?')) return
     setImporting(true)
@@ -449,11 +426,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
     setImporting(false)
     onUpdate()
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function addMatch() {
     if (!form.home_team || !form.away_team || !form.kickoff_at) return
     setSaving(true)
@@ -482,11 +455,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
           {importDone ? '✔ All 72 matches imported!' : importing ? 'Importing...' : '⚡ Import all FIFA 2026 group stage matches'}
         </button>
       </div>
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
       <div className="card" style={{ padding: '1.5rem' }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>ADD MATCH MANUALLY</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
@@ -527,20 +496,12 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
     </div>
   )
 }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
 function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive, onEndLive }: any) {
   const [scores, setScores] = useState<Record<string, { home: string, away: string }>>({})
   const [editing, setEditing] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   function setScore(matchId: string, key: 'home' | 'away', val: string) {
     setScores(prev => ({ ...prev, [matchId]: { ...prev[matchId], [key]: val } }))
   }
@@ -549,11 +510,7 @@ function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive,
     setEditing(m.id)
     setScores(prev => ({ ...prev, [m.id]: { home: String(m.home_score), away: String(m.away_score) } }))
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function handleSave(matchId: string) {
     const s = scores[matchId]
     if (!s || s.home === '' || s.away === '') return
@@ -561,11 +518,7 @@ function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive,
     await onSave(matchId, Number(s.home), Number(s.away))
     setSaving(null)
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   async function handleLock(matchId: string) {
     const s = scores[matchId]
     if (!s || s.home === '' || s.away === '') return
@@ -574,11 +527,7 @@ function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive,
     await onLock(matchId, Number(s.home), Number(s.away))
     setSaving(null)
   }
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
   const live = matches.filter((m: any) => m.status === 'live')
   const pending = matches.filter((m: any) => m.status !== 'completed' && m.status !== 'live')
   const completed = matches.filter((m: any) => m.status === 'completed')
@@ -619,11 +568,7 @@ function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive,
           </div>
         </div>
       )}
-<<<<<<< Updated upstream
  
-=======
- 
->>>>>>> Stashed changes
       <div>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.5)' }}>PENDING RESULTS</h3>
         <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', marginBottom: '0.75rem' }}>

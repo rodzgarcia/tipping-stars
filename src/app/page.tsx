@@ -102,6 +102,14 @@ export default function HomePage() {
  
       {/* Tournaments */}
       <div className="max-w-5xl mx-auto px-4 pb-16">
+        {!user ? (
+          <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', marginBottom: '0.5rem' }}>Sign in to see tournaments</div>
+            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Tournaments are invite-only. If you have an invite link, tap it to join!</p>
+            <Link href="/auth" className="btn btn-primary">Sign in / Sign up</Link>
+          </div>
+        ) : (<>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.6)' }}>
           TOURNAMENTS
         </h2>
@@ -151,7 +159,8 @@ export default function HomePage() {
               )
             })}
           </div>
-        ) : null}
+        )}
+        </>)}
       </div>
     </div>
   )
