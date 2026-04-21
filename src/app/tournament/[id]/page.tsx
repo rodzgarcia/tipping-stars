@@ -168,8 +168,8 @@ export default function TournamentPage() {
         <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
           <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')}>Match Tips</button>
           <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')}>Group Qualifiers</button>
-          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>Tournament Tips</button>
+          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
         </div>
  
         {/* Match Tips */}
@@ -273,7 +273,10 @@ export default function TournamentPage() {
               <span>{t.lang === 'pt' ? 'Desempate: placar exato → saldo de gols' : 'Tiebreak: exact scores → goal diff'}</span>
             </div>
  
-            <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
+            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
+              <RoundStandings leaderboard={leaderboard} allTips={allTips} t={t} />
+            </div>
             <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} avatars={avatars} profilesMap={profilesMap} userId={user.id} />
           </div>
         )}
@@ -472,6 +475,87 @@ function PrizeBanner({ tournament, approvedCount, leaderboard, t }: any) {
   )
 }
  
+
+function RoundStandings({ leaderboard, allTips, t }: any) {
+  if (!leaderboard.length) return null
+
+  // Get today's points per player
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayPtsMap: Record<string, number> = {}
+  allTips.forEach((tip: any) => {
+    const kickoff = new Date(tip.match?.kickoff_at || 0)
+    if (kickoff >= today && Number(tip.pts_with_multiplier) > 0) {
+      todayPtsMap[tip.user_id] = (todayPtsMap[tip.user_id] || 0) + Number(tip.pts_with_multiplier)
+    }
+  })
+
+  const hasToday = Object.keys(todayPtsMap).length > 0
+  const ptsMap = hasToday ? todayPtsMap : leaderboard.reduce((acc: any, r: any) => {
+    acc[r.user_id] = Number(r.total_points); return acc
+  }, {} as Record<string, number>)
+
+  const sorted = [...leaderboard].sort((a: any, b: any) => (ptsMap[b.user_id] || 0) - (ptsMap[a.user_id] || 0))
+  const top3 = sorted.slice(0, 3)
+  const bottom3 = [...sorted].reverse().slice(0, 3)
+
+  const heroEmojis = ['🥇', '🥈', '🥉']
+  const heroTitles = ['The Prophet', 'The Oracle', 'The Visionary']
+  const zeroTitles = ['The Disaster', 'The Confused', 'The Optimist']
+  const heroColors = ['#fbbf24', '#9ca3af', '#b87333']
+  const zeroEmojis = ['💀', '🤡', '😵']
+
+  const Label = ({ children, color }: any) => (
+    <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', color, marginBottom: '0.4rem' }}>{children}</div>
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 220, flex: 1 }}>
+      {/* Round Heroes */}
+      <div className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(251,191,36,0.15)' }}>
+        <Label color="#fbbf24">{hasToday ? (t.lang === 'pt' ? '⭐ HERÓIS DO DIA' : '⭐ HEROES OF THE DAY') : (t.lang === 'pt' ? '⭐ TOP TIPPERS' : '⭐ TOP TIPPERS')}</Label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          {top3.map((row: any, i: number) => {
+            const pts = ptsMap[row.user_id] || 0
+            return (
+              <div key={row.user_id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1rem', width: 20 }}>{heroEmojis[i]}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: heroColors[i] }}>{row.display_name.split(' ')[0]}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{heroTitles[i]}</div>
+                </div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: heroColors[i] }}>{pts}</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Round Zeroes */}
+      {leaderboard.length > 1 && (
+        <div className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(248,113,113,0.15)' }}>
+          <Label color="#f87171">{hasToday ? (t.lang === 'pt' ? '💀 DESASTRES DO DIA' : '💀 DISASTERS OF THE DAY') : (t.lang === 'pt' ? '💀 BOTTOM TIPPERS' : '💀 BOTTOM TIPPERS')}</Label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            {bottom3.map((row: any, i: number) => {
+              const pts = ptsMap[row.user_id] || 0
+              return (
+                <div key={row.user_id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1rem', width: 20 }}>{zeroEmojis[i]}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f87171' }}>{row.display_name.split(' ')[0]}</div>
+                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{zeroTitles[i]}</div>
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: '#f87171' }}>{pts}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Jersey colors per team
 const JERSEY_COLORS: Record<string, { primary: string, secondary: string, accent: string }> = {
   Brazil:      { primary: '#009c3b', secondary: '#FEDD00', accent: '#002776' },

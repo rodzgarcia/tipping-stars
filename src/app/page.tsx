@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { Trophy, Star, Users, ChevronRight, LogOut, Settings } from 'lucide-react'
- 
+
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -11,11 +11,11 @@ export default function HomePage() {
   const [myMemberships, setMyMemberships] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
- 
+
   useEffect(() => {
     loadData()
   }, [])
- 
+
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
     setUser(user)
@@ -32,12 +32,12 @@ export default function HomePage() {
     setTournaments(tours || [])
     setLoading(false)
   }
- 
+
   async function signOut() {
     await supabase.auth.signOut()
     window.location.reload()
   }
- 
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--green-light)', letterSpacing: '0.1em' }}>
@@ -45,7 +45,7 @@ export default function HomePage() {
       </div>
     </div>
   )
- 
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -66,13 +66,7 @@ export default function HomePage() {
                     <Settings size={14} /> Admin
                   </Link>
                 )}
-                <Link href="/profile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-                  {profile?.avatar_url
-                    ? <img src={profile.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.2)' }} />
-                    : <span style={{ fontSize: '1.2rem' }}>👤</span>
-                  }
-                  <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>{profile?.display_name}</span>
-                </Link>
+                <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>{profile?.display_name}</span>
                 <button onClick={signOut} className="btn btn-ghost" style={{ padding: '0.45rem 0.7rem' }}>
                   <LogOut size={14} />
                 </button>
@@ -83,7 +77,7 @@ export default function HomePage() {
           </div>
         </div>
       </header>
- 
+
       {/* Hero */}
       <div className="max-w-5xl mx-auto px-4 pt-16 pb-12 text-center">
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(3rem, 8vw, 6rem)', lineHeight: 0.95, letterSpacing: '0.04em', color: '#e8f5ee', marginBottom: '1rem' }}>
@@ -99,17 +93,9 @@ export default function HomePage() {
           </Link>
         )}
       </div>
- 
+
       {/* Tournaments */}
       <div className="max-w-5xl mx-auto px-4 pb-16">
-        {!user ? (
-          <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', marginBottom: '0.5rem' }}>Sign in to see tournaments</div>
-            <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Tournaments are invite-only. If you have an invite link, tap it to join!</p>
-            <Link href="/auth" className="btn btn-primary">Sign in / Sign up</Link>
-          </div>
-        ) : (<>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.6)' }}>
           TOURNAMENTS
         </h2>
@@ -149,7 +135,7 @@ export default function HomePage() {
                       ) : membership?.status === 'pending' ? (
                         <span className="btn btn-ghost" style={{ cursor: 'default' }}>Pending</span>
                       ) : !membership && user ? (
-                        <JoinButton tournamentId={t.id} userId={user.id} onJoin={loadData} />
+                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>Invite only</span>
                       ) : !user ? (
                         <Link href="/auth" className="btn btn-ghost">Sign in to join</Link>
                       ) : null}
@@ -160,101 +146,25 @@ export default function HomePage() {
             })}
           </div>
         )}
-        </>)}
       </div>
     </div>
   )
 }
- 
+
 function JoinButton({ tournamentId, userId, onJoin }: { tournamentId: string, userId: string, onJoin: () => void }) {
-  const [showModal, setShowModal] = useState(false)
- 
-  return (
-    <>
-      <button onClick={() => setShowModal(true)} className="btn btn-primary">
-        Request to join
-      </button>
-      {showModal && (
-        <JoinModal
-          tournamentId={tournamentId}
-          userId={userId}
-          onJoin={() => { setShowModal(false); onJoin() }}
-          onClose={() => setShowModal(false)}
-        />
-      )}
-    </>
-  )
-}
- 
-function JoinModal({ tournamentId, userId, onJoin, onClose }: any) {
-  const [step, setStep] = useState<'photo' | 'joining'>('photo')
-  const [preview, setPreview] = useState<string | null>(null)
-  const [file, setFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const supabase = createClient()
- 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    if (f.size > 5 * 1024 * 1024) { setError('Photo must be under 5MB'); return }
-    setFile(f)
-    setPreview(URL.createObjectURL(f))
-    setError('')
+
+  async function join() {
+    setLoading(true)
+    await supabase.from('tournament_members').insert({ tournament_id: tournamentId, user_id: userId })
+    onJoin()
+    setLoading(false)
   }
- 
-  async function handleJoin() {
-    setUploading(true)
-    try {
-      let avatarUrl = null
-      if (file) {
-        const ext = file.name.split('.').pop()
-        const path = `${userId}/avatar.${ext}`
-        const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-        if (uploadError) throw uploadError
-        const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-        avatarUrl = data.publicUrl
-        await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', userId)
-      }
-      await supabase.from('tournament_members').insert({ tournament_id: tournamentId, user_id: userId })
-      onJoin()
-    } catch (e: any) {
-      setError(e.message || 'Something went wrong')
-      setUploading(false)
-    }
-  }
- 
+
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-      <div className="card" style={{ padding: '2rem', maxWidth: 400, width: '100%', position: 'relative' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', letterSpacing: '0.06em', marginBottom: '0.5rem' }}>Join Tournament</h2>
-        <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}>Upload a selfie so your crew can see you on the leaderboard! You can skip this and add one later.</p>
- 
-        {/* Photo upload */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ width: 100, height: 100, borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.06)', border: '2px dashed rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {preview
-              ? <img src={preview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <span style={{ fontSize: '2.5rem' }}>📸</span>
-            }
-          </div>
-          <label style={{ cursor: 'pointer' }}>
-            <span className="btn btn-ghost" style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
-              {preview ? 'Change photo' : 'Choose photo'}
-            </span>
-            <input type="file" accept="image/*" capture="user" onChange={handleFile} style={{ display: 'none' }} />
-          </label>
-        </div>
- 
-        {error && <p style={{ color: '#f87171', fontSize: '0.82rem', marginBottom: '1rem', textAlign: 'center' }}>{error}</p>}
- 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button onClick={handleJoin} disabled={uploading} className="btn btn-primary" style={{ flex: 1 }}>
-            {uploading ? 'Joining...' : file ? 'Upload & Join' : 'Join without photo'}
-          </button>
-        </div>
-      </div>
-    </div>
+    <button onClick={join} disabled={loading} className="btn btn-primary">
+      {loading ? '...' : 'Request to join'}
+    </button>
   )
 }
