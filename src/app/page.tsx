@@ -94,8 +94,8 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Tournaments */}
-      <div className="max-w-5xl mx-auto px-4 pb-16">
+      {/* Tournaments — only visible when logged in */}
+      {user && <div className="max-w-5xl mx-auto px-4 pb-16">
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.6)' }}>
           TOURNAMENTS
         </h2>
