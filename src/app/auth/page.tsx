@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Star } from 'lucide-react'
@@ -96,9 +96,9 @@ function AuthForm() {
   )
 }
 
-function AuthForm() {
+export default function AuthPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div style={{ fontFamily: 'var(--font-display)', color: 'var(--green-light)', letterSpacing: '0.1em' }}>LOADING...</div></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div style={{ color: 'var(--green-light)' }}>LOADING...</div></div>}>
       <AuthForm />
     </Suspense>
   )
