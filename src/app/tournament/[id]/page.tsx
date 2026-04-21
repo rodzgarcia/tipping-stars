@@ -449,11 +449,43 @@ function calcRating(row: any): number {
   return raw
 }
  
+const FLAG_URLS: Record<string, string> = {
+  Brazil:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/br.svg',
+  Argentina:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ar.svg',
+  France:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg',
+  England:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-eng.svg',
+  Germany:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/de.svg',
+  Spain:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/es.svg',
+  Portugal:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pt.svg',
+  Netherlands:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nl.svg',
+  USA:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg',
+  Mexico:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/mx.svg',
+  Australia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/au.svg',
+  Japan:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jp.svg',
+  Morocco:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ma.svg',
+  Senegal:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sn.svg',
+  Colombia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/co.svg',
+  Croatia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hr.svg',
+}
+ 
+function JerseySVG({ colors, isGrey }: { colors: any, isGrey: boolean }) {
+  const c1 = isGrey ? '#444' : colors.primary
+  const c2 = isGrey ? '#333' : colors.secondary
+  return (
+    <svg viewBox="0 0 120 80" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: 120, height: 80, opacity: isGrey ? 0.4 : 0.85 }}>
+      <path d="M15 10 L0 30 L20 38 L20 80 L100 80 L100 38 L120 30 L105 10 L80 4 Q60 16 40 4 Z" fill={c1} />
+      <path d="M40 4 Q60 16 80 4 L80 22 Q60 10 40 22 Z" fill={c2} />
+      <path d="M0 30 L20 38 L20 50 L0 42 Z" fill={c2} opacity="0.5" />
+      <path d="M120 30 L100 38 L100 50 L120 42 Z" fill={c2} opacity="0.5" />
+    </svg>
+  )
+}
+ 
 function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) {
   const team = profile?.jersey_team || 'default'
   const position = profile?.tip_position || 'CAM'
   const colors = JERSEY_COLORS[team] || JERSEY_COLORS.default
-  const flag = FLAGS[team] || '🌍'
+  const flagUrl = FLAG_URLS[team]
   const rating = calcRating(row)
   const userTips = allTips.filter((tip: any) => tip.user_id === row.user_id)
   const pts = Number(row.total_points) || 0
@@ -463,7 +495,6 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
   const tips = Number(row.tips_submitted) || 0
   const acc = tips > 0 ? Math.round((winners / tips) * 100) : 0
  
-  // Streak calc
   const sortedTips = [...userTips].sort((a: any, b: any) => new Date(a.match?.kickoff_at || 0).getTime() - new Date(b.match?.kickoff_at || 0).getTime())
   let streak = 0
   for (let i = sortedTips.length - 1; i >= 0; i--) {
@@ -478,78 +509,83 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
     ? 'radial-gradient(ellipse at 35% 25%, #5a3a00, #2d1c00 55%, #120b00)'
     : isGrey
     ? 'radial-gradient(ellipse at 35% 25%, #2a2a2a, #141414 55%, #080808)'
-    : `radial-gradient(ellipse at 35% 25%, ${colors.primary}99, #0a1a14 55%, #060d0a)`
+    : `radial-gradient(ellipse at 35% 25%, ${colors.primary}cc, #060d0a 65%)`
  
-  const borderColor = isGold ? '#c9a227' : isGrey ? '#4a4a4a' : colors.secondary + '88'
-  const textColor = isGold ? '#ffd700' : isGrey ? '#777' : '#e8f5ee'
-  const subColor = isGold ? '#c9a227' : isGrey ? '#555' : colors.secondary
+  const borderColor = isGold ? '#c9a227' : isGrey ? '#4a4a4a' : colors.secondary + 'aa'
+  const textColor = isGold ? '#ffd700' : isGrey ? '#777' : '#ffffff'
+  const subColor = isGold ? '#c9a227' : isGrey ? '#555' : 'rgba(255,255,255,0.55)'
  
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-      {label && <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', color: isGold ? '#c9a227' : isGrey ? '#555' : 'rgba(255,255,255,0.4)', textAlign: 'center' }}>{label}</div>}
-      <div style={{ width: 175, height: 295, position: 'relative', borderRadius: '12px 12px 46% 46% / 12px 12px 26px 26px', overflow: 'hidden', flexShrink: 0 }}>
-        {/* Background */}
+      {label && <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', color: isGold ? '#c9a227' : isGrey ? '#555' : 'rgba(255,255,255,0.35)', textAlign: 'center' }}>{label}</div>}
+      <div style={{ width: 170, height: 300, position: 'relative', borderRadius: '12px 12px 46% 46% / 12px 12px 26px 26px', overflow: 'hidden', flexShrink: 0, boxShadow: isGold ? '0 0 30px rgba(201,162,39,0.3)' : 'none' }}>
         <div style={{ position: 'absolute', inset: 0, background: cardBg }} />
-        {/* Shine */}
-        <div style={{ position: 'absolute', inset: 0, background: isGold ? 'linear-gradient(135deg,rgba(255,215,0,0.18) 0%,transparent 45%,rgba(255,215,0,0.07) 100%)' : 'linear-gradient(135deg,rgba(255,255,255,0.12) 0%,transparent 45%)', zIndex: 9, pointerEvents: 'none' }} />
-        {/* Border */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(255,255,255,0.1) 0%,transparent 50%)', zIndex: 9, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', inset: 3, borderRadius: '10px 10px 43% 43% / 10px 10px 22px 22px', border: `${isGold ? '2.5px' : '2px'} ${isGrey ? 'dashed' : 'solid'} ${borderColor}`, zIndex: 10, pointerEvents: 'none' }} />
-        {/* Inner gold border */}
-        {isGold && <div style={{ position: 'absolute', inset: 7, borderRadius: '8px 8px 41% 41% / 8px 8px 20px 20px', border: '1px solid rgba(201,162,39,0.3)', zIndex: 8, pointerEvents: 'none' }} />}
+        {isGold && <div style={{ position: 'absolute', inset: 7, borderRadius: '8px 8px 41% 41% / 8px 8px 20px 20px', border: '1px solid rgba(201,162,39,0.25)', zIndex: 8, pointerEvents: 'none' }} />}
  
-        {/* Content */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', zIndex: 5 }}>
-          {/* Top badge */}
           {(isGold || isGrey) && (
             <div style={{ textAlign: 'center', padding: '5px 0 0', fontSize: '7px', fontWeight: 700, letterSpacing: '0.13em', color: isGold ? '#c9a227' : '#555' }}>
               {isGold ? '⭐ TIPPER OF THE DAY ⭐' : '😩 DEFLATED BALL 😩'}
             </div>
           )}
  
-          {/* Top row */}
-          <div style={{ display: 'flex', padding: isGold || isGrey ? '3px 12px 0' : '8px 12px 0' }}>
+          {/* Rating + position + flag */}
+          <div style={{ display: 'flex', padding: isGold || isGrey ? '2px 12px 0' : '7px 12px 0' }}>
             <div>
-              <div style={{ fontSize: 38, fontWeight: 900, lineHeight: 0.9, letterSpacing: -2, color: textColor }}>{rating}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: subColor, marginTop: 2 }}>{position}</div>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', border: `1.5px solid ${borderColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, marginTop: 5, background: 'rgba(0,0,0,0.25)' }}>{flag}</div>
+              <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 0.88, letterSpacing: -2, color: textColor, fontFamily: 'var(--font-sans)' }}>{rating}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: subColor, marginTop: 3, fontFamily: 'var(--font-sans)' }}>{position}</div>
+              {/* Flag as image */}
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: `1.5px solid ${borderColor}`, overflow: 'hidden', marginTop: 5, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {flagUrl
+                  ? <img src={flagUrl} alt={team} style={{ width: '150%', height: '150%', objectFit: 'cover', objectPosition: 'center' }} />
+                  : <span style={{ fontSize: 14 }}>🌍</span>
+                }
+              </div>
             </div>
           </div>
  
-          {/* Photo */}
-          <div style={{ height: 110, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 45, background: `linear-gradient(to top, ${isGold ? 'rgba(18,11,0,0.75)' : isGrey ? 'rgba(8,8,8,0.75)' : 'rgba(6,13,6,0.75)'}, transparent)`, zIndex: 2 }} />
-            <div style={{ width: 110, height: 110, borderRadius: '50% 50% 0 0', overflow: 'hidden', filter: isGrey ? 'grayscale(1) opacity(0.6)' : 'none' }}>
-              {avatarUrl
-                ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
-                : <div style={{ width: '100%', height: '100%', background: `${colors.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>👤</div>
-              }
+          {/* Photo + jersey area */}
+          <div style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end' }}>
+            {/* Jersey behind photo */}
+            <JerseySVG colors={colors} isGrey={isGrey} />
+            {/* Face photo — circular crop, positioned above jersey collar */}
+            <div style={{ position: 'relative', zIndex: 3, marginBottom: 6 }}>
+              <div style={{ width: 88, height: 88, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${borderColor}`, background: 'rgba(0,0,0,0.3)' }}>
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '180%', objectFit: 'cover', objectPosition: 'center top', marginTop: '-15%' }} />
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, filter: isGrey ? 'grayscale(1)' : 'none' }}>👤</div>
+                }
+              </div>
             </div>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 30, background: `linear-gradient(to top, ${isGold ? 'rgba(18,11,0,0.8)' : isGrey ? 'rgba(8,8,8,0.8)' : 'rgba(4,10,4,0.8)'}, transparent)`, zIndex: 2 }} />
           </div>
  
           {/* Name */}
-          <div style={{ textAlign: 'center', padding: '3px 8px 4px', fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', color: textColor, background: isGold ? 'rgba(18,11,0,0.55)' : isGrey ? 'rgba(8,8,8,0.55)' : 'rgba(6,13,6,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ textAlign: 'center', padding: '3px 8px 4px', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: textColor, background: isGold ? 'rgba(18,11,0,0.6)' : isGrey ? 'rgba(8,8,8,0.6)' : 'rgba(4,10,4,0.6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'var(--font-sans)' }}>
             {row.display_name.toUpperCase()}
           </div>
  
           {/* Divider */}
-          <div style={{ margin: '0 12px', height: 1, background: borderColor, opacity: 0.35 }} />
+          <div style={{ margin: '0 12px', height: 1, background: borderColor, opacity: 0.3 }} />
  
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', padding: '5px 14px 6px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {[['PTS', pts], ['EXC', exact], ['ACC', `${acc}%`]].map(([lbl, val]) => (
-                <div key={String(lbl)} style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: textColor, minWidth: 24 }}>{val}</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: subColor }}>{lbl}</span>
+          {/* Stats — cleaner smaller font */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', padding: '4px 12px 6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {([['PTS', pts], ['EXC', exact], ['ACC', `${acc}%`]] as [string, any][]).map(([lbl, val]) => (
+                <div key={lbl} style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: textColor, minWidth: 22, fontFamily: 'var(--font-sans)' }}>{val}</span>
+                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: subColor, fontFamily: 'var(--font-sans)' }}>{lbl}</span>
                 </div>
               ))}
             </div>
-            <div style={{ width: 1, margin: '0 5px', background: borderColor, opacity: 0.35 }} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 10 }}>
-              {[['WIN', winners], ['GDF', gdf], ['STK', streak]].map(([lbl, val]) => (
-                <div key={String(lbl)} style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: textColor, minWidth: 24 }}>{val}</span>
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: subColor }}>{lbl}</span>
+            <div style={{ width: 1, margin: '0 4px', background: borderColor, opacity: 0.3 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, paddingLeft: 8 }}>
+              {([['WIN', winners], ['GDF', gdf], ['STK', streak]] as [string, any][]).map(([lbl, val]) => (
+                <div key={lbl} style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: textColor, minWidth: 22, fontFamily: 'var(--font-sans)' }}>{val}</span>
+                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: subColor, fontFamily: 'var(--font-sans)' }}>{lbl}</span>
                 </div>
               ))}
             </div>

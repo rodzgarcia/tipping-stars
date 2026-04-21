@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -15,6 +15,8 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [showGuide, setShowGuide] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const supabase = createClient()
  
@@ -37,6 +39,7 @@ export default function ProfilePage() {
     setFile(f)
     setPreview(URL.createObjectURL(f))
     setError('')
+    setShowGuide(false)
   }
  
   async function save() {
@@ -78,26 +81,83 @@ export default function ProfilePage() {
       <div className="max-w-lg mx-auto px-4 py-8">
         <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
  
-          {/* Avatar */}
+          {/* Photo with face guide */}
           <div style={{ position: 'relative' }}>
-            <div style={{ width: 120, height: 120, borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.06)', border: '3px solid var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Current photo / placeholder */}
+            <div style={{ width: 130, height: 130, borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--green)', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {preview
-                ? <img src={preview} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <span style={{ fontSize: '3rem' }}>👤</span>
+                ? <img src={preview} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} />
+                : <span style={{ fontSize: '3.5rem' }}>👤</span>
               }
             </div>
-            <label style={{ position: 'absolute', bottom: 0, right: 0, cursor: 'pointer' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>📸</div>
-              <input type="file" accept="image/*" capture="user" onChange={handleFile} style={{ display: 'none' }} />
-            </label>
+            {/* Camera button */}
+            <button onClick={() => setShowGuide(true)} style={{ position: 'absolute', bottom: 2, right: 2, width: 36, height: 36, borderRadius: '50%', background: 'var(--green)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>📸</button>
           </div>
  
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem' }}>{profile.display_name}</div>
-            <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.35)', marginTop: '0.25rem' }}>{profile.email}</div>
-          </div>
+          {/* Face guide overlay */}
+          {showGuide && (
+            <div style={{ width: '100%', background: 'rgba(0,0,0,0.4)', borderRadius: 16, padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+              {/* Visual guide */}
+              <div style={{ position: 'relative', width: 160, height: 160 }}>
+                {/* Dashed circle guide */}
+                <svg width="160" height="160" style={{ position: 'absolute', inset: 0 }}>
+                  <circle cx="80" cy="80" r="72" fill="none" stroke="var(--green)" strokeWidth="2" strokeDasharray="8 4" />
+                  {/* Head shape guide */}
+                  <ellipse cx="80" cy="68" rx="36" ry="42" fill="rgba(74,222,128,0.08)" stroke="rgba(74,222,128,0.4)" strokeWidth="1.5" strokeDasharray="4 3" />
+                  {/* Shoulder guides */}
+                  <path d="M30 140 Q80 115 130 140" fill="none" stroke="rgba(74,222,128,0.3)" strokeWidth="1.5" strokeDasharray="4 3" />
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingTop: '60%' }}>
+                  {t.lang === 'pt' ? 'Centralize\nseu rosto' : 'Centre\nyour face'}
+                </div>
+              </div>
  
-          {file && (
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
+                  {t.lang === 'pt'
+                    ? 'Posicione seu rosto dentro do círculo. A foto aparecerá no seu cartão FIFA!'
+                    : 'Position your face inside the circle. Your photo will appear on your FIFA card!'}
+                </p>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
+                  {t.lang === 'pt' ? 'Dica: use boa iluminação e câmera frontal' : 'Tip: use good lighting and front camera'}
+                </p>
+              </div>
+ 
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <label style={{ cursor: 'pointer' }}>
+                  <span className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.55rem 1.2rem' }}>
+                    📷 {t.lang === 'pt' ? 'Tirar selfie' : 'Take selfie'}
+                  </span>
+                  <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={handleFile} style={{ display: 'none' }} />
+                </label>
+                <label style={{ cursor: 'pointer' }}>
+                  <span className="btn btn-ghost" style={{ fontSize: '0.85rem', padding: '0.55rem 1.2rem' }}>
+                    🖼 {t.lang === 'pt' ? 'Escolher foto' : 'Choose photo'}
+                  </span>
+                  <input type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+                </label>
+                <button onClick={() => setShowGuide(false)} className="btn btn-ghost" style={{ fontSize: '0.85rem', padding: '0.55rem 1rem', color: 'rgba(255,255,255,0.3)' }}>
+                  {t.lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          )}
+ 
+          {/* Name + email */}
+          {!showGuide && (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem' }}>{profile.display_name}</div>
+              <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.35)', marginTop: '0.25rem' }}>{profile.email}</div>
+              {profile.jersey_team && (
+                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.35rem' }}>
+                  {t.lang === 'pt' ? 'Equipe' : 'Team'}: {profile.jersey_team} · {profile.tip_position}
+                </div>
+              )}
+            </div>
+          )}
+ 
+          {/* Save button */}
+          {file && !showGuide && (
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {error && <p style={{ color: '#f87171', fontSize: '0.82rem', textAlign: 'center' }}>{error}</p>}
               <button onClick={save} disabled={uploading} className="btn btn-primary" style={{ width: '100%' }}>
@@ -106,15 +166,11 @@ export default function ProfilePage() {
             </div>
           )}
  
-          {!file && profile.avatar_url && (
+          {!file && !showGuide && (
             <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
-              {t.lang === 'pt' ? 'Clique no ícone de câmera para trocar sua foto' : 'Click the camera icon to change your photo'}
-            </p>
-          )}
- 
-          {!file && !profile.avatar_url && (
-            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
-              {t.lang === 'pt' ? 'Adicione uma foto para aparecer no ranking!' : 'Add a photo to show up on the leaderboard!'}
+              {profile.avatar_url
+                ? (t.lang === 'pt' ? 'Clique no 📸 para trocar sua foto' : 'Click 📸 to change your photo')
+                : (t.lang === 'pt' ? 'Adicione uma foto para aparecer no seu cartão FIFA!' : 'Add a photo to appear on your FIFA card!')}
             </p>
           )}
         </div>
