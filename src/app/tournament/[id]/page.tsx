@@ -405,7 +405,7 @@ function LeaderboardCharts({ leaderboard, allTips, t }: any) {
   const players = leaderboard.map((row: any) => ({ id: row.user_id, name: row.display_name }))
  
   // Get all completed matches sorted by kickoff time
-  const completedMatchIds = [...new Set(
+  const completedMatchIds = Array.from(new Set(
     allTips
       .filter((tip: any) => tip.pts_with_multiplier > 0 || tip.match?.status === 'completed')
       .map((tip: any) => tip.match_id)
@@ -773,3 +773,4 @@ function NotApproved({ status }: { status?: string }) {
     </div>
   )
 }
+ 
