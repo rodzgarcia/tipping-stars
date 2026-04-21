@@ -6,7 +6,7 @@ import { Star } from 'lucide-react'
 import Link from 'next/link'
 import { useLang, LangSwitcher } from '../LanguageContext'
  
-export default function AuthPage() {
+function AuthForm() {
   const { t } = useLang()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
@@ -93,5 +93,20 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function AuthForm() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div style={{ fontFamily: 'var(--font-display)', color: 'var(--green-light)', letterSpacing: '0.1em' }}>LOADING...</div></div>}>
+      <AuthForm />
+    </Suspense>
+  )
+}
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div style={{ color: 'var(--green-light)' }}>LOADING...</div></div>}>
+      <AuthForm />
+    </Suspense>
   )
 }
