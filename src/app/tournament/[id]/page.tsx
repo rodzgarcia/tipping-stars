@@ -77,6 +77,7 @@ export default function TournamentPage() {
   const [myTournamentTip, setMyTournamentTip] = useState<any>(null)
   const [allTips, setAllTips] = useState<any[]>([])
   const [avatars, setAvatars] = useState<Record<string, string>>({})
+  const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
   const [sortKey, setSortKey] = useState<SortKey>('total_points')
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -96,7 +97,7 @@ export default function TournamentPage() {
       supabase.from('match_tips').select('*, match:matches(round, kickoff_at, status, home_score, away_score)').eq('tournament_id', tournamentId).eq('user_id', user.id),
       supabase.from('match_tips').select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)').eq('tournament_id', tournamentId),
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
-      supabase.from('profiles').select('id, display_name, avatar_url'),
+      supabase.from('profiles').select('id, display_name, avatar_url, jersey_team, tip_position'),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
     ])
  
@@ -110,8 +111,13 @@ export default function TournamentPage() {
     setLeaderboard(lbRes.data || [])
     setAllTips(allTipsRes.data || [])
     const avatarMap: Record<string, string> = {}
-    allProfilesRes.data?.forEach((p: any) => { if (p.avatar_url) avatarMap[p.id] = p.avatar_url })
+    const profileMap: Record<string, any> = {}
+    allProfilesRes.data?.forEach((p: any) => {
+      if (p.avatar_url) avatarMap[p.id] = p.avatar_url
+      profileMap[p.id] = p
+    })
     setAvatars(avatarMap)
+    setProfilesMap(profileMap)
     setMyTournamentTip(ttRes.data)
     setLoading(false)
   }
@@ -259,7 +265,8 @@ export default function TournamentPage() {
               <span>{t.lang === 'pt' ? 'Desempate: placar exato → saldo de gols' : 'Tiebreak: exact scores → goal diff'}</span>
             </div>
  
-            <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} avatars={avatars} />
+            <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
+            <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} avatars={avatars} profilesMap={profilesMap} userId={user.id} />
           </div>
         )}
  
@@ -402,6 +409,234 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
   )
 }
  
+ 
+ 
+// Jersey colors per team
+const JERSEY_COLORS: Record<string, { primary: string, secondary: string, accent: string }> = {
+  Brazil:      { primary: '#009c3b', secondary: '#FEDD00', accent: '#002776' },
+  Argentina:   { primary: '#74acdf', secondary: '#ffffff', accent: '#74acdf' },
+  France:      { primary: '#002395', secondary: '#ED2939', accent: '#ffffff' },
+  England:     { primary: '#ffffff', secondary: '#CF081F', accent: '#00247D' },
+  Germany:     { primary: '#ffffff', secondary: '#000000', accent: '#DD0000' },
+  Spain:       { primary: '#AA151B', secondary: '#F1BF00', accent: '#AA151B' },
+  Portugal:    { primary: '#006600', secondary: '#FF0000', accent: '#FFD700' },
+  Netherlands: { primary: '#FF6600', secondary: '#ffffff', accent: '#003DA5' },
+  USA:         { primary: '#B22234', secondary: '#3C3B6E', accent: '#ffffff' },
+  Mexico:      { primary: '#006847', secondary: '#CE1126', accent: '#ffffff' },
+  Australia:   { primary: '#FFD700', secondary: '#00843D', accent: '#ffffff' },
+  Japan:       { primary: '#000080', secondary: '#BC002D', accent: '#ffffff' },
+  Morocco:     { primary: '#C1272D', secondary: '#006233', accent: '#ffffff' },
+  Senegal:     { primary: '#00853F', secondary: '#FDEF42', accent: '#E31B23' },
+  Colombia:    { primary: '#FCD116', secondary: '#003087', accent: '#CE1126' },
+  Croatia:     { primary: '#FF0000', secondary: '#ffffff', accent: '#0000CD' },
+  default:     { primary: '#1a4a3a', secondary: '#4ade80', accent: '#ffffff' },
+}
+ 
+const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','SS']
+const FLAGS: Record<string, string> = {
+  Brazil:'🇧🇷',Argentina:'🇦🇷',France:'🇫🇷',England:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',Germany:'🇩🇪',Spain:'🇪🇸',
+  Portugal:'🇵🇹',Netherlands:'🇳🇱',USA:'🇺🇸',Mexico:'🇲🇽',Australia:'🇦🇺',Japan:'🇯🇵',
+  Morocco:'🇲🇦',Senegal:'🇸🇳',Colombia:'🇨🇴',Croatia:'🇭🇷'
+}
+ 
+function calcRating(row: any): number {
+  const pts = Number(row.total_points) || 0
+  const exact = Number(row.exact_scores) || 0
+  const winners = Number(row.correct_winners) || 0
+  const tips = Number(row.tips_submitted) || 1
+  const acc = Math.round((winners / tips) * 100)
+  const raw = Math.min(99, Math.max(10, Math.round(pts * 1.5 + exact * 3 + acc * 0.3)))
+  return raw
+}
+ 
+function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) {
+  const team = profile?.jersey_team || 'default'
+  const position = profile?.tip_position || 'CAM'
+  const colors = JERSEY_COLORS[team] || JERSEY_COLORS.default
+  const flag = FLAGS[team] || '🌍'
+  const rating = calcRating(row)
+  const userTips = allTips.filter((tip: any) => tip.user_id === row.user_id)
+  const pts = Number(row.total_points) || 0
+  const exact = Number(row.exact_scores) || 0
+  const winners = Number(row.correct_winners) || 0
+  const gdf = Number(row.correct_goal_diff) || 0
+  const tips = Number(row.tips_submitted) || 0
+  const acc = tips > 0 ? Math.round((winners / tips) * 100) : 0
+ 
+  // Streak calc
+  const sortedTips = [...userTips].sort((a: any, b: any) => new Date(a.match?.kickoff_at || 0).getTime() - new Date(b.match?.kickoff_at || 0).getTime())
+  let streak = 0
+  for (let i = sortedTips.length - 1; i >= 0; i--) {
+    if (Number(sortedTips[i].pts_with_multiplier) > 0) streak++
+    else break
+  }
+ 
+  const isGold = variant === 'gold'
+  const isGrey = variant === 'grey'
+ 
+  const cardBg = isGold
+    ? 'radial-gradient(ellipse at 35% 25%, #5a3a00, #2d1c00 55%, #120b00)'
+    : isGrey
+    ? 'radial-gradient(ellipse at 35% 25%, #2a2a2a, #141414 55%, #080808)'
+    : `radial-gradient(ellipse at 35% 25%, ${colors.primary}99, #0a1a14 55%, #060d0a)`
+ 
+  const borderColor = isGold ? '#c9a227' : isGrey ? '#4a4a4a' : colors.secondary + '88'
+  const textColor = isGold ? '#ffd700' : isGrey ? '#777' : '#e8f5ee'
+  const subColor = isGold ? '#c9a227' : isGrey ? '#555' : colors.secondary
+ 
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+      {label && <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', color: isGold ? '#c9a227' : isGrey ? '#555' : 'rgba(255,255,255,0.4)', textAlign: 'center' }}>{label}</div>}
+      <div style={{ width: 175, height: 295, position: 'relative', borderRadius: '12px 12px 46% 46% / 12px 12px 26px 26px', overflow: 'hidden', flexShrink: 0 }}>
+        {/* Background */}
+        <div style={{ position: 'absolute', inset: 0, background: cardBg }} />
+        {/* Shine */}
+        <div style={{ position: 'absolute', inset: 0, background: isGold ? 'linear-gradient(135deg,rgba(255,215,0,0.18) 0%,transparent 45%,rgba(255,215,0,0.07) 100%)' : 'linear-gradient(135deg,rgba(255,255,255,0.12) 0%,transparent 45%)', zIndex: 9, pointerEvents: 'none' }} />
+        {/* Border */}
+        <div style={{ position: 'absolute', inset: 3, borderRadius: '10px 10px 43% 43% / 10px 10px 22px 22px', border: `${isGold ? '2.5px' : '2px'} ${isGrey ? 'dashed' : 'solid'} ${borderColor}`, zIndex: 10, pointerEvents: 'none' }} />
+        {/* Inner gold border */}
+        {isGold && <div style={{ position: 'absolute', inset: 7, borderRadius: '8px 8px 41% 41% / 8px 8px 20px 20px', border: '1px solid rgba(201,162,39,0.3)', zIndex: 8, pointerEvents: 'none' }} />}
+ 
+        {/* Content */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', zIndex: 5 }}>
+          {/* Top badge */}
+          {(isGold || isGrey) && (
+            <div style={{ textAlign: 'center', padding: '5px 0 0', fontSize: '7px', fontWeight: 700, letterSpacing: '0.13em', color: isGold ? '#c9a227' : '#555' }}>
+              {isGold ? '⭐ TIPPER OF THE DAY ⭐' : '😩 DEFLATED BALL 😩'}
+            </div>
+          )}
+ 
+          {/* Top row */}
+          <div style={{ display: 'flex', padding: isGold || isGrey ? '3px 12px 0' : '8px 12px 0' }}>
+            <div>
+              <div style={{ fontSize: 38, fontWeight: 900, lineHeight: 0.9, letterSpacing: -2, color: textColor }}>{rating}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: subColor, marginTop: 2 }}>{position}</div>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', border: `1.5px solid ${borderColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, marginTop: 5, background: 'rgba(0,0,0,0.25)' }}>{flag}</div>
+            </div>
+          </div>
+ 
+          {/* Photo */}
+          <div style={{ height: 110, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 45, background: `linear-gradient(to top, ${isGold ? 'rgba(18,11,0,0.75)' : isGrey ? 'rgba(8,8,8,0.75)' : 'rgba(6,13,6,0.75)'}, transparent)`, zIndex: 2 }} />
+            <div style={{ width: 110, height: 110, borderRadius: '50% 50% 0 0', overflow: 'hidden', filter: isGrey ? 'grayscale(1) opacity(0.6)' : 'none' }}>
+              {avatarUrl
+                ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+                : <div style={{ width: '100%', height: '100%', background: `${colors.primary}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44 }}>👤</div>
+              }
+            </div>
+          </div>
+ 
+          {/* Name */}
+          <div style={{ textAlign: 'center', padding: '3px 8px 4px', fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', color: textColor, background: isGold ? 'rgba(18,11,0,0.55)' : isGrey ? 'rgba(8,8,8,0.55)' : 'rgba(6,13,6,0.55)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {row.display_name.toUpperCase()}
+          </div>
+ 
+          {/* Divider */}
+          <div style={{ margin: '0 12px', height: 1, background: borderColor, opacity: 0.35 }} />
+ 
+          {/* Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', padding: '5px 14px 6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {[['PTS', pts], ['EXC', exact], ['ACC', `${acc}%`]].map(([lbl, val]) => (
+                <div key={String(lbl)} style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: textColor, minWidth: 24 }}>{val}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: subColor }}>{lbl}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ width: 1, margin: '0 5px', background: borderColor, opacity: 0.35 }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 10 }}>
+              {[['WIN', winners], ['GDF', gdf], ['STK', streak]].map(([lbl, val]) => (
+                <div key={String(lbl)} style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: textColor, minWidth: 24 }}>{val}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: subColor }}>{lbl}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+ 
+function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: any) {
+  if (!leaderboard.length) return null
+ 
+  // My card
+  const myRow = leaderboard.find((r: any) => r.user_id === userId)
+ 
+  // Today's tipper — who earned most pts today
+  const today = new Date()
+  today.setHours(0,0,0,0)
+  const todayTips = allTips.filter((tip: any) => {
+    const kickoff = new Date(tip.match?.kickoff_at || 0)
+    return kickoff >= today && Number(tip.pts_with_multiplier) > 0
+  })
+  const todayPtsMap: Record<string, number> = {}
+  todayTips.forEach((tip: any) => {
+    todayPtsMap[tip.user_id] = (todayPtsMap[tip.user_id] || 0) + Number(tip.pts_with_multiplier)
+  })
+ 
+  // If no today tips, use all time best/worst
+  const ptsMap = Object.keys(todayPtsMap).length > 0 ? todayPtsMap : leaderboard.reduce((acc: any, r: any) => {
+    acc[r.user_id] = Number(r.total_points); return acc
+  }, {} as Record<string, number>)
+ 
+  const sortedByToday = [...leaderboard].sort((a: any, b: any) => (ptsMap[b.user_id] || 0) - (ptsMap[a.user_id] || 0))
+  const tipperRow = sortedByToday[0]
+  const deflatedRow = sortedByToday[sortedByToday.length - 1]
+ 
+  const hasResults = leaderboard.some((r: any) => Number(r.total_points) > 0)
+ 
+  return (
+    <div style={{ marginBottom: '2rem' }}>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }}>
+        ⚽ {t.lang === 'pt' ? 'CARTÕES DO DIA' : 'CARDS OF THE DAY'}
+      </h3>
+      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+        {myRow && (
+          <FIFACard
+            row={myRow}
+            allTips={allTips}
+            avatarUrl={avatars[myRow.user_id]}
+            profile={profilesMap[myRow.user_id]}
+            variant="default"
+            label={t.lang === 'pt' ? '👤 SEU CARTÃO' : '👤 YOUR CARD'}
+            t={t}
+          />
+        )}
+        {hasResults && tipperRow && tipperRow.user_id !== deflatedRow?.user_id && (
+          <FIFACard
+            row={tipperRow}
+            allTips={allTips}
+            avatarUrl={avatars[tipperRow.user_id]}
+            profile={profilesMap[tipperRow.user_id]}
+            variant="gold"
+            label={t.lang === 'pt' ? '⭐ TIPPER DO DIA' : '⭐ TIPPER OF THE DAY'}
+            t={t}
+          />
+        )}
+        {hasResults && deflatedRow && leaderboard.length > 1 && (
+          <FIFACard
+            row={deflatedRow}
+            allTips={allTips}
+            avatarUrl={avatars[deflatedRow.user_id]}
+            profile={profilesMap[deflatedRow.user_id]}
+            variant="grey"
+            label={t.lang === 'pt' ? '😩 BOLA MURCHA' : '😩 DEFLATED BALL'}
+            t={t}
+          />
+        )}
+      </div>
+      {!hasResults && (
+        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.5rem' }}>
+          {t.lang === 'pt' ? 'Cartões aparecem após o primeiro resultado!' : 'Cards appear after the first match result!'}
+        </p>
+      )}
+    </div>
+  )
+}
  
 const CHART_COLORS = ['#4ade80','#fbbf24','#60a5fa','#f87171','#c084fc','#34d399','#fb923c','#a78bfa','#f472b6','#38bdf8']
  
