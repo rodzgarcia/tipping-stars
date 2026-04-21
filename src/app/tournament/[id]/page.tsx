@@ -1,5 +1,5 @@
 'use client'
- 
+
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
@@ -8,7 +8,7 @@ import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
 import { isPast, subHours } from 'date-fns'
 import { useLang } from '../../LanguageContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
- 
+
 const WC2026_TEAMS = [
   'Algeria','Argentina','Australia','Austria','Belgium','Bosnia and Herzegovina',
   'Brazil','Canada','Cape Verde','Colombia','Croatia','Curacao','Czechia',
@@ -18,13 +18,13 @@ const WC2026_TEAMS = [
   'Scotland','Senegal','South Africa','South Korea','Spain','Sweden','Switzerland',
   'Tunisia','Turkey','Uruguay','USA','Uzbekistan'
 ].sort()
- 
- 
- 
- 
+
+
+
+
 type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers' | 'rules'
 type SortKey = 'total_points' | 'exact_scores' | 'correct_winners' | 'correct_goal_diff'
- 
+
 function formatLocalTime(dateStr: string) {
   const date = new Date(dateStr)
   return date.toLocaleString(undefined, {
@@ -36,8 +36,8 @@ function formatLocalTime(dateStr: string) {
     hour12: false,
   })
 }
- 
- 
+
+
 const GROUPS: Record<string, string[]> = {
   A: ['Mexico', 'South Africa', 'South Korea', 'Czechia'],
   B: ['Canada', 'Bosnia and Herzegovina', 'Qatar', 'Switzerland'],
@@ -52,7 +52,7 @@ const GROUPS: Record<string, string[]> = {
   K: ['Portugal', 'DR Congo', 'Uzbekistan', 'Colombia'],
   L: ['England', 'Croatia', 'Ghana', 'Panama'],
 }
- 
+
 const GROUP_LOCK_TIMES: Record<string, string> = {
   A: '2026-06-11T19:00:00Z', B: '2026-06-12T19:00:00Z',
   C: '2026-06-13T22:00:00Z', D: '2026-06-13T01:00:00Z',
@@ -82,14 +82,14 @@ export default function TournamentPage() {
   const [sortKey, setSortKey] = useState<SortKey>('total_points')
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
- 
+
   useEffect(() => { loadAll() }, [tournamentId])
- 
+
   async function loadAll() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth'); return }
     setUser(user)
- 
+
     const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
@@ -102,7 +102,7 @@ export default function TournamentPage() {
       supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
     ])
- 
+
     setProfile(profRes.data)
     setTournament(tourRes.data)
     setMembership(memberRes.data)
@@ -124,10 +124,10 @@ export default function TournamentPage() {
     setMyTournamentTip(ttRes.data)
     setLoading(false)
   }
- 
+
   if (loading) return <LoadingScreen />
   if (membership?.status !== 'approved') return <NotApproved status={membership?.status} />
- 
+
   const roundOrder = ['group','r32','r16','qf','sf','third_place','final']
   const roundLabel: Record<string, string> = {
     group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16',
@@ -138,13 +138,13 @@ export default function TournamentPage() {
     r16: tournament.multiplier_r16, qf: tournament.multiplier_qf,
     sf: tournament.multiplier_sf, third_place: tournament.multiplier_sf, final: tournament.multiplier_final
   }
- 
+
   const grouped = roundOrder.reduce((acc, r) => {
     const ms = matches.filter((m: any) => m.round === r)
     if (ms.length) acc[r] = ms
     return acc
   }, {} as Record<string, any[]>)
- 
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -157,13 +157,13 @@ export default function TournamentPage() {
           <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{profile?.display_name}</div>
         </div>
       </header>
- 
+
       <div className="max-w-4xl mx-auto px-4 pt-6">
         {/* Prize Pool Banner */}
         {tournament.entry_fee > 0 && (
           <PrizeBanner tournament={tournament} approvedCount={approvedCount} leaderboard={leaderboard} t={t} />
         )}
- 
+
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
           <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')}>Match Tips</button>
@@ -172,7 +172,7 @@ export default function TournamentPage() {
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
           <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')}>📋 {t.lang === 'pt' ? 'Regras' : 'Rules'}</button>
         </div>
- 
+
         {/* Match Tips */}
         {tab === 'tips' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
@@ -205,8 +205,8 @@ export default function TournamentPage() {
             )}
           </div>
         )}
- 
- 
+
+
         {/* Group Qualifiers */}
         {tab === 'qualifiers' && (
           <GroupQualifierTips
@@ -217,7 +217,7 @@ export default function TournamentPage() {
             t={t}
           />
         )}
- 
+
         {/* Leaderboard */}
         {tab === 'leaderboard' && (
           <div style={{ paddingBottom: '3rem' }}>
@@ -273,7 +273,7 @@ export default function TournamentPage() {
               <span>✅ {t.lang === 'pt' ? 'Vencedor correto' : 'Correct winner'}</span>
               <span>{t.lang === 'pt' ? 'Desempate: placar exato → saldo de gols' : 'Tiebreak: exact scores → goal diff'}</span>
             </div>
- 
+
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
               <RoundStandings leaderboard={leaderboard} allTips={allTips} t={t} />
@@ -281,7 +281,7 @@ export default function TournamentPage() {
             <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} avatars={avatars} profilesMap={profilesMap} userId={user.id} />
           </div>
         )}
- 
+
         {/* Rules */}
         {tab === 'rules' && (
           <TournamentRules tournament={tournament} approvedCount={approvedCount} t={t} />
@@ -300,8 +300,8 @@ export default function TournamentPage() {
     </div>
   )
 }
- 
- 
+
+
 function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
   const supabase = createClient()
   const [picks, setPicks] = useState<Record<string, { first: string, second: string }>>(() => {
@@ -316,15 +316,15 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
- 
+
   const ptsPerGroup = tournament.pts_qualify || 0
- 
+
   function isGroupLocked(group: string) {
     const lockTime = GROUP_LOCK_TIMES[group]
     if (!lockTime) return false
     return isPast(subHours(new Date(lockTime), 2))
   }
- 
+
   async function save() {
     setSaving(true)
     const payload: Record<string, any> = { tournament_id: tournament.id, user_id: userId }
@@ -340,10 +340,10 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
     setSaved(true); setTimeout(() => setSaved(false), 2500)
     setSaving(false); onSave()
   }
- 
+
   const unlockedGroups = Object.keys(GROUPS).filter(g => !isGroupLocked(g))
   const lockedGroups = Object.keys(GROUPS).filter(g => isGroupLocked(g))
- 
+
   return (
     <div style={{ paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
@@ -354,7 +354,7 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
         </p>
         {ptsPerGroup > 0 && <div style={{ marginTop: '0.5rem', fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)' }}>{ptsPerGroup} {t.pts} per correct team</div>}
       </div>
- 
+
       {unlockedGroups.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
           {unlockedGroups.map(group => {
@@ -391,13 +391,13 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
           })}
         </div>
       )}
- 
+
       {unlockedGroups.length > 0 && (
         <button onClick={save} disabled={saving} className="btn btn-primary" style={{ marginBottom: '2rem' }}>
           {saved ? t.savedBang : saving ? t.saving : t.saveQualifierPicks}
         </button>
       )}
- 
+
       {lockedGroups.length > 0 && (
         <div>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: '0.75rem' }}>{t.lockedGroups}</h3>
@@ -425,10 +425,10 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
     </div>
   )
 }
- 
- 
- 
- 
+
+
+
+
 
 function TournamentRules({ tournament: tn, approvedCount, t }: any) {
   const ispt = t.lang === 'pt'
@@ -576,11 +576,11 @@ function PrizeBanner({ tournament, approvedCount, leaderboard, t }: any) {
   const prize2 = Math.floor(pool * split2 / 100)
   const prize3 = Math.floor(pool * split3 / 100)
   const currency = tournament.currency || 'AUD'
- 
+
   // Get current top 3
   const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
   const top3 = sorted.slice(0, 3)
- 
+
   return (
     <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1.5rem', border: '1px solid rgba(251,191,36,0.2)', background: 'rgba(251,191,36,0.04)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -618,7 +618,7 @@ function PrizeBanner({ tournament, approvedCount, leaderboard, t }: any) {
     </div>
   )
 }
- 
+
 
 function RoundStandings({ leaderboard, allTips, t }: any) {
   if (!leaderboard.length) return null
@@ -720,14 +720,14 @@ const JERSEY_COLORS: Record<string, { primary: string, secondary: string, accent
   Croatia:     { primary: '#FF0000', secondary: '#ffffff', accent: '#0000CD' },
   default:     { primary: '#1a4a3a', secondary: '#4ade80', accent: '#ffffff' },
 }
- 
+
 const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','SS']
 const FLAGS: Record<string, string> = {
   Brazil:'🇧🇷',Argentina:'🇦🇷',France:'🇫🇷',England:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',Germany:'🇩🇪',Spain:'🇪🇸',
   Portugal:'🇵🇹',Netherlands:'🇳🇱',USA:'🇺🇸',Mexico:'🇲🇽',Australia:'🇦🇺',Japan:'🇯🇵',
   Morocco:'🇲🇦',Senegal:'🇸🇳',Colombia:'🇨🇴',Croatia:'🇭🇷'
 }
- 
+
 function calcRating(row: any): number {
   const pts = Number(row.total_points) || 0
   const exact = Number(row.exact_scores) || 0
@@ -737,7 +737,7 @@ function calcRating(row: any): number {
   const raw = Math.min(99, Math.max(10, Math.round(pts * 1.5 + exact * 3 + acc * 0.3)))
   return raw
 }
- 
+
 const FLAG_URLS: Record<string, string> = {
   Brazil:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/br.svg',
   Argentina:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ar.svg',
@@ -756,7 +756,7 @@ const FLAG_URLS: Record<string, string> = {
   Colombia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/co.svg',
   Croatia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hr.svg',
 }
- 
+
 function JerseySVG({ colors, isGrey }: { colors: any, isGrey: boolean }) {
   const c1 = isGrey ? '#444' : colors.primary
   const c2 = isGrey ? '#333' : colors.secondary
@@ -769,7 +769,7 @@ function JerseySVG({ colors, isGrey }: { colors: any, isGrey: boolean }) {
     </svg>
   )
 }
- 
+
 function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) {
   const team = profile?.jersey_team || 'default'
   const position = profile?.tip_position || 'CAM'
@@ -783,14 +783,14 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
   const gdf = Number(row.correct_goal_diff) || 0
   const tips = Number(row.tips_submitted) || 0
   const acc = tips > 0 ? Math.round((winners / tips) * 100) : 0
- 
+
   const sortedTips = [...userTips].sort((a: any, b: any) => new Date(a.match?.kickoff_at || 0).getTime() - new Date(b.match?.kickoff_at || 0).getTime())
   let streak = 0
   for (let i = sortedTips.length - 1; i >= 0; i--) {
     if (Number(sortedTips[i].pts_with_multiplier) > 0) streak++
     else break
   }
- 
+
   const isGold = variant === 'gold'
   const isGrey = variant === 'grey'
   const cardBg = isGold
@@ -801,7 +801,7 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
   const borderColor = isGold ? '#c9a227' : isGrey ? '#4a4a4a' : colors.secondary + 'aa'
   const textColor = isGold ? '#ffd700' : isGrey ? '#777' : '#ffffff'
   const subColor = isGold ? '#c9a227' : isGrey ? '#555' : 'rgba(255,255,255,0.5)'
- 
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       {label && <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', color: isGold ? '#c9a227' : isGrey ? '#555' : 'rgba(255,255,255,0.35)', textAlign: 'center' }}>{label}</div>}
@@ -811,7 +811,7 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg,rgba(255,255,255,0.1) 0%,transparent 50%)', zIndex: 9, pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', inset: 3, borderRadius: '10px 10px 43% 43% / 10px 10px 22px 22px', border: `${isGold ? '2.5px' : '2px'} ${isGrey ? 'dashed' : 'solid'} ${borderColor}`, zIndex: 10, pointerEvents: 'none' }} />
         {isGold && <div style={{ position: 'absolute', inset: 7, borderRadius: '8px 8px 41% 41% / 8px 8px 20px 20px', border: '1px solid rgba(201,162,39,0.25)', zIndex: 8, pointerEvents: 'none' }} />}
- 
+
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', zIndex: 5 }}>
           {/* Top badge */}
           {(isGold || isGrey) && (
@@ -819,7 +819,7 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
               {isGold ? '⭐ TIPPER OF THE DAY ⭐' : '😩 DEFLATED BALL 😩'}
             </div>
           )}
- 
+
           {/* Rating + position + flag */}
           <div style={{ padding: isGold || isGrey ? '2px 12px 0' : '7px 12px 0' }}>
             <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 0.88, letterSpacing: -2, color: textColor }}>{rating}</div>
@@ -831,7 +831,7 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
               }
             </div>
           </div>
- 
+
           {/* Player image area — face on top, jersey below, no circle */}
           <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
             {/* Jersey SVG at bottom */}
@@ -863,15 +863,15 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
             {/* Fade at bottom */}
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, background: `linear-gradient(to top, ${isGold ? 'rgba(18,11,0,1)' : isGrey ? 'rgba(8,8,8,1)' : 'rgba(4,8,4,1)'}, transparent)`, zIndex: 3 }} />
           </div>
- 
+
           {/* Name */}
           <div style={{ textAlign: 'center', padding: '2px 8px 3px', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {row.display_name.toUpperCase()}
           </div>
- 
+
           {/* Divider */}
           <div style={{ margin: '0 12px', height: 1, background: borderColor, opacity: 0.3 }} />
- 
+
           {/* Stats — 6 in 2 cols, smaller to fit */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1px 1fr', padding: '3px 10px 5px', gap: 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -897,13 +897,13 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
     </div>
   )
 }
- 
+
 function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: any) {
   if (!leaderboard.length) return null
- 
+
   // My card
   const myRow = leaderboard.find((r: any) => r.user_id === userId)
- 
+
   // Today's tipper — who earned most pts today
   const today = new Date()
   today.setHours(0,0,0,0)
@@ -915,18 +915,18 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
   todayTips.forEach((tip: any) => {
     todayPtsMap[tip.user_id] = (todayPtsMap[tip.user_id] || 0) + Number(tip.pts_with_multiplier)
   })
- 
+
   // If no today tips, use all time best/worst
   const ptsMap = Object.keys(todayPtsMap).length > 0 ? todayPtsMap : leaderboard.reduce((acc: any, r: any) => {
     acc[r.user_id] = Number(r.total_points); return acc
   }, {} as Record<string, number>)
- 
+
   const sortedByToday = [...leaderboard].sort((a: any, b: any) => (ptsMap[b.user_id] || 0) - (ptsMap[a.user_id] || 0))
   const tipperRow = sortedByToday[0]
   const deflatedRow = sortedByToday[sortedByToday.length - 1]
- 
+
   const hasResults = leaderboard.some((r: any) => Number(r.total_points) > 0)
- 
+
   return (
     <div style={{ marginBottom: '2rem' }}>
       <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }}>
@@ -975,14 +975,14 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
     </div>
   )
 }
- 
+
 const CHART_COLORS = ['#4ade80','#fbbf24','#60a5fa','#f87171','#c084fc','#34d399','#fb923c','#a78bfa','#f472b6','#38bdf8']
- 
+
 const ROUND_ORDER = ['group','r32','r16','qf','sf','third_place','final']
- 
+
 function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any) {
   if (!leaderboard.length) return null
- 
+
   // Sort players by selected metric
   const sortedLeaderboard = [...leaderboard].sort((a: any, b: any) => {
     if (sortKey === 'exact_scores') return b.exact_scores - a.exact_scores
@@ -990,7 +990,7 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
     if (sortKey === 'correct_goal_diff') return b.correct_goal_diff - a.correct_goal_diff
     return b.total_points - a.total_points
   })
- 
+
   // Bar chart — one bar per player showing the selected metric
   const barData = sortedLeaderboard.map((row: any) => {
     const userTips = allTips.filter((tip: any) => tip.user_id === row.user_id)
@@ -1015,25 +1015,25 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
         : goalDiffPts,
     }
   })
- 
+
   // Line chart — progression per match
   const matchMeta: Record<string, any> = {}
   allTips.forEach((tip: any) => {
     if (tip.match_id && tip.match) matchMeta[tip.match_id] = tip.match
   })
- 
+
   const completedMatchIds = Array.from(new Set(
     allTips
       .filter((tip: any) => tip.match?.status === 'completed')
       .map((tip: any) => tip.match_id as string)
   )) as string[]
- 
+
   const sortedMatches = completedMatchIds
     .filter(id => matchMeta[id])
     .sort((a, b) => new Date(matchMeta[a]?.kickoff_at || 0).getTime() - new Date(matchMeta[b]?.kickoff_at || 0).getTime())
- 
+
   const players = sortedLeaderboard.map((row: any) => ({ id: row.user_id, name: row.display_name }))
- 
+
   const progressionData = sortedMatches.map((matchId: string, idx: number) => {
     const meta = matchMeta[matchId]
     const roundShort = meta?.round === 'group' ? 'G' : (meta?.round || '').toUpperCase().replace('THIRD_PLACE','3P')
@@ -1053,24 +1053,24 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
     })
     return point
   })
- 
+
   const sortLabel: Record<string, string> = {
     total_points: '🏆 Total Points',
     exact_scores: '🎯 Exact Score Points',
     correct_winners: '✅ Winner Points',
     correct_goal_diff: '⚖️ Goal Diff Points',
   }
- 
+
   const barColor: Record<string, string> = {
     total_points: '#4ade80',
     exact_scores: '#fbbf24',
     correct_winners: '#4ade80',
     correct_goal_diff: '#60a5fa',
   }
- 
+
   return (
     <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
- 
+
       {/* Sort buttons */}
       <div>
         <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginBottom: '0.5rem' }}>
@@ -1094,7 +1094,7 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
           ))}
         </div>
       </div>
- 
+
       {/* Chart 1: Bar chart — points per player for selected metric */}
       {barData.some((d: any) => d.value > 0) && (
         <div>
@@ -1132,7 +1132,7 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
           </div>
         </div>
       )}
- 
+
       {/* Chart 2: Line chart — progression per match */}
       {progressionData.length > 0 && (
         <div>
@@ -1158,13 +1158,13 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
           </div>
         </div>
       )}
- 
+
     </div>
   )
 }
- 
- 
- 
+
+
+
 function Avatar({ userId, avatars, size = 32, style = {} }: { userId: string, avatars: Record<string, string>, size?: number, style?: any }) {
   const url = avatars[userId]
   return (
@@ -1176,7 +1176,7 @@ function Avatar({ userId, avatars, size = 32, style = {} }: { userId: string, av
     </div>
   )
 }
- 
+
 function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
   const isLocked = match.status !== 'upcoming' || isPast(subHours(new Date(match.kickoff_at), 2))
@@ -1185,7 +1185,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const supabase = createClient()
- 
+
   async function saveTip() {
     if (home === '' || away === '') return
     setSaving(true)
@@ -1198,9 +1198,9 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
     setSaved(true); setTimeout(() => setSaved(false), 2000)
     setSaving(false); onSave()
   }
- 
+
   const multiplier = { group: tournament.multiplier_group, r32: tournament.multiplier_r32, r16: tournament.multiplier_r16, qf: tournament.multiplier_qf, sf: tournament.multiplier_sf, third_place: tournament.multiplier_sf, final: tournament.multiplier_final }[match.round as string] || 1
- 
+
   return (
     <div className="card" style={{ padding: '1rem 1.25rem', opacity: isLocked && !tip ? 0.6 : 1 }}>
       <div className="flex items-center gap-3 flex-wrap">
@@ -1228,7 +1228,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             {isLocked && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />Locked</span>}
           </div>
         </div>
- 
+
         {/* Tip input or display */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {isLocked ? (
@@ -1267,7 +1267,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
     </div>
   )
 }
- 
+
 function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
   const [winner, setWinner] = useState(existing?.tip_winner || '')
   const [second, setSecond] = useState(existing?.tip_second || '')
@@ -1277,7 +1277,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
   const [saved, setSaved] = useState(false)
   const isLocked = existing?.is_locked
   const supabase = createClient()
- 
+
   async function save() {
     setSaving(true)
     const payload = { tournament_id: tournament.id, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: topScorer, updated_at: new Date().toISOString() }
@@ -1286,13 +1286,13 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
     setSaved(true); setTimeout(() => setSaved(false), 2000)
     setSaving(false); onSave()
   }
- 
+
   const teamFields = [
     { label: 'World Cup Winner', key: 'winner', val: winner, set: setWinner, pts: tournament.pts_tournament_winner },
     { label: '2nd Place (Runner-up)', key: 'second', val: second, set: setSecond, pts: tournament.pts_second_place },
     { label: '3rd Place', key: 'third', val: third, set: setThird, pts: tournament.pts_third_place },
   ]
- 
+
   return (
     <div style={{ maxWidth: 480, paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
@@ -1381,7 +1381,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
     </div>
   )
 }
- 
+
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -1389,7 +1389,7 @@ function LoadingScreen() {
     </div>
   )
 }
- 
+
 function NotApproved({ status }: { status?: string }) {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
