@@ -76,6 +76,7 @@ export default function TournamentPage() {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [myTournamentTip, setMyTournamentTip] = useState<any>(null)
   const [allTips, setAllTips] = useState<any[]>([])
+  const [avatars, setAvatars] = useState<Record<string, string>>({})
   const [sortKey, setSortKey] = useState<SortKey>('total_points')
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -87,7 +88,7 @@ export default function TournamentPage() {
     if (!user) { router.push('/auth'); return }
     setUser(user)
  
-    const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, ttRes] = await Promise.all([
+    const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, ttRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
       supabase.from('tournament_members').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
@@ -95,6 +96,7 @@ export default function TournamentPage() {
       supabase.from('match_tips').select('*, match:matches(round, kickoff_at, status, home_score, away_score)').eq('tournament_id', tournamentId).eq('user_id', user.id),
       supabase.from('match_tips').select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)').eq('tournament_id', tournamentId),
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
+      supabase.from('profiles').select('id, display_name, avatar_url'),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
     ])
  
@@ -107,6 +109,9 @@ export default function TournamentPage() {
     setMyTips(tipsMap)
     setLeaderboard(lbRes.data || [])
     setAllTips(allTipsRes.data || [])
+    const avatarMap: Record<string, string> = {}
+    allProfilesRes.data?.forEach((p: any) => { if (p.avatar_url) avatarMap[p.id] = p.avatar_url })
+    setAvatars(avatarMap)
     setMyTournamentTip(ttRes.data)
     setLoading(false)
   }
@@ -203,7 +208,7 @@ export default function TournamentPage() {
           <div style={{ paddingBottom: '3rem' }}>
             <div className="card" style={{ overflow: 'hidden' }}>
               {/* Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2rem 1fr repeat(4, 4rem)', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr repeat(4, 4rem)', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
                 <div></div>
                 <div>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
                 <div style={{ textAlign: 'center' }} title="Exact scores">🎯</div>
@@ -219,7 +224,7 @@ export default function TournamentPage() {
                   return b.correct_goal_diff - a.correct_goal_diff
                 }).map((row: any, i: number) => (
                 <div key={row.user_id}
-                  style={{ display: 'grid', gridTemplateColumns: '2rem 1fr repeat(4, 4rem)', gap: '0.5rem', alignItems: 'center', padding: '0.9rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
+                  style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr repeat(4, 4rem)', gap: '0.5rem', alignItems: 'center', padding: '0.9rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}
                   </div>
@@ -253,7 +258,7 @@ export default function TournamentPage() {
               <span>{t.lang === 'pt' ? 'Desempate: placar exato → saldo de gols' : 'Tiebreak: exact scores → goal diff'}</span>
             </div>
  
-            <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} />
+            <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} avatars={avatars} />
           </div>
         )}
  
@@ -584,6 +589,19 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
   )
 }
  
+ 
+ 
+function Avatar({ userId, avatars, size = 32, style = {} }: { userId: string, avatars: Record<string, string>, size?: number, style?: any }) {
+  const url = avatars[userId]
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.08)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', ...style }}>
+      {url
+        ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <span style={{ fontSize: size * 0.45 }}>👤</span>
+      }
+    </div>
+  )
+}
  
 function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
