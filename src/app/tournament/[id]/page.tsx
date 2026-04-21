@@ -6,13 +6,17 @@ import Link from 'next/link'
 import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
 import { format, isPast, subHours } from 'date-fns'
 
-type Tab = 'tips' | 'leaderboard' | 'predictions'
+type Tab = 'tips' | 'tournament-tips' | 'leaderboard' | 'rules'
+type TournamentSubTab = 'predictions' | 'qualifiers'
+
+const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
 
 export default function TournamentPage() {
   const params = useParams()
   const router = useRouter()
   const tournamentId = params.id as string
   const [tab, setTab] = useState<Tab>('tips')
+  const [tournamentSubTab, setTournamentSubTab] = useState<TournamentSubTab>('predictions')
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [tournament, setTournament] = useState<any>(null)
@@ -21,6 +25,7 @@ export default function TournamentPage() {
   const [myTips, setMyTips] = useState<Record<string, any>>({})
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [myTournamentTip, setMyTournamentTip] = useState<any>(null)
+  const [myGroupTips, setMyGroupTips] = useState<Record<string, { first: string; second: string }>>({})
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -81,6 +86,16 @@ export default function TournamentPage() {
         .eq('user_id', user.id)
         .single()
       setMyTournamentTip(tt)
+
+      // Load group qualifier tips
+      const { data: gt } = await supabase
+        .from('group_qualifier_tips')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .eq('user_id', user.id)
+      const groupMap: Record<string, { first: string; second: string }> = {}
+      gt?.forEach((g: any) => { groupMap[g.group_label] = { first: g.tip_first || '', second: g.tip_second || '' } })
+      setMyGroupTips(groupMap)
     }
 
     setLoading(false)
@@ -106,11 +121,38 @@ export default function TournamentPage() {
     }
   }
 
+  async function saveGroupTip(group: string, position: 'first' | 'second', value: string) {
+    const existing = myGroupTips[group]
+    const updated = { ...(existing || { first: '', second: '' }), [position]: value }
+    setMyGroupTips(prev => ({ ...prev, [group]: updated }))
+
+    const { data: existing_row } = await supabase
+      .from('group_qualifier_tips')
+      .select('id')
+      .eq('tournament_id', tournamentId)
+      .eq('user_id', user.id)
+      .eq('group_label', group)
+      .single()
+
+    if (existing_row) {
+      await supabase.from('group_qualifier_tips').update({ [`tip_${position}`]: value }).eq('id', existing_row.id)
+    } else {
+      await supabase.from('group_qualifier_tips').insert({
+        tournament_id: tournamentId,
+        user_id: user.id,
+        group_label: group,
+        tip_first: position === 'first' ? value : '',
+        tip_second: position === 'second' ? value : '',
+      })
+    }
+  }
+
   function isLocked(kickoffAt: string) {
     return isPast(subHours(new Date(kickoffAt), 2))
   }
 
   const ispt = profile?.preferred_language === 'pt'
+  const tournamentLocked = myTournamentTip?.is_locked
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -150,7 +192,9 @@ export default function TournamentPage() {
       <div style={{ textAlign: 'center', padding: '2rem' }}>
         <Clock size={48} style={{ color: 'var(--gold)', margin: '0 auto 1rem' }} />
         <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>
-          {membership.status === 'pending' ? (ispt ? 'Aguardando aprovação' : 'Awaiting approval') : (ispt ? 'Pedido rejeitado' : 'Request rejected')}
+          {membership.status === 'pending'
+            ? (ispt ? 'Aguardando aprovação' : 'Awaiting approval')
+            : (ispt ? 'Pedido rejeitado' : 'Request rejected')}
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '2rem', fontSize: '0.9rem' }}>
           {membership.status === 'pending'
@@ -162,8 +206,16 @@ export default function TournamentPage() {
     </div>
   )
 
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'tips', label: ispt ? 'Palpites' : 'Match Tips' },
+    { key: 'tournament-tips', label: ispt ? 'Previsões' : 'Tournament Tips' },
+    { key: 'leaderboard', label: ispt ? 'Ranking' : 'Leaderboard' },
+    { key: 'rules', label: ispt ? 'Regras' : 'Rules' },
+  ]
+
   return (
     <div style={{ minHeight: '100vh' }}>
+      {/* Header */}
       <div style={{ background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <Link href="/" style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
           <ChevronLeft size={16} /> {ispt ? 'Início' : 'Home'}
@@ -174,20 +226,24 @@ export default function TournamentPage() {
         <Star size={20} style={{ color: 'var(--gold)' }} />
       </div>
 
-      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.2)' }}>
-        {(['tips', 'leaderboard', 'predictions'] as Tab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            flex: 1, padding: '0.85rem', background: 'none', border: 'none', cursor: 'pointer',
-            color: tab === t ? 'var(--gold)' : 'rgba(255,255,255,0.4)',
-            borderBottom: tab === t ? '2px solid var(--gold)' : '2px solid transparent',
-            fontFamily: 'var(--font-display)', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase'
+      {/* Main tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.2)', overflowX: 'auto' }}>
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)} style={{
+            flex: 1, minWidth: 80, padding: '0.85rem 0.5rem', background: 'none', border: 'none', cursor: 'pointer',
+            color: tab === t.key ? 'var(--gold)' : 'rgba(255,255,255,0.4)',
+            borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
+            fontFamily: 'var(--font-display)', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+            whiteSpace: 'nowrap'
           }}>
-            {t === 'tips' ? (ispt ? 'Palpites' : 'Tips') : t === 'leaderboard' ? (ispt ? 'Ranking' : 'Leaderboard') : (ispt ? 'Previsões' : 'Predictions')}
+            {t.label}
           </button>
         ))}
       </div>
 
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '1.5rem 1rem' }}>
+
+        {/* ── MATCH TIPS ── */}
         {tab === 'tips' && (
           <div>
             {matches.length === 0 && (
@@ -249,6 +305,125 @@ export default function TournamentPage() {
           </div>
         )}
 
+        {/* ── TOURNAMENT TIPS ── */}
+        {tab === 'tournament-tips' && (
+          <div>
+            {/* Sub-tabs */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              {(['predictions', 'qualifiers'] as TournamentSubTab[]).map(st => (
+                <button key={st} onClick={() => setTournamentSubTab(st)} style={{
+                  padding: '0.5rem 1.1rem', borderRadius: 20, border: '1px solid',
+                  borderColor: tournamentSubTab === st ? 'var(--gold)' : 'rgba(255,255,255,0.15)',
+                  background: tournamentSubTab === st ? 'rgba(212,175,55,0.12)' : 'transparent',
+                  color: tournamentSubTab === st ? 'var(--gold)' : 'rgba(255,255,255,0.5)',
+                  fontFamily: 'var(--font-display)', fontSize: '0.72rem', letterSpacing: '0.07em',
+                  textTransform: 'uppercase', cursor: 'pointer'
+                }}>
+                  {st === 'predictions'
+                    ? (ispt ? 'Previsões' : 'Predictions')
+                    : (ispt ? 'Classificados' : 'Group Qualifiers')}
+                </button>
+              ))}
+            </div>
+
+            {/* Predictions sub-tab */}
+            {tournamentSubTab === 'predictions' && (
+              <div className="card">
+                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.06em', marginBottom: '1.25rem', color: 'rgba(255,255,255,0.5)' }}>
+                  🏆 {ispt ? 'PREVISÕES DO TORNEIO' : 'TOURNAMENT PREDICTIONS'}
+                </h3>
+                {[
+                  { field: 'tip_winner', label: ispt ? 'Campeão' : 'Winner', pts: tournament.pts_tournament_winner },
+                  { field: 'tip_second', label: ispt ? '2º lugar' : '2nd Place', pts: tournament.pts_second_place },
+                  { field: 'tip_third', label: ispt ? '3º lugar' : '3rd Place', pts: tournament.pts_third_place },
+                  { field: 'tip_top_scorer', label: ispt ? 'Artilheiro' : 'Top Scorer', pts: tournament.pts_top_scorer },
+                ].map(({ field, label, pts }) => (
+                  <div key={field} style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                      <span>{label}</span>
+                      <span style={{ color: 'var(--gold)', fontSize: '0.75rem' }}>+{pts} pts</span>
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={myTournamentTip?.[field] || ''}
+                      disabled={tournamentLocked}
+                      onBlur={e => { if (e.target.value) saveTournamentTip(field, e.target.value) }}
+                      placeholder={ispt ? 'Digite o nome...' : 'Type a name...'}
+                      style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: '#fff', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                ))}
+                {tournamentLocked && (
+                  <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Lock size={12} />
+                    {ispt ? 'Previsões encerradas.' : 'Predictions are locked.'}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Group Qualifiers sub-tab */}
+            {tournamentSubTab === 'qualifiers' && (
+              <div>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                  {ispt
+                    ? 'Preveja quais seleções terminarão em 1º e 2º em cada grupo.'
+                    : 'Predict which teams will finish 1st and 2nd in each group.'}
+                  {tournament.pts_group_qualifier_first && (
+                    <span style={{ color: 'var(--gold)', marginLeft: '0.5rem', fontSize: '0.78rem' }}>
+                      ({ispt ? '1º' : '1st'}: +{tournament.pts_group_qualifier_first}pts · {ispt ? '2º' : '2nd'}: +{tournament.pts_group_qualifier_second}pts)
+                    </span>
+                  )}
+                </p>
+                {GROUPS.map(group => (
+                  <div key={group} className="card" style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: 'var(--gold)', minWidth: 28 }}>
+                        {group}
+                      </span>
+                      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)', display: 'block', marginBottom: '0.25rem', letterSpacing: '0.05em' }}>
+                            {ispt ? '1º lugar' : '1st place'}
+                          </label>
+                          <input
+                            type="text"
+                            defaultValue={myGroupTips[group]?.first || ''}
+                            disabled={tournamentLocked}
+                            onBlur={e => { if (e.target.value !== undefined) saveGroupTip(group, 'first', e.target.value) }}
+                            placeholder={ispt ? 'Seleção...' : 'Team...'}
+                            style={{ width: '100%', padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: '#fff', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)', display: 'block', marginBottom: '0.25rem', letterSpacing: '0.05em' }}>
+                            {ispt ? '2º lugar' : '2nd place'}
+                          </label>
+                          <input
+                            type="text"
+                            defaultValue={myGroupTips[group]?.second || ''}
+                            disabled={tournamentLocked}
+                            onBlur={e => { if (e.target.value !== undefined) saveGroupTip(group, 'second', e.target.value) }}
+                            placeholder={ispt ? 'Seleção...' : 'Team...'}
+                            style={{ width: '100%', padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: '#fff', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {tournamentLocked && (
+                  <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Lock size={12} />
+                    {ispt ? 'Previsões encerradas.' : 'Group predictions are locked.'}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── LEADERBOARD ── */}
         {tab === 'leaderboard' && (
           <div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.06em', marginBottom: '1rem', color: 'rgba(255,255,255,0.6)' }}>
@@ -261,11 +436,14 @@ export default function TournamentPage() {
             )}
             {leaderboard.map((entry, i) => (
               <div key={entry.user_id} className="card" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: i === 0 ? 'var(--gold)' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'rgba(255,255,255,0.3)', minWidth: 28 }}>
+                <span style={{
+                  fontFamily: 'var(--font-display)', fontSize: '1.2rem', minWidth: 28,
+                  color: i === 0 ? 'var(--gold)' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : 'rgba(255,255,255,0.3)'
+                }}>
                   #{i + 1}
                 </span>
                 <span style={{ flex: 1, fontWeight: entry.user_id === user?.id ? 600 : 400 }}>
-                  {entry.name} {entry.user_id === user?.id ? '(you)' : ''}
+                  {entry.name}{entry.user_id === user?.id ? ' (you)' : ''}
                 </span>
                 <span style={{ fontFamily: 'var(--font-display)', color: 'var(--gold)', fontSize: '1.1rem' }}>{entry.pts}</span>
               </div>
@@ -273,114 +451,91 @@ export default function TournamentPage() {
           </div>
         )}
 
-        {tab === 'predictions' && (
-          <div>
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.06em', marginBottom: '1.25rem', color: 'rgba(255,255,255,0.6)' }}>
+        {/* ── RULES ── */}
+        {tab === 'rules' && (
+          <div style={{ paddingBottom: '3rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
+                📋 {tournament.name} — {ispt ? 'Regras' : 'Rules'}
+              </h2>
+              <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
+                {ispt ? 'Como os pontos são calculados' : 'How points are calculated'}
+              </p>
+            </div>
+
+            <div className="card" style={{ marginBottom: '1rem' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.06em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>
+                ⚽ {ispt ? 'PONTOS POR PARTIDA' : 'MATCH POINTS'}
+              </h3>
+              {[
+                { label: ispt ? 'Acertar o vencedor' : 'Correct winner', pts: tournament.pts_correct_winner },
+                { label: ispt ? 'Acertar a diferença de gols' : 'Correct goal difference', pts: tournament.pts_correct_goal_diff },
+                { label: ispt ? 'Acertar o placar exato' : 'Correct exact score', pts: tournament.pts_correct_exact_score },
+                { label: ispt ? 'Bônus: placar exato com 3+ gols de diferença' : 'Bonus: exact score with 3+ goal margin', pts: tournament.pts_big_margin_bonus },
+              ].map(({ label, pts }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.9rem' }}>{label}</span>
+                  <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>+{pts}</span>
+                </div>
+              ))}
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.75rem' }}>
+                {ispt ? '* Os pontos são cumulativos por partida.' : '* Points are cumulative per match.'}
+              </p>
+            </div>
+
+            <div className="card" style={{ marginBottom: '1rem' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.06em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>
+                🔢 {ispt ? 'MULTIPLICADORES DE FASE' : 'PHASE MULTIPLIERS'}
+              </h3>
+              {[
+                { stage: ispt ? 'Fase de grupos' : 'Group stage', mult: '×1' },
+                { stage: ispt ? 'Rodada de 32' : 'Round of 32', mult: '×2' },
+                { stage: ispt ? 'Oitavas' : 'Round of 16', mult: '×3' },
+                { stage: ispt ? 'Quartas' : 'Quarter-finals', mult: '×4' },
+                { stage: ispt ? 'Semifinais' : 'Semi-finals', mult: '×5' },
+                { stage: ispt ? 'Final' : 'Final', mult: '×6' },
+              ].map(({ stage, mult }) => (
+                <div key={stage} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.9rem' }}>{stage}</span>
+                  <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)', fontWeight: 700 }}>{mult}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="card" style={{ marginBottom: '1rem' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.06em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>
                 🏆 {ispt ? 'PREVISÕES DO TORNEIO' : 'TOURNAMENT PREDICTIONS'}
               </h3>
               {[
-                { field: 'tip_winner', label: ispt ? 'Campeão' : 'Winner', pts: tournament.pts_tournament_winner },
-                { field: 'tip_second', label: ispt ? '2º lugar' : '2nd Place', pts: tournament.pts_second_place },
-                { field: 'tip_third', label: ispt ? '3º lugar' : '3rd Place', pts: tournament.pts_third_place },
-                { field: 'tip_top_scorer', label: ispt ? 'Artilheiro' : 'Top Scorer', pts: tournament.pts_top_scorer },
-              ].map(({ field, label, pts }) => (
-                <div key={field} style={{ marginBottom: '1rem' }}>
-                  <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
-                    <span>{label}</span>
-                    <span style={{ color: 'var(--gold)', fontSize: '0.75rem' }}>+{pts} pts</span>
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue={myTournamentTip?.[field] || ''}
-                    disabled={myTournamentTip?.is_locked}
-                    onBlur={e => { if (e.target.value) saveTournamentTip(field, e.target.value) }}
-                    placeholder={ispt ? 'Digite o nome...' : 'Type a name...'}
-                    style={{ width: '100%', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, color: '#fff', fontSize: '0.9rem' }}
-                  />
+                { label: ispt ? 'Campeão' : 'Winner', pts: tournament.pts_tournament_winner },
+                { label: ispt ? '2º lugar' : '2nd Place', pts: tournament.pts_second_place },
+                { label: ispt ? '3º lugar' : '3rd Place', pts: tournament.pts_third_place },
+                { label: ispt ? 'Artilheiro' : 'Top Scorer', pts: tournament.pts_top_scorer },
+              ].map(({ label, pts }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.9rem' }}>{label}</span>
+                  <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>+{pts}</span>
                 </div>
               ))}
-              {myTournamentTip?.is_locked && (
-                <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.5rem' }}>
-                  <Lock size={12} style={{ display: 'inline', marginRight: 4 }} />
-                  {ispt ? 'Previsões encerradas.' : 'Predictions are locked.'}
-                </p>
-              )}
             </div>
-            <TournamentRules tn={tournament} ispt={ispt} />
+
+            <div className="card">
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.06em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>
+                🗂️ {ispt ? 'CLASSIFICADOS POR GRUPO' : 'GROUP QUALIFIERS'}
+              </h3>
+              {[
+                { label: ispt ? 'Acertar o 1º colocado do grupo' : 'Correct group winner (1st)', pts: tournament.pts_group_qualifier_first },
+                { label: ispt ? 'Acertar o 2º colocado do grupo' : 'Correct group runner-up (2nd)', pts: tournament.pts_group_qualifier_second },
+              ].map(({ label, pts }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <span style={{ fontSize: '0.9rem' }}>{label}</span>
+                  <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>+{pts}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
 
-function TournamentRules({ tn, ispt }: { tn: any; ispt: boolean }) {
-  return (
-    <div style={{ maxWidth: 600, paddingBottom: '3rem' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
-          📋 {tn.name} — {ispt ? 'Regras' : 'Rules'}
-        </h2>
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
-          {ispt ? 'Como os pontos são calculados' : 'How points are calculated'}
-        </p>
-      </div>
-
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.06em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>
-          ⚽ {ispt ? 'PONTOS POR PARTIDA' : 'MATCH POINTS'}
-        </h3>
-        {[
-          { label: ispt ? 'Acertar o vencedor' : 'Correct winner', pts: tn.pts_correct_winner },
-          { label: ispt ? 'Acertar a diferença de gols' : 'Correct goal difference', pts: tn.pts_correct_goal_diff },
-          { label: ispt ? 'Acertar o placar exato' : 'Correct exact score', pts: tn.pts_correct_exact_score },
-          { label: ispt ? 'Bônus: placar exato com 3+ gols de diferença' : 'Bonus: exact score with 3+ goal margin', pts: tn.pts_big_margin_bonus },
-        ].map(({ label, pts }) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <span style={{ fontSize: '0.9rem' }}>{label}</span>
-            <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>+{pts}</span>
-          </div>
-        ))}
-        <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.75rem' }}>
-          {ispt ? '* Os pontos são cumulativos por partida.' : '* Points are cumulative per match.'}
-        </p>
-      </div>
-
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.06em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>
-          🔢 {ispt ? 'MULTIPLICADORES DE FASE' : 'PHASE MULTIPLIERS'}
-        </h3>
-        {[
-          { stage: ispt ? 'Fase de grupos' : 'Group stage', mult: '×1' },
-          { stage: ispt ? 'Rodada de 32' : 'Round of 32', mult: '×2' },
-          { stage: ispt ? 'Oitavas' : 'Round of 16', mult: '×3' },
-          { stage: ispt ? 'Quartas' : 'Quarter-finals', mult: '×4' },
-          { stage: ispt ? 'Semifinais' : 'Semi-finals', mult: '×5' },
-          { stage: ispt ? 'Final' : 'Final', mult: '×6' },
-        ].map(({ stage, mult }) => (
-          <div key={stage} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <span style={{ fontSize: '0.9rem' }}>{stage}</span>
-            <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)', fontWeight: 700 }}>{mult}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="card">
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.06em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>
-          🏆 {ispt ? 'PREVISÕES DO TORNEIO' : 'TOURNAMENT PREDICTIONS'}
-        </h3>
-        {[
-          { label: ispt ? 'Campeão' : 'Winner', pts: tn.pts_tournament_winner },
-          { label: ispt ? '2º lugar' : '2nd Place', pts: tn.pts_second_place },
-          { label: ispt ? '3º lugar' : '3rd Place', pts: tn.pts_third_place },
-          { label: ispt ? 'Artilheiro' : 'Top Scorer', pts: tn.pts_top_scorer },
-        ].map(({ label, pts }) => (
-          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <span style={{ fontSize: '0.9rem' }}>{label}</span>
-            <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>+{pts}</span>
-          </div>
-        ))}
       </div>
     </div>
   )
