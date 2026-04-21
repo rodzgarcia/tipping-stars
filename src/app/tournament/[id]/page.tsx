@@ -402,18 +402,42 @@ const CHART_COLORS = ['#4ade80','#fbbf24','#60a5fa','#f87171','#c084fc','#34d399
 const ROUND_ORDER = ['group','r32','r16','qf','sf','third_place','final']
  
 function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any) {
-  if (!leaderboard.length || !allTips.length) return null
+  if (!leaderboard.length) return null
  
-  const players = [...leaderboard]
-    .sort((a: any, b: any) => {
-      if (sortKey === 'exact_scores') return b.exact_scores - a.exact_scores
-      if (sortKey === 'correct_winners') return b.correct_winners - a.correct_winners
-      if (sortKey === 'correct_goal_diff') return b.correct_goal_diff - a.correct_goal_diff
-      return b.total_points - a.total_points
-    })
-    .map((row: any) => ({ id: row.user_id, name: row.display_name }))
+  // Sort players by selected metric
+  const sortedLeaderboard = [...leaderboard].sort((a: any, b: any) => {
+    if (sortKey === 'exact_scores') return b.exact_scores - a.exact_scores
+    if (sortKey === 'correct_winners') return b.correct_winners - a.correct_winners
+    if (sortKey === 'correct_goal_diff') return b.correct_goal_diff - a.correct_goal_diff
+    return b.total_points - a.total_points
+  })
  
-  // Build per-match progression
+  // Bar chart — one bar per player showing the selected metric
+  const barData = sortedLeaderboard.map((row: any) => {
+    const userTips = allTips.filter((tip: any) => tip.user_id === row.user_id)
+    const exactPts = userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_exact_score) || 0), 0)
+    const goalDiffPts = userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_goal_diff) || 0), 0)
+    const winnerPts = userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_winner) || 0), 0)
+    const bonusPts = userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_big_margin) || 0), 0)
+    const name = row.display_name.length > 12 ? row.display_name.split(' ')[0] : row.display_name
+    return {
+      name,
+      fullName: row.display_name,
+      // For total: show stacked breakdown
+      winner: winnerPts,
+      goalDiff: goalDiffPts,
+      exact: exactPts,
+      bonus: bonusPts,
+      total: Number(row.total_points) || 0,
+      // For individual filters: single value
+      value: sortKey === 'total_points' ? Number(row.total_points)
+        : sortKey === 'exact_scores' ? exactPts
+        : sortKey === 'correct_winners' ? winnerPts
+        : goalDiffPts,
+    }
+  })
+ 
+  // Line chart — progression per match
   const matchMeta: Record<string, any> = {}
   allTips.forEach((tip: any) => {
     if (tip.match_id && tip.match) matchMeta[tip.match_id] = tip.match
@@ -427,50 +451,43 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
  
   const sortedMatches = completedMatchIds
     .filter(id => matchMeta[id])
-    .sort((a, b) => {
-      const ta = new Date(matchMeta[a]?.kickoff_at || 0).getTime()
-      const tb = new Date(matchMeta[b]?.kickoff_at || 0).getTime()
-      return ta - tb
-    })
+    .sort((a, b) => new Date(matchMeta[a]?.kickoff_at || 0).getTime() - new Date(matchMeta[b]?.kickoff_at || 0).getTime())
+ 
+  const players = sortedLeaderboard.map((row: any) => ({ id: row.user_id, name: row.display_name }))
  
   const progressionData = sortedMatches.map((matchId: string, idx: number) => {
     const meta = matchMeta[matchId]
-    const roundShort = meta?.round === 'group' ? 'G' : (meta?.round || '').toUpperCase().replace('_PLACE','').replace('THIRD','3P')
-    const label = `${roundShort}${idx + 1}`
-    const point: any = { match: label }
+    const roundShort = meta?.round === 'group' ? 'G' : (meta?.round || '').toUpperCase().replace('THIRD_PLACE','3P')
+    const point: any = { match: `${roundShort}${idx + 1}` }
     players.forEach((p: any) => {
       const matchesUpTo = sortedMatches.slice(0, idx + 1)
-      const val = sortKey === 'total_points'
-        ? allTips.filter((tip: any) => tip.user_id === p.id && matchesUpTo.includes(tip.match_id)).reduce((s: number, tip: any) => s + (Number(tip.pts_with_multiplier) || 0), 0)
-        : sortKey === 'exact_scores'
-        ? allTips.filter((tip: any) => tip.user_id === p.id && matchesUpTo.includes(tip.match_id) && Number(tip.pts_exact_score) > 0).length
-        : sortKey === 'correct_winners'
-        ? allTips.filter((tip: any) => tip.user_id === p.id && matchesUpTo.includes(tip.match_id) && Number(tip.pts_winner) > 0).length
-        : allTips.filter((tip: any) => tip.user_id === p.id && matchesUpTo.includes(tip.match_id) && Number(tip.pts_goal_diff) > 0).length
-      point[p.name] = val
+      const playerTips = allTips.filter((tip: any) => tip.user_id === p.id && matchesUpTo.includes(tip.match_id))
+      if (sortKey === 'total_points') {
+        point[p.name] = playerTips.reduce((s: number, tip: any) => s + (Number(tip.pts_with_multiplier) || 0), 0)
+      } else if (sortKey === 'exact_scores') {
+        point[p.name] = playerTips.reduce((s: number, tip: any) => s + (Number(tip.pts_exact_score) || 0), 0)
+      } else if (sortKey === 'correct_winners') {
+        point[p.name] = playerTips.reduce((s: number, tip: any) => s + (Number(tip.pts_winner) || 0), 0)
+      } else {
+        point[p.name] = playerTips.reduce((s: number, tip: any) => s + (Number(tip.pts_goal_diff) || 0), 0)
+      }
     })
     return point
   })
  
-  // Real breakdown from allTips pts fields
-  const breakdownData = [...leaderboard]
-    .sort((a: any, b: any) => b.total_points - a.total_points)
-    .map((row: any) => {
-      const userTips = allTips.filter((tip: any) => tip.user_id === row.user_id)
-      return {
-        name: row.display_name.length > 12 ? row.display_name.split(' ')[0] : row.display_name,
-        fullName: row.display_name,
-        exact: userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_exact_score) || 0), 0),
-        goalDiff: userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_goal_diff) || 0), 0),
-        winner: userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_winner) || 0), 0),
-        bonus: userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_big_margin) || 0), 0),
-        total: Number(row.total_points) || 0,
-      }
-    })
+  const sortLabel: Record<string, string> = {
+    total_points: '🏆 Total Points',
+    exact_scores: '🎯 Exact Score Points',
+    correct_winners: '✅ Winner Points',
+    correct_goal_diff: '⚖️ Goal Diff Points',
+  }
  
-  const yLabel = sortKey === 'total_points' ? 'Points' : sortKey === 'exact_scores' ? 'Exact Scores' : sortKey === 'correct_winners' ? 'Correct Winners' : 'Goal Diffs'
- 
-  if (progressionData.length === 0 && breakdownData.every((d: any) => d.total === 0)) return null
+  const barColor: Record<string, string> = {
+    total_points: '#4ade80',
+    exact_scores: '#fbbf24',
+    correct_winners: '#4ade80',
+    correct_goal_diff: '#60a5fa',
+  }
  
   return (
     <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -483,32 +500,65 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {([
             { key: 'total_points', label: '🏆 Total Points' },
-            { key: 'exact_scores', label: '🎯 Exact Scores' },
-            { key: 'correct_winners', label: '✅ Correct Winners' },
-            { key: 'correct_goal_diff', label: '⚖️ Goal Diff' },
+            { key: 'exact_scores', label: '🎯 Exact Score Pts' },
+            { key: 'correct_winners', label: '✅ Winner Pts' },
+            { key: 'correct_goal_diff', label: '⚖️ Goal Diff Pts' },
           ] as { key: SortKey, label: string }[]).map(opt => (
-            <button
-              key={opt.key}
-              onClick={() => setSortKey(opt.key)}
-              style={{
-                padding: '0.4rem 0.85rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer', border: 'none',
-                background: sortKey === opt.key ? 'var(--green)' : 'rgba(255,255,255,0.07)',
-                color: sortKey === opt.key ? '#fff' : 'rgba(255,255,255,0.5)',
-                fontWeight: sortKey === opt.key ? 600 : 400,
-                transition: 'all 0.15s',
-              }}
-            >
+            <button key={opt.key} onClick={() => setSortKey(opt.key)} style={{
+              padding: '0.4rem 0.85rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer', border: 'none',
+              background: sortKey === opt.key ? 'var(--green)' : 'rgba(255,255,255,0.07)',
+              color: sortKey === opt.key ? '#fff' : 'rgba(255,255,255,0.5)',
+              fontWeight: sortKey === opt.key ? 600 : 400, transition: 'all 0.15s',
+            }}>
               {opt.label}
             </button>
           ))}
         </div>
       </div>
  
-      {/* Chart 1: Progression */}
+      {/* Chart 1: Bar chart — points per player for selected metric */}
+      {barData.some((d: any) => d.value > 0) && (
+        <div>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.4rem' }}>
+            📊 {sortLabel[sortKey].toUpperCase()}
+          </h3>
+          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+            {t.lang === 'pt' ? 'Pontos por jogador' : 'Points per player'}
+          </p>
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <ResponsiveContainer width="100%" height={Math.max(200, barData.length * 55)}>
+              <BarChart data={barData} layout="vertical" margin={{ top: 5, right: 40, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                <YAxis type="category" dataKey="name" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 500 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} width={80} />
+                <Tooltip
+                  contentStyle={{ background: '#0a0f0d', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 13 }}
+                  formatter={(value: any) => [`${value} pts`, sortLabel[sortKey]]}
+                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                />
+                {sortKey === 'total_points' ? (
+                  <>
+                    <Bar dataKey="winner" stackId="a" fill="#4ade80" name="✅ Winner" />
+                    <Bar dataKey="goalDiff" stackId="a" fill="#60a5fa" name="⚖️ Goal Diff" />
+                    <Bar dataKey="exact" stackId="a" fill="#fbbf24" name="🎯 Exact" />
+                    <Bar dataKey="bonus" stackId="a" fill="#f87171" name="🚀 Bonus" radius={[0,4,4,0]} />
+                  </>
+                ) : (
+                  <Bar dataKey="value" fill={barColor[sortKey]} radius={[0,4,4,0]}
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.5)', fontSize: 12, formatter: (v: any) => v > 0 ? `${v}` : '' }}
+                  />
+                )}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+ 
+      {/* Chart 2: Line chart — progression per match */}
       {progressionData.length > 0 && (
         <div>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.4rem' }}>
-            📈 {t.lang === 'pt' ? 'PROGRESSÃO' : 'PROGRESSION'} — {yLabel.toUpperCase()}
+            📈 {t.lang === 'pt' ? 'PROGRESSÃO' : 'PROGRESSION'} — {sortLabel[sortKey].toUpperCase()}
           </h3>
           <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
             {t.lang === 'pt' ? 'Acumulado após cada jogo' : 'Cumulative after each match'}
@@ -530,39 +580,10 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
         </div>
       )}
  
-      {/* Chart 2: Breakdown */}
-      {breakdownData.some((d: any) => d.total > 0) && (
-        <div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.4rem' }}>
-            📊 {t.lang === 'pt' ? 'COMO GANHARAM PONTOS' : 'HOW POINTS WERE EARNED'}
-          </h3>
-          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
-            {t.lang === 'pt' ? 'Detalhamento por tipo de acerto' : 'Breakdown by type of correct tip'}
-          </p>
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <ResponsiveContainer width="100%" height={Math.max(220, breakdownData.length * 55)}>
-              <BarChart data={breakdownData} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                <YAxis type="category" dataKey="name" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 500 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} width={75} />
-                <Tooltip
-                  contentStyle={{ background: '#0a0f0d', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 13 }}
-                  formatter={(value: any, name: string) => [`${value} pts`, name === 'exact' ? '🎯 Exact score' : name === 'goalDiff' ? '⚖️ Goal diff' : name === 'bonus' ? '🚀 Big margin' : '✅ Winner']}
-                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 16 }} formatter={(value: string) => value === 'exact' ? '🎯 Exact score' : value === 'goalDiff' ? '⚖️ Goal diff' : value === 'bonus' ? '🚀 Big margin' : '✅ Winner'} />
-                <Bar dataKey="winner" stackId="a" fill="#4ade80" />
-                <Bar dataKey="goalDiff" stackId="a" fill="#60a5fa" />
-                <Bar dataKey="exact" stackId="a" fill="#fbbf24" />
-                <Bar dataKey="bonus" stackId="a" fill="#f87171" radius={[0,4,4,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
+ 
  
 function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
@@ -792,4 +813,3 @@ function NotApproved({ status }: { status?: string }) {
     </div>
   )
 }
- 
