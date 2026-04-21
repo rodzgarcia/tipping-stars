@@ -409,7 +409,7 @@ function LeaderboardCharts({ leaderboard, allTips, t }: any) {
     allTips
       .filter((tip: any) => tip.pts_with_multiplier > 0 || tip.match?.status === 'completed')
       .map((tip: any) => tip.match_id)
-  )]
+  ))
  
   // Build a sorted list of match IDs by kickoff time
   const matchMeta: Record<string, any> = {}
