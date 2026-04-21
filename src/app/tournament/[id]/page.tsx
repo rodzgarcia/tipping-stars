@@ -450,9 +450,9 @@ function PrizeBanner({ tournament, approvedCount, leaderboard, t }: any) {
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {[
-            { emoji: '🥇', label: `${split1}%`, amount: prize1, name: top3[0]?.display_name },
-            { emoji: '🥈', label: `${split2}%`, amount: prize2, name: top3[1]?.display_name },
-            { emoji: '🥉', label: `${split3}%`, amount: prize3, name: top3[2]?.display_name },
+            { emoji: '🥇', label: `${split1}%`, amount: prize1, name: top3[0]?.total_points > 0 ? top3[0]?.display_name : null },
+            { emoji: '🥈', label: `${split2}%`, amount: prize2, name: top3[1]?.total_points > 0 ? top3[1]?.display_name : null },
+            { emoji: '🥉', label: `${split3}%`, amount: prize3, name: top3[2]?.total_points > 0 ? top3[2]?.display_name : null },
           ].map(({ emoji, label, amount, name }) => (
             <div key={emoji} style={{ textAlign: 'center', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.04)', borderRadius: 10, minWidth: 80 }}>
               <div style={{ fontSize: '1.1rem' }}>{emoji}</div>
