@@ -1210,7 +1210,7 @@ function TipsReveal({ matches, allTips, leaderboard, avatars, profilesMap, userI
   return (
     <div style={{ paddingBottom: '3rem' }}>
       <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>
-        {t.lang === 'pt' ? '👁 Palpites de Todos' : '👁 Everyone's Tips'}
+        {t.lang === 'pt' ? '👁 Palpites de Todos' : "👁 Everyone's Tips"}
       </h2>
       <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.35)', marginBottom: '1.25rem' }}>
         {t.lang === 'pt' ? 'Visível após o bloqueio de cada partida.' : 'Visible once a match is locked.'}
