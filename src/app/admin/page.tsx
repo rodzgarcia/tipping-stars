@@ -249,8 +249,6 @@ export default function AdminPage() {
           <ResultsEntry matches={matches} tournament={currentTournament} tournamentId={selectedTournament} supabase={supabase} onSave={saveResult} onLock={lockResult} onEdit={lockResult} onGoLive={goLive} onUpdateLive={updateLiveScore} onEndLive={endLive} onSaveTournamentResults={saveTournamentResults} />
         )}
       </div>
-      {/* Tournament & Group Results */}
-      <TournamentResultsEntry tournament={tournament} tournamentId={tournamentId} supabase={supabase} onSave={onSaveTournamentResults} />
     </div>
   )
 }
@@ -860,6 +858,8 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
           </div>
         </div>
       )}
+      {/* Tournament & Group Results */}
+      <TournamentResultsEntry tournament={tournament} tournamentId={tournamentId} supabase={supabase} onSave={onSaveTournamentResults} />
     </div>
   )
 }
