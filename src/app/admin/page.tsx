@@ -359,7 +359,7 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
               <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.3rem' }}>{label}</label>
               <select className="input" style={{...selectStyle}} value={val} onChange={e => set(e.target.value)}>
                 <option value="">— Select team —</option>
-                {['Albania','Argentina','Australia','Austria','Belgium','Bolivia','Brazil','Canada','Chile','Colombia','Costa Rica','Croatia','Czech Republic','Ecuador','Egypt','England','France','Germany','Ghana','Greece','Honduras','Hungary','IR Iran','Italy','Jamaica','Japan','Kenya','Mali','Mexico','Morocco','Netherlands','New Zealand','Nigeria','Panama','Paraguay','Peru','Poland','Portugal','Qatar','Saudi Arabia','Senegal','Serbia','Slovakia','Slovenia','South Korea','Spain','Switzerland','Trinidad & Tobago','Tunisia','Turkey','Ukraine','United States','Uruguay','Venezuela','Wales']}.map((tm: string) => <option key={tm} value={tm}>{tm}</option>)
+                {['Albania','Argentina','Australia','Austria','Belgium','Bolivia','Brazil','Canada','Chile','Colombia','Costa Rica','Croatia','Czech Republic','Ecuador','Egypt','England','France','Germany','Ghana','Greece','Honduras','Hungary','IR Iran','Italy','Jamaica','Japan','Kenya','Mali','Mexico','Morocco','Netherlands','New Zealand','Nigeria','Panama','Paraguay','Peru','Poland','Portugal','Qatar','Saudi Arabia','Senegal','Serbia','Slovakia','Slovenia','South Korea','Spain','Switzerland','Trinidad & Tobago','Tunisia','Turkey','Ukraine','United States','Uruguay','Venezuela','Wales'].map((tm: string) => <option key={tm} value={tm}>{tm}</option>)}
               </select>
             </div>
           ))}
