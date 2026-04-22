@@ -74,10 +74,9 @@ export default function AdminPage() {
   }
 
   async function updateLiveScore(matchId: string, homeScore: number, awayScore: number) {
-    // Set scores first, then calc points (function only needs home_score not null)
-    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed' }).eq('id', matchId)
+    // Update score, calculate points (keeps leaderboard live), stay in live status
+    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore }).eq('id', matchId)
     await supabase.rpc('calculate_match_points', { p_match_id: matchId })
-    // Revert status back to live
     await supabase.from('matches').update({ status: 'live' }).eq('id', matchId)
     loadTournamentData()
   }
@@ -209,7 +208,7 @@ export default function AdminPage() {
 
         {/* Results */}
         {tab === 'results' && (
-          <ResultsEntry matches={matches} onSave={saveResult} onLock={lockResult} onEdit={lockResult} onGoLive={goLive} onUpdateLive={updateLiveScore} onEndLive={endLive} />
+          <ResultsEntry matches={matches} tournamentId={selectedTournament} supabase={supabase} onSave={saveResult} onLock={lockResult} onEdit={lockResult} onGoLive={goLive} onUpdateLive={updateLiveScore} onEndLive={endLive} />
         )}
       </div>
     </div>
@@ -500,10 +499,30 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   )
 }
 
-function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive, onEndLive }: any) {
+function ResultsEntry({ matches, tournamentId, supabase, onSave, onLock, onEdit, onGoLive, onUpdateLive, onEndLive }: any) {
   const [scores, setScores] = useState<Record<string, { home: string, away: string }>>({})
   const [editing, setEditing] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
+  const [lockingQualifiers, setLockingQualifiers] = useState(false)
+  const [lockingPredictions, setLockingPredictions] = useState(false)
+  const [qualifiersLocked, setQualifiersLocked] = useState(false)
+  const [predictionsLocked, setPredictionsLocked] = useState(false)
+
+  async function lockAllQualifiers() {
+    if (!confirm('Lock all group qualifier picks? Players will no longer be able to change their 1st/2nd place picks for any group.')) return
+    setLockingQualifiers(true)
+    await supabase.from('group_qualifier_tips').update({ is_locked: true }).eq('tournament_id', tournamentId)
+    setQualifiersLocked(true)
+    setLockingQualifiers(false)
+  }
+
+  async function lockAllPredictions() {
+    if (!confirm('Lock all tournament predictions (winner, 2nd, 3rd, top scorer)? Players will no longer be able to change them.')) return
+    setLockingPredictions(true)
+    await supabase.from('tournament_tips').update({ is_locked: true }).eq('tournament_id', tournamentId)
+    setPredictionsLocked(true)
+    setLockingPredictions(false)
+  }
 
   function setScore(matchId: string, key: 'home' | 'away', val: string) {
     setScores(prev => ({ ...prev, [matchId]: { ...prev[matchId], [key]: val } }))
@@ -537,6 +556,33 @@ function ResultsEntry({ matches, onSave, onLock, onEdit, onGoLive, onUpdateLive,
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+      {/* Admin lock controls */}
+      <div className="card" style={{ padding: '1.25rem 1.5rem', border: '1px solid rgba(251,191,36,0.2)', background: 'rgba(251,191,36,0.03)' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', marginBottom: '0.35rem', color: 'rgba(255,255,255,0.5)' }}>🔐 LOCK TIPPING INPUTS</h3>
+        <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', marginBottom: '1rem' }}>
+          Once locked, players can no longer edit those predictions. This is permanent — use carefully.
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-ghost"
+            style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem', borderColor: qualifiersLocked ? '#4ade80' : 'rgba(251,191,36,0.5)', color: qualifiersLocked ? '#4ade80' : '#fbbf24' }}
+            disabled={lockingQualifiers || qualifiersLocked}
+            onClick={lockAllQualifiers}
+          >
+            {qualifiersLocked ? '✔ Group Qualifiers Locked' : lockingQualifiers ? 'Locking...' : '🗂️ Lock Group Qualifier Picks'}
+          </button>
+          <button
+            className="btn btn-ghost"
+            style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem', borderColor: predictionsLocked ? '#4ade80' : 'rgba(251,191,36,0.5)', color: predictionsLocked ? '#4ade80' : '#fbbf24' }}
+            disabled={lockingPredictions || predictionsLocked}
+            onClick={lockAllPredictions}
+          >
+            {predictionsLocked ? '✔ Predictions Locked' : lockingPredictions ? 'Locking...' : '🏆 Lock Tournament Predictions'}
+          </button>
+        </div>
+      </div>
+
       {live.length > 0 && (
         <div style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: '#f87171' }}>🔴 LIVE NOW</h3>

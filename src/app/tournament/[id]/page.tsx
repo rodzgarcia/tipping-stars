@@ -1183,10 +1183,9 @@ function TipsReveal({ matches, allTips, leaderboard, avatars, profilesMap, userI
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null)
 
   const lockedMatches = matches.filter((m: any) => {
-    // Show in All Tips once the match has kicked off (kickoff time passed)
-    const kickoff = new Date(m.kickoff_at)
-    const now = new Date()
-    return now >= kickoff
+    // Show once live, completed, or kickoff time has passed
+    if (m.status === 'live' || m.status === 'completed') return true
+    return new Date() >= new Date(m.kickoff_at)
   })
 
   if (lockedMatches.length === 0) {
