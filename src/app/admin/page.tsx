@@ -20,6 +20,7 @@ export default function AdminPage() {
   const [pendingMembers, setPendingMembers] = useState<any[]>([])
   const [allMembers, setAllMembers] = useState<any[]>([])
   const [matches, setMatches] = useState<any[]>([])
+  const [tournamentTips, setTournamentTips] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -39,10 +40,11 @@ export default function AdminPage() {
   }
 
   async function loadTournamentData() {
-    const [membRes, matchRes, profilesRes] = await Promise.all([
+    const [membRes, matchRes, profilesRes, ttRes] = await Promise.all([
       supabase.from('tournament_members').select('*').eq('tournament_id', selectedTournament).order('joined_at'),
       supabase.from('matches').select('*').eq('tournament_id', selectedTournament).order('kickoff_at'),
       supabase.from('profiles').select('id,display_name,email'),
+      supabase.from('tournaments').select('*').eq('id', selectedTournament).single(),
     ])
     const profiles = profilesRes.data || []
     const members = (membRes.data || []).map((m: any) => ({
@@ -52,6 +54,7 @@ export default function AdminPage() {
     setPendingMembers(members.filter((m: any) => m.status === 'pending'))
     setAllMembers(members)
     setMatches(matchRes.data || [])
+    setTournamentTips(ttRes.data || null)
   }
 
   async function approveMember(memberId: string, approve: boolean) {
@@ -96,6 +99,41 @@ export default function AdminPage() {
   async function enterResult(matchId: string, homeScore: number, awayScore: number) {
     await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed' }).eq('id', matchId)
     await supabase.rpc('calculate_match_points', { p_match_id: matchId })
+    loadTournamentData()
+  }
+
+  async function saveTournamentResults(results: { winner: string, second: string, third: string, top_scorer: string, group_results: Record<string, { first: string, second: string }> }) {
+    // Save group qualifier results and calculate points
+    for (const [group, teams] of Object.entries(results.group_results)) {
+      if (!teams.first && !teams.second) continue
+      // Get all qualifier tips for this group
+      const { data: picks } = await supabase
+        .from('group_qualifier_tips')
+        .select('*')
+        .eq('tournament_id', selectedTournament)
+        .eq('group_label', group)
+      const ptsPerTeam = currentTournament?.pts_qualify || currentTournament?.pts_qualifying_teams || 10
+      for (const pick of (picks || [])) {
+        let pts = 0
+        // Check 1st pick
+        if (pick.tip_first && pick.tip_first === teams.first) pts += ptsPerTeam
+        else if (pick.tip_first && pick.tip_first === teams.second) pts += Math.floor(ptsPerTeam / 2)
+        // Check 2nd pick
+        if (pick.tip_second && pick.tip_second === teams.second) pts += ptsPerTeam
+        else if (pick.tip_second && pick.tip_second === teams.first) pts += Math.floor(ptsPerTeam / 2)
+        await supabase.from('group_qualifier_tips').update({ pts_total: pts, actual_first: teams.first, actual_second: teams.second }).eq('id', pick.id)
+      }
+    }
+    // Save tournament prediction results
+    if (results.winner || results.second || results.third || results.top_scorer) {
+      await supabase.rpc('calculate_tournament_points', {
+        p_tournament_id: selectedTournament,
+        p_winner: results.winner || '',
+        p_second: results.second || '',
+        p_third: results.third || '',
+        p_top_scorer: results.top_scorer || '',
+      })
+    }
     loadTournamentData()
   }
 
@@ -208,12 +246,133 @@ export default function AdminPage() {
 
         {/* Results */}
         {tab === 'results' && (
-          <ResultsEntry matches={matches} tournamentId={selectedTournament} supabase={supabase} onSave={saveResult} onLock={lockResult} onEdit={lockResult} onGoLive={goLive} onUpdateLive={updateLiveScore} onEndLive={endLive} />
+          <ResultsEntry matches={matches} tournament={currentTournament} tournamentId={selectedTournament} supabase={supabase} onSave={saveResult} onLock={lockResult} onEdit={lockResult} onGoLive={goLive} onUpdateLive={updateLiveScore} onEndLive={endLive} onSaveTournamentResults={saveTournamentResults} />
         )}
       </div>
+      {/* Tournament & Group Results */}
+      <TournamentResultsEntry tournament={tournament} tournamentId={tournamentId} supabase={supabase} onSave={onSaveTournamentResults} />
     </div>
   )
 }
+
+function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: any) {
+  const GROUPS = ['A','B','C','D','E','F','G','H','I','J','K','L']
+  const [groupResults, setGroupResults] = useState<Record<string, { first: string, second: string }>>({})
+  const [winner, setWinner] = useState('')
+  const [second, setSecond] = useState('')
+  const [third, setThird] = useState('')
+  const [topScorer, setTopScorer] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [teamsByGroup, setTeamsByGroup] = useState<Record<string, string[]>>({})
+
+  useEffect(() => {
+    if (!tournamentId) return
+    supabase.from('matches').select('home_team,away_team,group_name,round').eq('tournament_id', tournamentId).eq('round', 'group')
+      .then(({ data }: any) => {
+        const map: Record<string, Set<string>> = {}
+        data?.forEach((m: any) => {
+          if (!m.group_name) return
+          if (!map[m.group_name]) map[m.group_name] = new Set()
+          map[m.group_name].add(m.home_team)
+          map[m.group_name].add(m.away_team)
+        })
+        const result: Record<string, string[]> = {}
+        Object.entries(map).forEach(([g, s]) => { result[g] = Array.from(s).sort() })
+        setTeamsByGroup(result)
+      })
+  }, [tournamentId])
+
+  function setGroup(group: string, pos: 'first' | 'second', val: string) {
+    setGroupResults(prev => ({ ...prev, [group]: { ...(prev[group] || { first: '', second: '' }), [pos]: val } }))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    await onSave({ winner, second, third, top_scorer: topScorer, group_results: groupResults })
+    setSaved(true); setTimeout(() => setSaved(false), 3000); setSaving(false)
+  }
+
+  const selectStyle = { background: '#1a1a2e', color: '#fff', width: '100%' }
+  const activeGroups = GROUPS.filter(g => teamsByGroup[g]?.length > 0)
+
+  return (
+    <div className="card" style={{ padding: '1.5rem', marginTop: '0.5rem' }}>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.35rem', color: 'rgba(255,255,255,0.5)' }}>
+        🏆 TOURNAMENT & GROUP RESULTS
+      </h3>
+      <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', marginBottom: '1.5rem' }}>
+        Enter final results to calculate qualifier and prediction points. You can update these as groups finish.
+      </p>
+
+      {/* Group qualifier results */}
+      {activeGroups.length > 0 && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h4 style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.45)', marginBottom: '0.75rem' }}>
+            🗂️ GROUP RESULTS (1st & 2nd place)
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.75rem' }}>
+            {activeGroups.map(group => {
+              const teams = teamsByGroup[group] || []
+              const g = groupResults[group] || { first: '', second: '' }
+              return (
+                <div key={group} className="card" style={{ padding: '0.85rem 1rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--gold)', marginBottom: '0.5rem', letterSpacing: '0.06em' }}>
+                    GROUP {group}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', display: 'block', marginBottom: '0.2rem' }}>🥇 1st</label>
+                      <select className="input" style={selectStyle} value={g.first} onChange={e => setGroup(group, 'first', e.target.value)}>
+                        <option value="">— Select —</option>
+                        {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', display: 'block', marginBottom: '0.2rem' }}>🥈 2nd</label>
+                      <select className="input" style={selectStyle} value={g.second} onChange={e => setGroup(group, 'second', e.target.value)}>
+                        <option value="">— Select —</option>
+                        {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Tournament prediction results */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h4 style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.45)', marginBottom: '0.75rem' }}>
+          🌍 TOURNAMENT PREDICTION RESULTS
+        </h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+          {[
+            { label: '🏆 World Cup Winner', val: winner, set: setWinner },
+            { label: '🥈 2nd Place', val: second, set: setSecond },
+            { label: '🥉 3rd Place', val: third, set: setThird },
+          ].map(({ label, val, set }) => (
+            <div key={label}>
+              <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.3rem' }}>{label}</label>
+              <input type="text" className="input" style={selectStyle} placeholder="Team name..." value={val} onChange={e => set(e.target.value)} />
+            </div>
+          ))}
+          <div>
+            <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.3rem' }}>⚽ Top Scorer</label>
+            <input type="text" className="input" style={selectStyle} placeholder="Player name..." value={topScorer} onChange={e => setTopScorer(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <button className="btn btn-primary" disabled={saving} onClick={handleSave} style={{ padding: '0.6rem 1.5rem' }}>
+        {saved ? '✔ Points Calculated!' : saving ? 'Calculating...' : '⚡ Save Results & Calculate Points'}
+      </button>
+    </div>
+  )
+}
+
 
 function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
   const [form, setForm] = useState(tournament ? { ...tournament } : {})
@@ -499,7 +658,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   )
 }
 
-function ResultsEntry({ matches, tournamentId, supabase, onSave, onLock, onEdit, onGoLive, onUpdateLive, onEndLive }: any) {
+function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onLock, onEdit, onGoLive, onUpdateLive, onEndLive, onSaveTournamentResults }: any) {
   const [scores, setScores] = useState<Record<string, { home: string, away: string }>>({})
   const [editing, setEditing] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)

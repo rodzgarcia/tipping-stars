@@ -14,6 +14,7 @@ function AuthForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [nickname, setNickname] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
@@ -23,13 +24,41 @@ function AuthForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(''); setSuccess(''); setLoading(true)
+
     if (mode === 'signup') {
-      const { error } = await supabase.auth.signUp({ email, password, options: { data: { display_name: name } } })
-      if (error) setError(error.message)
-      else setSuccess(t.lang === 'pt' ? 'Conta criada! Verifique seu e-mail para confirmar, depois entre.' : 'Account created! Check your email to confirm, then sign in.')
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { display_name: name } }
+      })
+      if (signUpError) {
+        setError(signUpError.message)
+      } else if (data.user && nickname.trim()) {
+        // Save nickname to profile — profile row is created by Supabase trigger on auth.users insert
+        // We retry a couple of times since the trigger may take a moment
+        let attempts = 0
+        const saveNickname = async () => {
+          attempts++
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ nickname: nickname.trim() })
+            .eq('id', data.user!.id)
+          if (updateError && attempts < 3) {
+            setTimeout(saveNickname, 800)
+          }
+        }
+        setTimeout(saveNickname, 600)
+        setSuccess(t.lang === 'pt'
+          ? 'Conta criada! Verifique seu e-mail para confirmar, depois entre.'
+          : 'Account created! Check your email to confirm, then sign in.')
+      } else {
+        setSuccess(t.lang === 'pt'
+          ? 'Conta criada! Verifique seu e-mail para confirmar, depois entre.'
+          : 'Account created! Check your email to confirm, then sign in.')
+      }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(error.message)
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError) setError(signInError.message)
       else router.push(redirect)
     }
     setLoading(false)
@@ -57,10 +86,33 @@ function AuthForm() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {mode === 'signup' && (
-              <div>
-                <label className="label">{t.displayName}</label>
-                <input className="input" type="text" placeholder={t.displayNamePlaceholder} value={name} onChange={e => setName(e.target.value)} required />
-              </div>
+              <>
+                <div>
+                  <label className="label">{t.displayName}</label>
+                  <input className="input" type="text" placeholder={t.displayNamePlaceholder} value={name} onChange={e => setName(e.target.value)} required />
+                </div>
+                <div>
+                  <label className="label">
+                    {t.lang === 'pt' ? 'Apelido' : 'Nickname'}
+                    <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400, marginLeft: '0.4rem', fontSize: '0.78rem' }}>
+                      {t.lang === 'pt' ? '(opcional — aparece no placar)' : '(optional — shown on leaderboard)'}
+                    </span>
+                  </label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder={t.lang === 'pt' ? 'Ex: Rei do Placar, O Profeta...' : 'e.g. ScoreKing, The Prophet...'}
+                    value={nickname}
+                    onChange={e => setNickname(e.target.value)}
+                    maxLength={20}
+                  />
+                  {nickname.length > 0 && (
+                    <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
+                      {20 - nickname.length} {t.lang === 'pt' ? 'caracteres restantes' : 'characters remaining'}
+                    </p>
+                  )}
+                </div>
+              </>
             )}
             <div>
               <label className="label">{t.email}</label>
@@ -68,7 +120,9 @@ function AuthForm() {
             </div>
             <div>
               <label className="label">{t.password}</label>
-              <input className="input" type="password" placeholder={mode === 'signup' ? (t.lang === 'pt' ? 'Minimo 8 caracteres' : 'At least 8 characters') : '........'} value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
+              <input className="input" type="password"
+                placeholder={mode === 'signup' ? (t.lang === 'pt' ? 'Minimo 8 caracteres' : 'At least 8 characters') : '........'}
+                value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
             </div>
 
             {error && <p style={{ color: '#f87171', fontSize: '0.85rem', background: 'rgba(239,68,68,0.1)', padding: '0.6rem 0.9rem', borderRadius: 8 }}>{error}</p>}
