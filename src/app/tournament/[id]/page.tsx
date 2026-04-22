@@ -27,6 +27,20 @@ const TEAM_FLAGS: Record<string, string> = {
   'Norway':'🇳🇴','Sweden':'🇸🇪','Uzbekistan':'🇺🇿',
 }
 
+const TOP_SCORERS = [
+  'Antoine Griezmann','Bukayo Saka','Bernardo Silva','Bruno Fernandes',
+  'Cody Gakpo','Dušan Vlahović','Éder Militão','Erling Haaland',
+  'Ferran Torres','Florian Wirtz','Gabriel Martinelli','Gavi',
+  'Harry Kane','Heung-Min Son','Jamal Musiala','João Félix',
+  'Jude Bellingham','Julián Álvarez','Kai Havertz','Kaoru Mitoma',
+  'Kylian Mbappé','Lautaro Martínez','Leroy Sané','Lionel Messi',
+  'Luka Modrić','Marcus Rashford','Memphis Depay','Neymar',
+  'Ousmane Dembélé','Pedri','Phil Foden','Randal Kolo Muani',
+  'Raphinha','Richarlison','Rodrygo','Romelu Lukaku',
+  'Viktor Gyökeres','Vinicius Jr.','Youssef En-Nesyri','Donyell Malen',
+].sort()
+
+
 const WC2026_TEAMS = [
   'Algeria','Argentina','Australia','Austria','Belgium','Bosnia and Herzegovina',
   'Brazil','Canada','Cape Verde','Colombia','Croatia','Curacao','Czechia',
