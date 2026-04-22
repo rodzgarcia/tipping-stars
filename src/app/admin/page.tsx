@@ -271,9 +271,12 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
         const map: Record<string, Set<string>> = {}
         data?.forEach((m: any) => {
           if (!m.group_name) return
-          if (!map[m.group_name]) map[m.group_name] = new Set()
-          map[m.group_name].add(m.home_team)
-          map[m.group_name].add(m.away_team)
+          // Normalise: "Group A" -> "A", or keep as-is if already single letter
+          const raw = String(m.group_name).trim()
+          const key = raw.length === 1 ? raw : raw.replace(/^group\s*/i, '').trim()
+          if (!map[key]) map[key] = new Set()
+          map[key].add(m.home_team)
+          map[key].add(m.away_team)
         })
         const result: Record<string, string[]> = {}
         Object.entries(map).forEach(([g, s]) => { result[g] = Array.from(s).sort() })
@@ -354,12 +357,25 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
           ].map(({ label, val, set }) => (
             <div key={label}>
               <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.3rem' }}>{label}</label>
-              <input type="text" className="input" style={selectStyle} placeholder="Team name..." value={val} onChange={e => set(e.target.value)} />
+              <select className="input" style={{...selectStyle}} value={val} onChange={e => set(e.target.value)}>
+                <option value="">— Select team —</option>
+                {['Albania','Argentina','Australia','Austria','Belgium','Bolivia','Brazil','Canada','Chile','Colombia','Costa Rica','Croatia','Czech Republic','Ecuador','Egypt','England','France','Germany','Ghana','Greece','Honduras','Hungary','IR Iran','Italy','Jamaica','Japan','Kenya','Mali','Mexico','Morocco','Netherlands','New Zealand','Nigeria','Panama','Paraguay','Peru','Poland','Portugal','Qatar','Saudi Arabia','Senegal','Serbia','Slovakia','Slovenia','South Korea','Spain','Switzerland','Trinidad & Tobago','Tunisia','Turkey','Ukraine','United States','Uruguay','Venezuela','Wales']}.map((tm: string) => <option key={tm} value={tm}>{tm}</option>)
+              </select>
             </div>
           ))}
           <div>
             <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.3rem' }}>⚽ Top Scorer</label>
-            <input type="text" className="input" style={selectStyle} placeholder="Player name..." value={topScorer} onChange={e => setTopScorer(e.target.value)} />
+            <select className="input" style={{...selectStyle}}
+                value={['Kylian Mbappé','Erling Haaland','Vinicius Jr.','Rodrygo','Lautaro Martínez','Julián Álvarez','Lionel Messi','Neymar','Raphinha','Bruno Fernandes','Bernardo Silva','João Félix','Pedri','Gavi','Ferran Torres','Harry Kane','Jude Bellingham','Phil Foden','Bukayo Saka','Marcus Rashford','Cody Gakpo','Memphis Depay','Donyell Malen','Dušan Vlahović','Luka Modrić','Romelu Lukaku','Leroy Sané','Jamal Musiala','Florian Wirtz','Kai Havertz','Heung-Min Son','Kaoru Mitoma','Richarlison','Gabriel Martinelli','Éder Militão','Antoine Griezmann','Ousmane Dembélé','Randal Kolo Muani','Youssef En-Nesyri','Viktor Gyökeres'].includes(topScorer) ? topScorer : topScorer ? '__other__' : ''}
+                onChange={e => { if (e.target.value === '__other__') setTopScorer(''); else setTopScorer(e.target.value) }}
+              >
+                <option value="">— Select a player —</option>
+                {['Kylian Mbappé','Erling Haaland','Vinicius Jr.','Rodrygo','Lautaro Martínez','Julián Álvarez','Lionel Messi','Neymar','Raphinha','Bruno Fernandes','Bernardo Silva','João Félix','Pedri','Gavi','Ferran Torres','Harry Kane','Jude Bellingham','Phil Foden','Bukayo Saka','Marcus Rashford','Cody Gakpo','Memphis Depay','Donyell Malen','Dušan Vlahović','Luka Modrić','Romelu Lukaku','Leroy Sané','Jamal Musiala','Florian Wirtz','Kai Havertz','Heung-Min Son','Kaoru Mitoma','Richarlison','Gabriel Martinelli','Éder Militão','Antoine Griezmann','Ousmane Dembélé','Randal Kolo Muani','Youssef En-Nesyri','Viktor Gyökeres'].sort().map(p => <option key={p} value={p}>{p}</option>)}
+                <option value="__other__">✏️ Other player...</option>
+              </select>
+              {topScorer && !['Kylian Mbappé','Erling Haaland','Vinicius Jr.','Rodrygo','Lautaro Martínez','Julián Álvarez','Lionel Messi','Neymar','Raphinha','Bruno Fernandes','Bernardo Silva','João Félix','Pedri','Gavi','Ferran Torres','Harry Kane','Jude Bellingham','Phil Foden','Bukayo Saka','Marcus Rashford','Cody Gakpo','Memphis Depay','Donyell Malen','Dušan Vlahović','Luka Modrić','Romelu Lukaku','Leroy Sané','Jamal Musiala','Florian Wirtz','Kai Havertz','Heung-Min Son','Kaoru Mitoma','Richarlison','Gabriel Martinelli','Éder Militão','Antoine Griezmann','Ousmane Dembélé','Randal Kolo Muani','Youssef En-Nesyri','Viktor Gyökeres'].includes(topScorer) && (
+                <input type="text" className="input" style={{...selectStyle, marginTop: '0.4rem'}} value={topScorer} onChange={e => setTopScorer(e.target.value)} placeholder="Player name..." />
+              )}
           </div>
         </div>
       </div>
@@ -573,6 +589,9 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importDone, setImportDone] = useState(false)
+  const emptyKo = { home_team: '', away_team: '', kickoff_at: '', round: 'r32', venue: '', tournament_id: tournamentId }
+  const [koForm, setKoForm] = useState(emptyKo)
+  const [savingKo, setSavingKo] = useState(false)
 
   async function importFIFA2026() {
     if (!confirm('This will add all 72 FIFA World Cup 2026 group stage matches. Continue?')) return
@@ -591,6 +610,13 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
     setSaving(true)
     await supabase.from('matches').insert(form)
     setForm(emptyMatch); onUpdate(); setSaving(false)
+  }
+
+  async function addKoMatch() {
+    if (!koForm.home_team || !koForm.away_team || !koForm.kickoff_at) return
+    setSavingKo(true)
+    await supabase.from('matches').insert({ ...koForm, group_name: null })
+    setKoForm(emptyKo); onUpdate(); setSavingKo(false)
   }
 
   async function deleteMatch(id: string) {
@@ -633,6 +659,53 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
           <Plus size={14} />{saving ? 'Adding...' : 'Add match'}
         </button>
       </div>
+
+      <div className="card" style={{ padding: '1.5rem', background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.15)', marginBottom: '0' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.5rem', color: '#60a5fa' }}>⚡ ADD KNOCKOUT MATCH</h3>
+        <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.35rem' }}>
+          Add knockout matches early — use TBD placeholders if teams aren't confirmed yet. Edit the match later to fill in the real team names once known.
+        </p>
+        <p style={{ fontSize: '0.78rem', color: 'rgba(96,165,250,0.5)', marginBottom: '1rem' }}>
+          💡 Tip: Add the match with TBD teams &amp; correct kickoff time right away so tippers can see it's coming. Edit teams when they're confirmed.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
+          <div>
+            <label className="label">Home team</label>
+            <input type="text" className="input" placeholder="e.g. Brazil or TBD" value={koForm.home_team} onChange={e => setKoForm({...koForm,home_team:e.target.value})} />
+            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
+              {['TBD','Winner Group A','Runner-up Group B'].map(s => (
+                <button key={s} onClick={() => setKoForm({...koForm,home_team:s})} style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', borderRadius: 10, border: '1px solid rgba(96,165,250,0.3)', background: 'transparent', color: '#60a5fa', cursor: 'pointer' }}>{s}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="label">Away team</label>
+            <input type="text" className="input" placeholder="e.g. Argentina or TBD" value={koForm.away_team} onChange={e => setKoForm({...koForm,away_team:e.target.value})} />
+            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
+              {['TBD','Winner Group C','Runner-up Group D'].map(s => (
+                <button key={s} onClick={() => setKoForm({...koForm,away_team:s})} style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', borderRadius: 10, border: '1px solid rgba(96,165,250,0.3)', background: 'transparent', color: '#60a5fa', cursor: 'pointer' }}>{s}</button>
+              ))}
+            </div>
+          </div>
+          <div><label className="label">Kickoff (local time)</label><input type="datetime-local" className="input" value={koForm.kickoff_at} onChange={e => setKoForm({...koForm,kickoff_at:e.target.value})} /></div>
+          <div>
+            <label className="label">Round</label>
+            <select className="input" value={koForm.round} onChange={e => setKoForm({...koForm,round:e.target.value})}>
+              <option value="r32">Round of 32</option>
+              <option value="r16">Round of 16</option>
+              <option value="qf">Quarter-finals</option>
+              <option value="sf">Semi-finals</option>
+              <option value="third_place">3rd Place</option>
+              <option value="final">Final</option>
+            </select>
+          </div>
+          <div><label className="label">Venue (optional)</label><input type="text" className="input" placeholder="e.g. SoFi Stadium" value={koForm.venue} onChange={e => setKoForm({...koForm,venue:e.target.value})} /></div>
+        </div>
+        <button onClick={addKoMatch} disabled={savingKo || !koForm.home_team || !koForm.away_team || !koForm.kickoff_at} className="btn btn-primary" style={{ marginTop: '1rem', background: 'rgba(96,165,250,0.2)', borderColor: '#60a5fa', color: '#60a5fa' }}>
+          <Plus size={14} />{savingKo ? 'Adding...' : 'Add knockout match'}
+        </button>
+      </div>
+
 
       <div>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>MATCHES ({matches.length})</h3>
@@ -817,6 +890,9 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
         </div>
       </div>
 
+      {/* Tournament & Group Results — before locked section */}
+      <TournamentResultsEntry tournament={tournament} tournamentId={tournamentId} supabase={supabase} onSave={onSaveTournamentResults} />
+
       {completed.length > 0 && (
         <div>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>LOCKED RESULTS — CLICK EDIT TO CORRECT</h3>
@@ -858,8 +934,6 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
           </div>
         </div>
       )}
-      {/* Tournament & Group Results */}
-      <TournamentResultsEntry tournament={tournament} tournamentId={tournamentId} supabase={supabase} onSave={onSaveTournamentResults} />
     </div>
   )
 }

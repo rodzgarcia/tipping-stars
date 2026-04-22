@@ -9,6 +9,25 @@ import { isPast, subHours } from 'date-fns'
 import { useLang } from '../../LanguageContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
+const TEAM_FLAGS: Record<string, string> = {
+  'Albania':'🇦🇱','Argentina':'🇦🇷','Australia':'🇦🇺','Austria':'🇦🇹','Belgium':'🇧🇪',
+  'Bolivia':'🇧🇴','Brazil':'🇧🇷','Canada':'🇨🇦','Chile':'🇨🇱','Colombia':'🇨🇴',
+  'Costa Rica':'🇨🇷','Croatia':'🇭🇷','Czech Republic':'🇨🇿','Ecuador':'🇪🇨','Egypt':'🇪🇬',
+  'England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','France':'🇫🇷','Germany':'🇩🇪','Ghana':'🇬🇭','Greece':'🇬🇷',
+  'Honduras':'🇭🇳','Hungary':'🇭🇺','IR Iran':'🇮🇷','Italy':'🇮🇹','Jamaica':'🇯🇲',
+  'Japan':'🇯🇵','Kenya':'🇰🇪','Mali':'🇲🇱','Mexico':'🇲🇽','Morocco':'🇲🇦',
+  'Netherlands':'🇳🇱','New Zealand':'🇳🇿','Nigeria':'🇳🇬','Panama':'🇵🇦','Paraguay':'🇵🇾',
+  'Peru':'🇵🇪','Poland':'🇵🇱','Portugal':'🇵🇹','Qatar':'🇶🇦','Saudi Arabia':'🇸🇦',
+  'Senegal':'🇸🇳','Serbia':'🇷🇸','Slovakia':'🇸🇰','Slovenia':'🇸🇮','South Korea':'🇰🇷',
+  'Spain':'🇪🇸','Switzerland':'🇨🇭','Trinidad & Tobago':'🇹🇹','Tunisia':'🇹🇳',
+  'Turkey':'🇹🇷','Ukraine':'🇺🇦','United States':'🇺🇸','Uruguay':'🇺🇾',
+  'Venezuela':'🇻🇪','Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿','Czechia':'🇨🇿','USA':'🇺🇸',
+  'Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','South Africa':'🇿🇦','South Korea':'🇰🇷',
+  'Bosnia and Herzegovina':'🇧🇦','Cape Verde':'🇨🇻','Curacao':'🇨🇼',
+  'DR Congo':'🇨🇩','Haiti':'🇭🇹','Iraq':'🇮🇶','Jordan':'🇯🇴',
+  'Norway':'🇳🇴','Sweden':'🇸🇪','Uzbekistan':'🇺🇿',
+}
+
 const WC2026_TEAMS = [
   'Algeria','Argentina','Australia','Austria','Belgium','Bosnia and Herzegovina',
   'Brazil','Canada','Cape Verde','Colombia','Croatia','Curacao','Czechia',
@@ -1436,9 +1455,9 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
         {/* Teams + score display */}
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{match.home_team}</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{TEAM_FLAGS[match.home_team] || '🏳️'} {match.home_team}</span>
             <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>vs</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{match.away_team}</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{TEAM_FLAGS[match.away_team] || '🏳️'} {match.away_team}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
@@ -1563,27 +1582,21 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
             </div>
           ) : (
             <>
-              <input className="input" type="text" list="scorer-list" value={topScorer} onChange={e => setTopScorer(e.target.value)} placeholder="Type a player name..." />
-              <datalist id="scorer-list">
-                {['Lionel Messi','Kylian Mbappe','Erling Haaland','Vinicius Jr','Neymar Jr','Harry Kane',
-                  'Lautaro Martinez','Antoine Griezmann','Bukayo Saka','Phil Foden','Jude Bellingham',
-                  'Florian Wirtz','Jamal Musiala','Leroy Sane','Kai Havertz','Niclas Fullkrug',
-                  'Raphinha','Rodrygo','Gabriel Martinelli','Richarlison','Endrick',
-                  'Darwin Nunez','Luis Suarez','Rodrigo Bentancur','Facundo Pellistri',
-                  'Alvaro Morata','Mikel Oyarzabal','Ferran Torres','Lamine Yamal','Pedri',
-                  'Memphis Depay','Cody Gakpo','Wout Weghorst','Virgil van Dijk',
-                  'Heung-min Son','Hwang Hee-chan','Paulo Dybala','Julian Alvarez',
-                  'Riyad Mahrez','Youssef En-Nesyri','Achraf Hakimi','Hakim Ziyech',
-                  'Sadio Mane','Ismaila Sarr','Kalidou Koulibaly',
-                  'Cristiano Ronaldo','Bruno Fernandes','Bernardo Silva','Joao Felix',
-                  'Oliver Giroud','Ousmane Dembele','Marcus Thuram',
-                  'Alvaro Morata','Gavi','Rodri','Dani Olmo',
-                  'Romelu Lukaku','Kevin De Bruyne','Lois Openda',
-                  'Andre Silva','Diogo Jota','Rafael Leao'].map(p => (
-                  <option key={p} value={p} />
-                ))}
-              </datalist>
-              <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.3rem' }}>Start typing to see suggestions</p>
+              <select
+                className="input"
+                style={{ background: '#1a1a2e', color: '#fff' }}
+                value={TOP_SCORERS.includes(topScorer) ? topScorer : topScorer ? '__other__' : ''}
+                onChange={e => { if (e.target.value === '__other__') setTopScorer(''); else setTopScorer(e.target.value) }}
+              >
+                <option value="">— Select a player —</option>
+                {TOP_SCORERS.map(p => <option key={p} value={p}>{p}</option>)}
+                <option value="__other__">✏️ Other player...</option>
+              </select>
+              {(!TOP_SCORERS.includes(topScorer) && topScorer !== '') || topScorer === '' && false ? null : null}
+              {topScorer === '' || TOP_SCORERS.includes(topScorer) ? null : (
+                <input className="input" type="text" value={topScorer} onChange={e => setTopScorer(e.target.value)}
+                  placeholder="Type player name..." style={{ marginTop: '0.4rem' }} />
+              )}
             </>
           )}
           {existing?.pts_top_scorer > 0 && (
