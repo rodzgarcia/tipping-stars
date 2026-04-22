@@ -98,7 +98,7 @@ export default function TournamentPage() {
       supabase.from('match_tips').select('*, match:matches(round, kickoff_at, status, home_score, away_score)').eq('tournament_id', tournamentId).eq('user_id', user.id),
       supabase.from('match_tips').select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)').eq('tournament_id', tournamentId),
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
-      supabase.from('profiles').select('id, display_name, avatar_url, jersey_team, tip_position'),
+      supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position'),
       supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
     ])
@@ -247,10 +247,16 @@ export default function TournamentPage() {
                   </div>
                   <Avatar userId={row.user_id} avatars={avatars} size={34} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 500, fontSize: '0.88rem', color: row.user_id === user.id ? '#4ade80' : '#e8f5ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {row.display_name} {row.user_id === user.id && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>({t.you})</span>}
+                    <div style={{ fontWeight: 600, fontSize: '0.88rem', color: row.user_id === user.id ? '#4ade80' : '#e8f5ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {profilesMap[row.user_id]?.nickname || row.display_name}
+                      {row.user_id === user.id && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>({t.you})</span>}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.1rem' }}>
+                    {profilesMap[row.user_id]?.nickname && (
+                      <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {row.display_name}
+                      </div>
+                    )}
+                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.2)', marginTop: profilesMap[row.user_id]?.nickname ? '0' : '0.1rem' }}>
                       {t.lang === 'pt' ? `${row.tips_submitted} palpites` : `${row.tips_submitted} tips`}
                     </div>
                   </div>
@@ -278,9 +284,9 @@ export default function TournamentPage() {
 
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
-              <RoundStandings leaderboard={leaderboard} allTips={allTips} t={t} />
+              <RoundStandings leaderboard={leaderboard} allTips={allTips} profilesMap={profilesMap} t={t} />
             </div>
-            <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} avatars={avatars} profilesMap={profilesMap} userId={user.id} />
+            <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} profilesMap={profilesMap} userId={user.id} />
           </div>
         )}
 
@@ -635,7 +641,7 @@ function PrizeBanner({ tournament, approvedCount, leaderboard, t }: any) {
 }
 
 
-function RoundStandings({ leaderboard, allTips, t }: any) {
+function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
   if (!leaderboard.length) return null
 
   // Get today's points per player
@@ -680,7 +686,7 @@ function RoundStandings({ leaderboard, allTips, t }: any) {
               <div key={row.user_id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '1rem', width: 20 }}>{heroEmojis[i]}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: heroColors[i] }}>{row.display_name.split(' ')[0]}</div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: heroColors[i] }}>{profilesMap?.[row.user_id]?.nickname || row.display_name.split(' ')[0]}</div>
                   <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{heroTitles[i]}</div>
                 </div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: heroColors[i] }}>{pts}</div>
@@ -701,7 +707,7 @@ function RoundStandings({ leaderboard, allTips, t }: any) {
                 <div key={row.user_id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '1rem', width: 20 }}>{zeroEmojis[i]}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f87171' }}>{row.display_name.split(' ')[0]}</div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f87171' }}>{profilesMap?.[row.user_id]?.nickname || row.display_name.split(' ')[0]}</div>
                     <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{zeroTitles[i]}</div>
                   </div>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: '#f87171' }}>{pts}</div>
@@ -879,9 +885,14 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
           </div>
 
           {/* Name */}
-          <div style={{ textAlign: 'center', padding: '4px 8px 3px', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {row.display_name.toUpperCase()}
+          <div style={{ textAlign: 'center', padding: '4px 8px 1px', fontSize: 11, fontWeight: 800, letterSpacing: '0.1em', color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {(profile?.nickname || row.display_name).toUpperCase()}
           </div>
+          {profile?.nickname && (
+            <div style={{ textAlign: 'center', padding: '0 8px 3px', fontSize: 8, color: subColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: 0.7 }}>
+              {row.display_name}
+            </div>
+          )}
 
           {/* Divider */}
           <div style={{ margin: '0 12px', height: 1, background: borderColor, opacity: 0.3 }} />
@@ -994,8 +1005,19 @@ const CHART_COLORS = ['#4ade80','#fbbf24','#60a5fa','#f87171','#c084fc','#34d399
 
 const ROUND_ORDER = ['group','r32','r16','qf','sf','third_place','final']
 
-function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any) {
+function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profilesMap, userId }: any) {
   if (!leaderboard.length) return null
+  const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(() => new Set(leaderboard.map((r: any) => r.user_id)))
+
+  function togglePlayer(id: string) {
+    setSelectedPlayers(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) { if (next.size > 1) next.delete(id) } // always keep at least 1
+      else next.add(id)
+      return next
+    })
+  }
+  function selectAll() { setSelectedPlayers(new Set(leaderboard.map((r: any) => r.user_id))) }
 
   // Sort players by selected metric
   const sortedLeaderboard = [...leaderboard].sort((a: any, b: any) => {
@@ -1012,7 +1034,8 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
     const goalDiffPts = userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_goal_diff) || 0), 0)
     const winnerPts = userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_winner) || 0), 0)
     const bonusPts = userTips.reduce((s: number, tip: any) => s + (Number(tip.pts_big_margin) || 0), 0)
-    const name = row.display_name.length > 12 ? row.display_name.split(' ')[0] : row.display_name
+    const nick = profilesMap?.[row.user_id]?.nickname
+    const name = nick || (row.display_name.length > 12 ? row.display_name.split(' ')[0] : row.display_name)
     return {
       name,
       fullName: row.display_name,
@@ -1046,7 +1069,8 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
     .filter(id => matchMeta[id])
     .sort((a, b) => new Date(matchMeta[a]?.kickoff_at || 0).getTime() - new Date(matchMeta[b]?.kickoff_at || 0).getTime())
 
-  const players = sortedLeaderboard.map((row: any) => ({ id: row.user_id, name: row.display_name }))
+  const filteredLeaderboard = sortedLeaderboard.filter((r: any) => selectedPlayers.has(r.user_id))
+  const players = filteredLeaderboard.map((row: any) => ({ id: row.user_id, name: profilesMap?.[row.user_id]?.nickname || row.display_name }))
 
   const progressionData = sortedMatches.map((matchId: string, idx: number) => {
     const meta = matchMeta[matchId]
@@ -1108,6 +1132,41 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
           ))}
         </div>
       </div>
+
+      {/* Player filter for progression chart */}
+      {leaderboard.length > 1 && (
+        <div>
+          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginBottom: '0.5rem' }}>
+            {t.lang === 'pt' ? 'Comparar jogadores:' : 'Compare players:'}
+          </p>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button onClick={selectAll} style={{
+              padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.72rem', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.2)',
+              background: selectedPlayers.size === leaderboard.length ? 'rgba(255,255,255,0.15)' : 'transparent',
+              color: 'rgba(255,255,255,0.6)',
+            }}>All</button>
+            {leaderboard.map((row: any, i: number) => {
+              const name = profilesMap?.[row.user_id]?.nickname || row.display_name.split(' ')[0]
+              const isSelected = selectedPlayers.has(row.user_id)
+              const color = CHART_COLORS[i % CHART_COLORS.length]
+              return (
+                <button key={row.user_id} onClick={() => togglePlayer(row.user_id)} style={{
+                  padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.72rem', cursor: 'pointer',
+                  border: `1px solid ${isSelected ? color : 'rgba(255,255,255,0.1)'}`,
+                  background: isSelected ? color + '22' : 'transparent',
+                  color: isSelected ? color : 'rgba(255,255,255,0.35)',
+                  fontWeight: isSelected ? 600 : 400,
+                  display: 'flex', alignItems: 'center', gap: '0.3rem',
+                }}>
+                  {isSelected && <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' }} />}
+                  {name}
+                  {row.user_id === userId && <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>(you)</span>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Chart 1: Line chart — progression (shown first) */}
       {progressionData.length > 0 && (
