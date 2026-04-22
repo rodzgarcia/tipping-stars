@@ -22,7 +22,7 @@ const WC2026_TEAMS = [
 
 
 
-type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers' | 'rules'
+type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers' | 'rules' | 'tips_reveal'
 type SortKey = 'total_points' | 'exact_scores' | 'correct_winners' | 'correct_goal_diff'
 
 function formatLocalTime(dateStr: string) {
@@ -167,6 +167,7 @@ export default function TournamentPage() {
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
           <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')}>Match Tips</button>
+          <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => setTab('tips_reveal')}>{t.lang === 'pt' ? '👁 Palpites' : '👁 All Tips'}</button>
           <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')}>Group Qualifiers</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>Tournament Tips</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
@@ -223,7 +224,7 @@ export default function TournamentPage() {
           <div style={{ paddingBottom: '3rem' }}>
             <div className="card" style={{ overflow: 'hidden' }}>
               {/* Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr repeat(4, 4rem)', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
                 <div></div>
                 <div>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
                 <div style={{ textAlign: 'center' }} title="Exact scores">🎯</div>
@@ -239,7 +240,7 @@ export default function TournamentPage() {
                   return b.correct_goal_diff - a.correct_goal_diff
                 }).map((row: any, i: number) => (
                 <div key={row.user_id}
-                  style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr repeat(4, 4rem)', gap: '0.5rem', alignItems: 'center', padding: '0.9rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
+                  style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', alignItems: 'center', padding: '0.9rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}
                   </div>
@@ -280,6 +281,12 @@ export default function TournamentPage() {
             </div>
             <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} avatars={avatars} profilesMap={profilesMap} userId={user.id} />
           </div>
+        )}
+
+
+        {/* Tips Reveal — visible once a match is locked */}
+        {tab === 'tips_reveal' && (
+          <TipsReveal matches={matches} allTips={allTips} leaderboard={leaderboard} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
         )}
 
         {/* Rules */}
@@ -373,14 +380,14 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>🥇 {t.firstPlace}</label>
-                    <select className="input" value={picks[group]?.first || ''} onChange={e => setPicks(prev => ({ ...prev, [group]: { ...prev[group], first: e.target.value } }))}>
+                    <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={picks[group]?.first || ''} onChange={e => setPicks(prev => ({ ...prev, [group]: { ...prev[group], first: e.target.value } }))}>
                       <option value="">{t.selectTeam}</option>
                       {teams.map(tm => <option key={tm} value={tm}>{tm}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>🥈 {t.secondPlace}</label>
-                    <select className="input" value={picks[group]?.second || ''} onChange={e => setPicks(prev => ({ ...prev, [group]: { ...prev[group], second: e.target.value } }))}>
+                    <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={picks[group]?.second || ''} onChange={e => setPicks(prev => ({ ...prev, [group]: { ...prev[group], second: e.target.value } }))}>
                       <option value="">{t.selectTeam}</option>
                       {teams.map(tm => <option key={tm} value={tm}>{tm}</option>)}
                     </select>
@@ -438,7 +445,6 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
   const prize3 = Math.floor(pool * (tn.prize_split_3rd || 10) / 100)
   const cur = tn.currency || 'AUD'
 
-  // Point values read directly from tournament config
   const pWinner   = tn.pts_winner           || tn.pts_correct_winner       || 2
   const pDiff     = tn.pts_goal_diff         || tn.pts_correct_goal_diff    || 3
   const pExact    = tn.pts_exact_score       || tn.pts_correct_exact_score  || 5
@@ -484,47 +490,23 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
 
       <Section emoji="⚽" title={ispt ? 'COMO FUNCIONA' : 'HOW IT WORKS'}>
         <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-          {ispt
-            ? 'Para cada jogo, você deve acertar o placar. Quanto mais preciso, mais pontos você ganha. As dicas ficam bloqueadas 2 horas antes do início de cada partida.'
-            : 'For each match, tip the final score. The more accurate your prediction, the more points you earn. Tips lock 2 hours before each match kicks off.'}
+          {ispt ? 'Para cada jogo, você deve acertar o placar. Quanto mais preciso, mais pontos você ganha. As dicas ficam bloqueadas 2 horas antes do início de cada partida.' : 'For each match, tip the final score. The more accurate your prediction, the more points you earn. Tips lock 2 hours before each match kicks off.'}
         </p>
       </Section>
 
       <Section emoji="🎯" title={ispt ? 'PONTUAÇÃO' : 'POINTS SYSTEM'}>
-        <Row
-          label={ispt ? '✅ Vencedor correto' : '✅ Correct winner'}
-          value={`${pWinner} pts`} highlight="#4ade80"
-          example={ispt
-            ? `Ex: Você tipou Brasil para vencer → Brasil vence 2–0 → +${pWinner} pts`
-            : `e.g. You tip Brazil to win → Brazil wins 2–0 → +${pWinner} pts`}
-        />
-        <Row
-          label={ispt ? '⚖️ Saldo de gols correto' : '⚖️ Correct goal difference'}
-          value={`${pDiff} pts`} highlight="#60a5fa"
-          example={ispt
-            ? `Ex: Você tipou Brasil 2–0 → Resultado foi 3–1 (mesma diferença de 2) → +${pWinner + pDiff} pts total`
-            : `e.g. You tip Brazil 2–0 → Result is 3–1 (same diff of 2) → +${pWinner + pDiff} pts total`}
-        />
-        <Row
-          label={ispt ? '🎯 Placar exato' : '🎯 Exact score'}
-          value={`${pExact} pts`} highlight="#fbbf24"
-          example={ispt
-            ? `Ex: Você tipou Brasil 1–0 Escócia → Resultado: Brasil 1–0 Escócia → +${pWinner + pDiff + pExact} pts total`
-            : `e.g. You tip Brazil 1–0 Scotland → Result: Brazil 1–0 Scotland → +${pWinner + pDiff + pExact} pts total`}
-        />
+        <Row label={ispt ? '✅ Vencedor correto' : '✅ Correct winner'} value={`${pWinner} pts`} highlight="#4ade80"
+          example={ispt ? `Ex: Você tipou Brasil para vencer → Brasil vence 2–0 → +${pWinner} pts` : `e.g. You tip Brazil to win → Brazil wins 2–0 → +${pWinner} pts`} />
+        <Row label={ispt ? '⚖️ Saldo de gols correto' : '⚖️ Correct goal difference'} value={`${pDiff} pts`} highlight="#60a5fa"
+          example={ispt ? `Ex: Você tipou Brasil 2–0 → Resultado foi 3–1 (mesma diferença de 2) → +${pWinner + pDiff} pts total` : `e.g. You tip Brazil 2–0 → Result is 3–1 (same diff of 2) → +${pWinner + pDiff} pts total`} />
+        <Row label={ispt ? '🎯 Placar exato' : '🎯 Exact score'} value={`${pExact} pts`} highlight="#fbbf24"
+          example={ispt ? `Ex: Você tipou Brasil 1–0 Escócia → Resultado: Brasil 1–0 Escócia → +${pWinner + pDiff + pExact} pts total` : `e.g. You tip Brazil 1–0 Scotland → Result: Brazil 1–0 Scotland → +${pWinner + pDiff + pExact} pts total`} />
         {pBonus > 0 && (
-          <Row
-            label={ispt ? `🚀 Bônus goleada (${tn.big_margin_threshold}+ gols de diferença)` : `🚀 Big margin bonus (${tn.big_margin_threshold}+ goal difference)`}
-            value={`+${pBonus} pts`} highlight="#f87171"
-            example={ispt
-              ? `Ex: Você tipou Brasil 4–0 → Resultado: Brasil 4–0 → +${pWinner + pDiff + pExact + pBonus} pts total`
-              : `e.g. You tip Brazil 4–0 → Result: Brazil 4–0 → +${pWinner + pDiff + pExact + pBonus} pts total`}
-          />
+          <Row label={ispt ? `🚀 Bônus goleada (${tn.big_margin_threshold}+ gols de diferença)` : `🚀 Big margin bonus (${tn.big_margin_threshold}+ goal difference)`} value={`+${pBonus} pts`} highlight="#f87171"
+            example={ispt ? `Ex: Você tipou Brasil 4–0 → Resultado: Brasil 4–0 → +${pWinner + pDiff + pExact + pBonus} pts total` : `e.g. You tip Brazil 4–0 → Result: Brazil 4–0 → +${pWinner + pDiff + pExact + pBonus} pts total`} />
         )}
         <div style={{ marginTop: '0.75rem', padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 8, fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>
-          {ispt
-            ? '💡 Os pontos são cumulativos — acertar o placar exato também conta como vencedor correto e saldo de gols.'
-            : '💡 Points are cumulative — an exact score also counts as correct winner and correct goal difference.'}
+          {ispt ? '💡 Os pontos são cumulativos — acertar o placar exato também conta como vencedor correto e saldo de gols.' : '💡 Points are cumulative — an exact score also counts as correct winner and correct goal difference.'}
         </div>
       </Section>
 
@@ -543,60 +525,35 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
           <Row key={String(label)} label={String(label)} value={`${val}x`} highlight={Number(val) > 1 ? '#fbbf24' : undefined} />
         ))}
         <div style={{ marginTop: '0.75rem', padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 8, fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>
-          {ispt
-            ? `💡 Ex: Placar exato nas semifinais → ${pWinner + pDiff + pExact} pts × ${tn.multiplier_sf || 5}x = ${(pWinner + pDiff + pExact) * (tn.multiplier_sf || 5)} pts`
-            : `💡 e.g. Exact score in the semi-finals → ${pWinner + pDiff + pExact} pts × ${tn.multiplier_sf || 5}x = ${(pWinner + pDiff + pExact) * (tn.multiplier_sf || 5)} pts`}
+          {ispt ? `💡 Ex: Placar exato nas semifinais → ${pWinner + pDiff + pExact} pts × ${tn.multiplier_sf || 5}x = ${(pWinner + pDiff + pExact) * (tn.multiplier_sf || 5)} pts` : `💡 e.g. Exact score in the semi-finals → ${pWinner + pDiff + pExact} pts × ${tn.multiplier_sf || 5}x = ${(pWinner + pDiff + pExact) * (tn.multiplier_sf || 5)} pts`}
         </div>
       </Section>
 
       <Section emoji="🔒" title={ispt ? 'BLOQUEIO DAS DICAS' : 'TIP LOCK TIMES'}>
         <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-          {ispt
-            ? '• Dicas de partidas: bloqueiam 2 horas antes do apito inicial.\n• Classificados por grupo: bloqueiam 2 horas antes do primeiro jogo de cada grupo.\n• Previsões do torneio (campeão, artilheiro): bloqueiam antes do primeiro jogo do torneio.'
-            : "• Match tips lock 2 hours before each match kicks off.\n• Group qualifier picks lock 2 hours before each group's first match.\n• Tournament predictions (winner, top scorer) lock before the first match of the tournament."}
+          {ispt ? "• Dicas de partidas: bloqueiam 2 horas antes do apito inicial.\n• Classificados por grupo: bloqueiam 2 horas antes do primeiro jogo de cada grupo.\n• Previsões do torneio (campeão, artilheiro): bloqueiam antes do primeiro jogo do torneio." : "• Match tips lock 2 hours before each match kicks off.\n• Group qualifier picks lock 2 hours before each group's first match.\n• Tournament predictions (winner, top scorer) lock before the first match of the tournament."}
         </p>
       </Section>
 
       <Section emoji="🏆" title={ispt ? 'PREVISÕES DO TORNEIO' : 'TOURNAMENT PREDICTIONS'}>
-        <Row
-          label={ispt ? 'Campeão' : 'Tournament winner'}
-          value={`${pTourWin} pts`} highlight="#fbbf24"
-          example={ispt ? `Ex: Você tipou Brasil → Brasil vence a Copa → +${pTourWin} pts` : `e.g. You tip Brazil → Brazil wins the World Cup → +${pTourWin} pts`}
-        />
-        <Row
-          label={ispt ? 'Vice-campeão' : 'Runner-up (2nd place)'}
-          value={`${pSecond} pts`} highlight="#9ca3af"
-          example={ispt ? `Ex: Você tipou Argentina → Argentina é vice-campeã → +${pSecond} pts` : `e.g. You tip Argentina → Argentina finishes 2nd → +${pSecond} pts`}
-        />
-        <Row
-          label={ispt ? '3º lugar' : '3rd place'}
-          value={`${pThird} pts`} highlight="#b87333"
-          example={ispt ? `Ex: Você tipou França → França vence o 3º lugar → +${pThird} pts` : `e.g. You tip France → France wins the 3rd place match → +${pThird} pts`}
-        />
-        <Row
-          label={ispt ? 'Artilheiro' : 'Top scorer'}
-          value={`${pScorer} pts`} highlight="#4ade80"
-          example={ispt ? `Ex: Você tipou Mbappé → Mbappé termina artilheiro → +${pScorer} pts` : `e.g. You tip Mbappé → Mbappé finishes as top scorer → +${pScorer} pts`}
-        />
+        <Row label={ispt ? 'Campeão' : 'Tournament winner'} value={`${pTourWin} pts`} highlight="#fbbf24"
+          example={ispt ? `Ex: Você tipou Brasil → Brasil vence a Copa → +${pTourWin} pts` : `e.g. You tip Brazil → Brazil wins the World Cup → +${pTourWin} pts`} />
+        <Row label={ispt ? 'Vice-campeão' : 'Runner-up (2nd place)'} value={`${pSecond} pts`} highlight="#9ca3af"
+          example={ispt ? `Ex: Você tipou Argentina → Argentina é vice-campeã → +${pSecond} pts` : `e.g. You tip Argentina → Argentina finishes 2nd → +${pSecond} pts`} />
+        <Row label={ispt ? '3º lugar' : '3rd place'} value={`${pThird} pts`} highlight="#b87333"
+          example={ispt ? `Ex: Você tipou França → França vence o 3º lugar → +${pThird} pts` : `e.g. You tip France → France wins the 3rd place match → +${pThird} pts`} />
+        <Row label={ispt ? 'Artilheiro' : 'Top scorer'} value={`${pScorer} pts`} highlight="#4ade80"
+          example={ispt ? `Ex: Você tipou Mbappé → Mbappé termina artilheiro → +${pScorer} pts` : `e.g. You tip Mbappé → Mbappé finishes as top scorer → +${pScorer} pts`} />
       </Section>
 
       {pQualify > 0 && (
         <Section emoji="📊" title={ispt ? 'CLASSIFICADOS POR GRUPO' : 'GROUP QUALIFIERS'}>
-          <Row
-            label={ispt ? 'Seleção na posição correta' : 'Team in correct position'}
-            value={`${pQualify} pts`} highlight="#4ade80"
-            example={ispt ? `Ex: Você tipou Brasil 1º → Brasil termina 1º no grupo → +${pQualify} pts` : `e.g. You tip Brazil 1st → Brazil finishes 1st in group → +${pQualify} pts`}
-          />
-          <Row
-            label={ispt ? 'Seleção avança mas na posição errada' : 'Team qualifies but wrong position'}
-            value={`${Math.floor(pQualify / 2)} pts`} highlight="#60a5fa"
-            example={ispt ? `Ex: Você tipou Brasil 1º → Brasil termina 2º → +${Math.floor(pQualify / 2)} pts` : `e.g. You tip Brazil 1st → Brazil finishes 2nd → +${Math.floor(pQualify / 2)} pts`}
-          />
-          <Row
-            label={ispt ? 'Seleção não avança' : "Team doesn't qualify"}
-            value="0 pts" highlight="rgba(255,255,255,0.25)"
-            example={ispt ? 'Ex: Você tipou Brasil 1º → Brasil é eliminado na fase de grupos → 0 pts' : 'e.g. You tip Brazil 1st → Brazil knocked out in group stage → 0 pts'}
-          />
+          <Row label={ispt ? 'Seleção na posição correta' : 'Team in correct position'} value={`${pQualify} pts`} highlight="#4ade80"
+            example={ispt ? `Ex: Você tipou Brasil 1º → Brasil termina 1º no grupo → +${pQualify} pts` : `e.g. You tip Brazil 1st → Brazil finishes 1st in group → +${pQualify} pts`} />
+          <Row label={ispt ? 'Seleção avança mas na posição errada' : 'Team qualifies but wrong position'} value={`${Math.floor(pQualify / 2)} pts`} highlight="#60a5fa"
+            example={ispt ? `Ex: Você tipou Brasil 1º → Brasil termina 2º → +${Math.floor(pQualify / 2)} pts` : `e.g. You tip Brazil 1st → Brazil finishes 2nd → +${Math.floor(pQualify / 2)} pts`} />
+          <Row label={ispt ? 'Seleção não avança' : "Team doesn't qualify"} value="0 pts" highlight="rgba(255,255,255,0.25)"
+            example={ispt ? 'Ex: Você tipou Brasil 1º → Brasil é eliminado na fase de grupos → 0 pts' : 'e.g. You tip Brazil 1st → Brazil knocked out in group stage → 0 pts'} />
         </Section>
       )}
 
@@ -607,18 +564,14 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
           <Row label={`🥈 ${ispt ? '2º lugar' : '2nd place'} (${tn.prize_split_2nd || 30}%)`} value={`${cur} $${prize2.toLocaleString()}`} highlight="#9ca3af" />
           <Row label={`🥉 ${ispt ? '3º lugar' : '3rd place'} (${tn.prize_split_3rd || 10}%)`} value={`${cur} $${prize3.toLocaleString()}`} highlight="#b87333" />
           <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
-            {ispt
-              ? `* Baseado em ${approvedCount} jogadores × ${cur} $${tn.entry_fee} de entrada. Atualiza conforme novos jogadores são aprovados.`
-              : `* Based on ${approvedCount} players × ${cur} $${tn.entry_fee} entry fee. Updates as new players are approved.`}
+            {ispt ? `* Baseado em ${approvedCount} jogadores × ${cur} $${tn.entry_fee} de entrada. Atualiza conforme novos jogadores são aprovados.` : `* Based on ${approvedCount} players × ${cur} $${tn.entry_fee} entry fee. Updates as new players are approved.`}
           </div>
         </Section>
       )}
 
       <Section emoji="⚖️" title={ispt ? 'DESEMPATE' : 'TIEBREAKER'}>
         <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-          {ispt
-            ? 'Em caso de empate em pontos, o desempate é feito pela ordem: 1. Maior número de placares exatos → 2. Maior número de saldos de gols corretos → 3. Maior número de vencedores corretos.'
-            : 'If players are tied on points, the tiebreaker order is: 1. Most exact scores → 2. Most correct goal differences → 3. Most correct winners.'}
+          {ispt ? 'Em caso de empate em pontos, o desempate é feito pela ordem: 1. Maior número de placares exatos → 2. Maior número de saldos de gols corretos → 3. Maior número de vencedores corretos.' : 'If players are tied on points, the tiebreaker order is: 1. Most exact scores → 2. Most correct goal differences → 3. Most correct winners.'}
         </p>
       </Section>
 
@@ -905,12 +858,12 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
                 src={avatarUrl}
                 alt=""
                 style={{
-                  position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
-                  width: 130, height: 130,
-                  objectFit: 'cover', objectPosition: 'center top',
+                  position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+                  width: 120, height: 120,
+                  objectFit: 'cover', objectPosition: 'center center',
                   zIndex: 2,
                   filter: isGrey ? 'grayscale(1) opacity(0.7)' : 'none',
-                  borderRadius: '50% 50% 0 0',
+                  borderRadius: '50%',
                 }}
               />
             ) : (
@@ -1156,7 +1109,33 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
         </div>
       </div>
 
-      {/* Chart 1: Bar chart — points per player for selected metric */}
+      {/* Chart 1: Line chart — progression (shown first) */}
+      {progressionData.length > 0 && (
+        <div>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.4rem' }}>
+            📈 {t.lang === 'pt' ? 'PROGRESSÃO' : 'PROGRESSION'} — {sortLabel[sortKey].toUpperCase()}
+          </h3>
+          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+            {t.lang === 'pt' ? 'Acumulado após cada jogo' : 'Cumulative after each match'}
+          </p>
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={progressionData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="match" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} interval={Math.max(0, Math.floor(progressionData.length / 12))} />
+                <YAxis tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                <Tooltip contentStyle={{ background: '#0a0f0d', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 13 }} labelStyle={{ color: 'rgba(255,255,255,0.5)', marginBottom: 6, fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
+                {players.map((p: any, i: number) => (
+                  <Line key={p.id} type="monotone" dataKey={p.name} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Chart 2: Bar chart — points per player */}
       {barData.some((d: any) => d.value > 0) && (
         <div>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.4rem' }}>
@@ -1194,36 +1173,165 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey }: any
         </div>
       )}
 
-      {/* Chart 2: Line chart — progression per match */}
-      {progressionData.length > 0 && (
-        <div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.4rem' }}>
-            📈 {t.lang === 'pt' ? 'PROGRESSÃO' : 'PROGRESSION'} — {sortLabel[sortKey].toUpperCase()}
-          </h3>
-          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
-            {t.lang === 'pt' ? 'Acumulado após cada jogo' : 'Cumulative after each match'}
-          </p>
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={progressionData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="match" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} interval={Math.max(0, Math.floor(progressionData.length / 12))} />
-                <YAxis tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                <Tooltip contentStyle={{ background: '#0a0f0d', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 13 }} labelStyle={{ color: 'rgba(255,255,255,0.5)', marginBottom: 6, fontSize: 11 }} />
-                <Legend wrapperStyle={{ fontSize: 12, paddingTop: 16 }} />
-                {players.map((p: any, i: number) => (
-                  <Line key={p.id} type="monotone" dataKey={p.name} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
     </div>
   )
 }
 
+
+
+function TipsReveal({ matches, allTips, leaderboard, avatars, profilesMap, userId, t }: any) {
+  const [selectedMatch, setSelectedMatch] = useState<string | null>(null)
+
+  const lockedMatches = matches.filter((m: any) => {
+    const kickoff = new Date(m.kickoff_at)
+    const now = new Date()
+    return now >= new Date(kickoff.getTime() - 2 * 60 * 60 * 1000)
+  })
+
+  if (lockedMatches.length === 0) {
+    return (
+      <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
+        <p>{t.lang === 'pt' ? 'Os palpites ficam visíveis após o bloqueio de cada partida (2h antes do início).' : "Tips become visible once a match is locked (2 hours before kick-off)."}</p>
+      </div>
+    )
+  }
+
+  const activeMatch = selectedMatch || lockedMatches[0]?.id
+
+  const tipsForMatch = allTips.filter((tip: any) => tip.match_id === activeMatch)
+  const match = matches.find((m: any) => m.id === activeMatch)
+
+  const roundLabel: Record<string, string> = {
+    group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16',
+    qf: 'Quarter-Finals', sf: 'Semi-Finals', third_place: '3rd Place', final: 'Final'
+  }
+
+  return (
+    <div style={{ paddingBottom: '3rem' }}>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>
+        {t.lang === 'pt' ? '👁 Palpites de Todos' : '👁 Everyone's Tips'}
+      </h2>
+      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.35)', marginBottom: '1.25rem' }}>
+        {t.lang === 'pt' ? 'Visível após o bloqueio de cada partida.' : 'Visible once a match is locked.'}
+      </p>
+
+      {/* Match selector */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        {lockedMatches.map((m: any) => (
+          <button
+            key={m.id}
+            onClick={() => setSelectedMatch(m.id)}
+            style={{
+              padding: '0.4rem 0.85rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer', border: 'none',
+              background: activeMatch === m.id ? 'var(--green)' : 'rgba(255,255,255,0.07)',
+              color: activeMatch === m.id ? '#fff' : 'rgba(255,255,255,0.5)',
+              fontWeight: activeMatch === m.id ? 600 : 400,
+            }}
+          >
+            {m.home_team} vs {m.away_team}
+          </button>
+        ))}
+      </div>
+
+      {match && (
+        <div>
+          {/* Match header */}
+          <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1rem' }}>
+                {match.home_team} <span style={{ color: 'rgba(255,255,255,0.3)' }}>vs</span> {match.away_team}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.2rem' }}>
+                {roundLabel[match.round] || match.round}
+              </div>
+            </div>
+            {match.status === 'completed' && match.home_score !== null && (
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: '#4ade80' }}>
+                {match.home_score} – {match.away_score}
+              </div>
+            )}
+            {match.status !== 'completed' && (
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,158,11,0.7)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Lock size={12} /> {t.lang === 'pt' ? 'Bloqueado' : 'Locked'}
+              </div>
+            )}
+          </div>
+
+          {/* Tips grid */}
+          {tipsForMatch.length === 0 ? (
+            <p style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '2rem' }}>
+              {t.lang === 'pt' ? 'Nenhum palpite para esta partida.' : 'No tips submitted for this match.'}
+            </p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.6rem' }}>
+              {tipsForMatch
+                .sort((a: any, b: any) => {
+                  if (a.user_id === userId) return -1
+                  if (b.user_id === userId) return 1
+                  return (Number(b.pts_with_multiplier) || 0) - (Number(a.pts_with_multiplier) || 0)
+                })
+                .map((tip: any) => {
+                  const prof = profilesMap[tip.user_id]
+                  const avatarUrl = avatars[tip.user_id]
+                  const isMe = tip.user_id === userId
+                  const hasResult = match.status === 'completed' && match.home_score !== null
+                  const correct = hasResult && tip.tip_home === match.home_score && tip.tip_away === match.away_score
+                  const correctWinner = hasResult && (
+                    (tip.tip_home > tip.tip_away && match.home_score > match.away_score) ||
+                    (tip.tip_home < tip.tip_away && match.home_score < match.away_score) ||
+                    (tip.tip_home === tip.tip_away && match.home_score === match.away_score)
+                  )
+                  return (
+                    <div key={tip.id} style={{
+                      padding: '0.85rem 1rem',
+                      background: isMe ? 'rgba(74,222,128,0.06)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${correct ? 'rgba(251,191,36,0.4)' : isMe ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                      borderRadius: 10,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <div style={{ width: 26, height: 26, borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }}>
+                          {avatarUrl
+                            ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <span style={{ fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>👤</span>
+                          }
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: isMe ? '#4ade80' : '#e8f5ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {prof?.nickname || prof?.display_name || 'Unknown'}
+                            {isMe && <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>({t.you})</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: correct ? '#fbbf24' : correctWinner ? '#4ade80' : '#fff' }}>
+                          {tip.tip_home}
+                        </span>
+                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>–</span>
+                        <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: correct ? '#fbbf24' : correctWinner ? '#4ade80' : '#fff' }}>
+                          {tip.tip_away}
+                        </span>
+                        {hasResult && (
+                          <span style={{ fontSize: '0.75rem', color: correct ? '#fbbf24' : 'rgba(255,255,255,0.3)', marginLeft: 4 }}>
+                            {correct ? '🎯' : correctWinner ? '✅' : '❌'}
+                          </span>
+                        )}
+                      </div>
+                      {hasResult && Number(tip.pts_with_multiplier) > 0 && (
+                        <div style={{ textAlign: 'center', marginTop: '0.25rem', fontSize: '0.72rem', color: '#fbbf24' }}>
+                          +{tip.pts_with_multiplier} pts
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 
 function Avatar({ userId, avatars, size = 32, style = {} }: { userId: string, avatars: Record<string, string>, size?: number, style?: any }) {
@@ -1374,7 +1482,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
                 {f.val || 'Not submitted'}
               </div>
             ) : (
-              <select className="input" value={f.val} onChange={e => f.set(e.target.value)}>
+              <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={f.val} onChange={e => f.set(e.target.value)}>
                 <option value="">— Select a team —</option>
                 {WC2026_TEAMS.map(team => <option key={team} value={team}>{team}</option>)}
               </select>
