@@ -226,6 +226,7 @@ export default function TournamentPage() {
               {/* Header */}
               <div style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
                 <div></div>
+                <div></div>
                 <div>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
                 <div style={{ textAlign: 'center' }} title="Exact scores">🎯</div>
                 <div style={{ textAlign: 'center' }} title="Correct goal difference">⚖️</div>
@@ -846,37 +847,35 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
             </div>
           </div>
 
-          {/* Player photo — full bleed, no circle, fades on all edges */}
-          <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt=""
-                style={{
-                  position: 'absolute',
-                  top: '50%', left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '100%', height: '100%',
-                  objectFit: 'cover', objectPosition: 'center top',
-                  zIndex: 1,
-                  filter: isGrey ? 'grayscale(1) brightness(0.7)' : 'none',
-                }}
-              />
-            ) : (
-              <div style={{ position: 'absolute', inset: 0, zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg viewBox="0 0 80 80" width="90" height="90" style={{ filter: isGrey ? 'grayscale(1)' : 'none', opacity: 0.35 }}>
-                  <circle cx="40" cy="28" r="18" fill="rgba(255,255,255,0.5)"/>
-                  <path d="M5 80 Q5 50 40 50 Q75 50 75 80" fill="rgba(255,255,255,0.5)"/>
-                </svg>
-              </div>
-            )}
-            {/* Fade — bottom strong, sides + top subtle */}
-            <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', background:
-              `linear-gradient(to bottom, ${isGold ? 'rgba(18,11,0,0.55)' : isGrey ? 'rgba(8,8,8,0.55)' : 'rgba(4,8,4,0.55)'} 0%, transparent 30%, transparent 55%, ${isGold ? 'rgba(18,11,0,1)' : isGrey ? 'rgba(8,8,8,1)' : 'rgba(4,8,4,1)'} 100%)`
-            }} />
-            <div style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none', background:
-              `linear-gradient(to right, ${isGold ? 'rgba(18,11,0,0.4)' : isGrey ? 'rgba(8,8,8,0.4)' : 'rgba(4,8,4,0.4)'} 0%, transparent 20%, transparent 80%, ${isGold ? 'rgba(18,11,0,0.4)' : isGrey ? 'rgba(8,8,8,0.4)' : 'rgba(4,8,4,0.4)'} 100%)`
-            }} />
+          {/* Player photo — large centred circle, no jersey */}
+          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{
+              width: 140, height: 140,
+              borderRadius: '50%',
+              overflow: 'hidden',
+              border: `2px solid ${borderColor}`,
+              background: 'rgba(255,255,255,0.06)',
+              flexShrink: 0,
+            }}>
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  style={{
+                    width: '100%', height: '100%',
+                    objectFit: 'cover', objectPosition: 'center center',
+                    filter: isGrey ? 'grayscale(1) brightness(0.7)' : 'none',
+                  }}
+                />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg viewBox="0 0 80 80" width="80" height="80" style={{ filter: isGrey ? 'grayscale(1)' : 'none', opacity: 0.4 }}>
+                    <circle cx="40" cy="28" r="18" fill="rgba(255,255,255,0.5)"/>
+                    <path d="M5 80 Q5 50 40 50 Q75 50 75 80" fill="rgba(255,255,255,0.5)"/>
+                  </svg>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Name */}
@@ -1184,9 +1183,10 @@ function TipsReveal({ matches, allTips, leaderboard, avatars, profilesMap, userI
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null)
 
   const lockedMatches = matches.filter((m: any) => {
+    // Show in All Tips once the match has kicked off (kickoff time passed)
     const kickoff = new Date(m.kickoff_at)
     const now = new Date()
-    return now >= new Date(kickoff.getTime() - 2 * 60 * 60 * 1000)
+    return now >= kickoff
   })
 
   if (lockedMatches.length === 0) {
@@ -1357,11 +1357,12 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const supabase = createClient()
 
   async function saveTip() {
-    if (home === '' || away === '') return
     setSaving(true)
-    const payload = { match_id: match.id, user_id: userId, tournament_id: tournament.id, tip_home: Number(home), tip_away: Number(away) }
+    const h = home === '' ? 0 : Number(home)
+    const a = away === '' ? 0 : Number(away)
+    const payload = { match_id: match.id, user_id: userId, tournament_id: tournament.id, tip_home: h, tip_away: a }
     if (tip?.id) {
-      await supabase.from('match_tips').update({ tip_home: Number(home), tip_away: Number(away), updated_at: new Date().toISOString() }).eq('id', tip.id)
+      await supabase.from('match_tips').update({ tip_home: h, tip_away: a, updated_at: new Date().toISOString() }).eq('id', tip.id)
     } else {
       await supabase.from('match_tips').insert(payload)
     }
@@ -1424,7 +1425,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
               <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
               <input type="number" className="score-input" min={0} max={15} value={away}
                 onChange={e => { const v = parseInt(e.target.value); setAway(isNaN(v) ? "" : String(Math.min(15, Math.max(0, v)))) }} placeholder="0" />
-              <button onClick={saveTip} disabled={saving || home === '' || away === ''} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
+              <button onClick={saveTip} disabled={saving} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
                 {saved ? '✔' : saving ? '...' : tip ? 'Update' : 'Tip'}
               </button>
             </>
