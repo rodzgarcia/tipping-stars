@@ -320,14 +320,23 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
 
   async function persistAndCalculate() {
     setSaving(true)
-    // Persist results to tournaments table so they survive page refresh
-    await supabase.from('tournaments').update({
-      result_winner: winner,
-      result_second: second,
-      result_third: third,
-      result_top_scorer: topScorer,
-      result_groups: groupResults as any,
-    }).eq('id', tournamentId)
+    // Use RPC to bypass RLS and persist results
+    const { error } = await supabase.rpc('save_tournament_results', {
+      p_tournament_id: tournamentId,
+      p_winner: winner || '',
+      p_second: second || '',
+      p_third: third || '',
+      p_top_scorer: topScorer || '',
+      p_groups: groupResults as any,
+    })
+    if (error) {
+      console.error('Save results error:', error)
+      alert('Failed to save: ' + error.message)
+      setSaving(false)
+      return
+    }
+    // Load back what was saved so local state matches DB
+    setGroupResults(groupResults)
     // Now calculate points
     await onSave({ winner, second, third, top_scorer: topScorer, group_results: groupResults })
     setSaved(true); setTimeout(() => setSaved(false), 3000); setSaving(false)
