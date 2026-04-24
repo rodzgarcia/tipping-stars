@@ -446,6 +446,26 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
           {field('3rd place', 'pts_third_place')}
           {field('Top scorer', 'pts_top_scorer')}
         </div>
+        <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.06em', margin: '1.25rem 0 0.75rem', color: 'rgba(255,255,255,0.4)' }}>🔒 TIP LOCK SETTINGS</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div>
+            <label className="label">Minutes before kick-off to lock tips</label>
+            <input type="number" className="input" min={0} max={10080} value={form.tip_lock_minutes ?? 120}
+              onChange={e => setForm({ ...form, tip_lock_minutes: Number(e.target.value) })} />
+            <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>e.g. 120 = 2 hours, 60 = 1 hour, 1 = 1 minute before</p>
+          </div>
+          <div>
+            <label className="label">Group stage lock mode</label>
+            <select className="input" value={form.group_lock_mode ?? 'per_match'}
+              onChange={e => setForm({ ...form, group_lock_mode: e.target.value })}>
+              <option value="per_match">Lock each match individually (per kick-off)</option>
+              <option value="first_game">Lock all group tips before Group Game 1</option>
+            </select>
+            <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
+              "First game" locks ALL group tips before the tournament's first match kicks off
+            </p>
+          </div>
+        </div>
         <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.06em', margin: '1.25rem 0 0.75rem', color: 'rgba(255,255,255,0.4)' }}>PHASE MULTIPLIERS</h4>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.75rem' }}>
           {field('Group stage', 'multiplier_group')}

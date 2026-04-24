@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
-import { isPast, subHours } from 'date-fns'
+import { isPast, subHours, subMinutes } from 'date-fns'
 import { useLang } from '../../LanguageContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
@@ -101,7 +101,7 @@ export default function TournamentPage() {
   const params = useParams()
   const router = useRouter()
   const tournamentId = params.id as string
-  const [tab, setTab] = useState<Tab>('tips')
+  const [tab, setTab] = useState<Tab>('leaderboard')
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [tournament, setTournament] = useState<any>(null)
@@ -369,9 +369,17 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
   const ptsPerGroup = tournament.pts_qualify || 0
 
   function isGroupLocked(group: string) {
+    const lockMins = tournament?.tip_lock_minutes ?? 120
+    const mode = tournament?.group_lock_mode ?? 'per_match'
+    if (mode === 'first_game') {
+      // Lock all groups based on first match of the whole tournament
+      const first = matches.filter((m: any) => m.round === 'group').sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0]
+      if (!first) return false
+      return isPast(subMinutes(new Date(first.kickoff_at), lockMins))
+    }
     const lockTime = GROUP_LOCK_TIMES[group]
     if (!lockTime) return false
-    return isPast(subHours(new Date(lockTime), 2))
+    return isPast(subMinutes(new Date(lockTime), lockMins))
   }
 
   async function save() {
@@ -442,9 +450,16 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
       )}
 
       {unlockedGroups.length > 0 && (
-        <button onClick={save} disabled={saving} className="btn btn-primary" style={{ marginBottom: '2rem' }}>
-          {saved ? t.savedBang : saving ? t.saving : t.saveQualifierPicks}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+          <button onClick={save} disabled={saving} className="btn btn-primary" style={{ padding: '0.65rem 1.5rem' }}>
+            {saved ? '✔ ' + t.savedBang : saving ? t.saving : t.saveQualifierPicks}
+          </button>
+          {saved && (
+            <span style={{ fontSize: '0.85rem', color: '#4ade80', display: 'flex', alignItems: 'center', gap: 5 }}>
+              ✔ {t.lang === 'pt' ? 'Palpites guardados com sucesso!' : 'Your qualifier picks have been saved!'}
+            </span>
+          )}
+        </div>
       )}
 
       {lockedGroups.length > 0 && (
@@ -1274,153 +1289,160 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
 
 
 function TipsReveal({ matches, allTips, leaderboard, avatars, profilesMap, userId, t }: any) {
-  const [selectedMatch, setSelectedMatch] = useState<string | null>(null)
+  const [view, setView] = useState<'matches' | 'predictions'>('matches')
+  const roundLabel: Record<string, string> = {
+    group: 'Group', r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third_place: '3rd', final: 'Final'
+  }
 
   const lockedMatches = matches.filter((m: any) => {
-    // Show once live, completed, or kickoff time has passed
     if (m.status === 'live' || m.status === 'completed') return true
     return new Date() >= new Date(m.kickoff_at)
   })
 
-  if (lockedMatches.length === 0) {
-    return (
-      <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
-        <p>{t.lang === 'pt' ? 'Os palpites ficam visíveis após o bloqueio de cada partida (2h antes do início).' : "Tips become visible once a match is locked (2 hours before kick-off)."}</p>
-      </div>
-    )
-  }
-
-  const activeMatch = selectedMatch || lockedMatches[0]?.id
-
-  const tipsForMatch = allTips.filter((tip: any) => tip.match_id === activeMatch)
-  const match = matches.find((m: any) => m.id === activeMatch)
-
-  const roundLabel: Record<string, string> = {
-    group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16',
-    qf: 'Quarter-Finals', sf: 'Semi-Finals', third_place: '3rd Place', final: 'Final'
-  }
+  const players = leaderboard.map((r: any) => ({
+    id: r.user_id,
+    name: profilesMap?.[r.user_id]?.nickname || r.display_name,
+    isMe: r.user_id === userId,
+    avatar: avatars[r.user_id],
+  }))
 
   return (
     <div style={{ paddingBottom: '3rem' }}>
-      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', letterSpacing: '0.08em', marginBottom: '0.35rem' }}>
-        {t.lang === 'pt' ? '👁 Palpites de Todos' : "👁 Everyone's Tips"}
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
+        {t.lang === 'pt' ? "👁 Palpites de Todos" : "👁 Everyone's Tips"}
       </h2>
-      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.35)', marginBottom: '1.25rem' }}>
-        {t.lang === 'pt' ? 'Visível após o bloqueio de cada partida.' : 'Visible once a match is locked.'}
+      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.35)', marginBottom: '1rem' }}>
+        {t.lang === 'pt' ? 'Visível após bloqueio de cada partida.' : 'Visible once each match or category is locked.'}
       </p>
 
-      {/* Match selector */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-        {lockedMatches.map((m: any) => (
-          <button
-            key={m.id}
-            onClick={() => setSelectedMatch(m.id)}
-            style={{
-              padding: '0.4rem 0.85rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer', border: 'none',
-              background: activeMatch === m.id ? 'var(--green)' : 'rgba(255,255,255,0.07)',
-              color: activeMatch === m.id ? '#fff' : 'rgba(255,255,255,0.5)',
-              fontWeight: activeMatch === m.id ? 600 : 400,
-            }}
-          >
-            {m.home_team} vs {m.away_team}
+      {/* View toggle */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+        {(['matches', 'predictions'] as const).map(v => (
+          <button key={v} onClick={() => setView(v)} style={{
+            padding: '0.4rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
+            border: `1px solid ${view === v ? 'var(--green)' : 'rgba(255,255,255,0.15)'}`,
+            background: view === v ? 'rgba(74,222,128,0.12)' : 'transparent',
+            color: view === v ? '#4ade80' : 'rgba(255,255,255,0.5)',
+          }}>
+            {v === 'matches' ? (t.lang === 'pt' ? '⚽ Partidas' : '⚽ Match Tips') : (t.lang === 'pt' ? '🏆 Previsões' : '🏆 Predictions')}
           </button>
         ))}
       </div>
 
-      {match && (
-        <div>
-          {/* Match header */}
-          <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1rem' }}>
-                {match.home_team} <span style={{ color: 'rgba(255,255,255,0.3)' }}>vs</span> {match.away_team}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.2rem' }}>
-                {roundLabel[match.round] || match.round}
-              </div>
-            </div>
-            {match.status === 'completed' && match.home_score !== null && (
-              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: '#4ade80' }}>
-                {match.home_score} – {match.away_score}
-              </div>
-            )}
-            {match.status !== 'completed' && (
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255,158,11,0.7)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Lock size={12} /> {t.lang === 'pt' ? 'Bloqueado' : 'Locked'}
-              </div>
-            )}
+      {/* ── MATCH TIPS TABLE ── */}
+      {view === 'matches' && (
+        lockedMatches.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
+            <p>{t.lang === 'pt' ? 'Palpites visíveis após o início das partidas.' : 'Tips visible once matches kick off.'}</p>
           </div>
-
-          {/* Tips grid */}
-          {tipsForMatch.length === 0 ? (
-            <p style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '2rem' }}>
-              {t.lang === 'pt' ? 'Nenhum palpite para esta partida.' : 'No tips submitted for this match.'}
-            </p>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.6rem' }}>
-              {tipsForMatch
-                .sort((a: any, b: any) => {
-                  if (a.user_id === userId) return -1
-                  if (b.user_id === userId) return 1
-                  return (Number(b.pts_with_multiplier) || 0) - (Number(a.pts_with_multiplier) || 0)
-                })
-                .map((tip: any) => {
-                  const prof = profilesMap[tip.user_id]
-                  const avatarUrl = avatars[tip.user_id]
-                  const isMe = tip.user_id === userId
-                  const hasResult = match.status === 'completed' && match.home_score !== null
-                  const correct = hasResult && tip.tip_home === match.home_score && tip.tip_away === match.away_score
-                  const correctWinner = hasResult && (
-                    (tip.tip_home > tip.tip_away && match.home_score > match.away_score) ||
-                    (tip.tip_home < tip.tip_away && match.home_score < match.away_score) ||
-                    (tip.tip_home === tip.tip_away && match.home_score === match.away_score)
-                  )
-                  return (
-                    <div key={tip.id} style={{
-                      padding: '0.85rem 1rem',
-                      background: isMe ? 'rgba(74,222,128,0.06)' : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${correct ? 'rgba(251,191,36,0.4)' : isMe ? 'rgba(74,222,128,0.2)' : 'rgba(255,255,255,0.06)'}`,
-                      borderRadius: 10,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <div style={{ width: 26, height: 26, borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.08)', flexShrink: 0 }}>
-                          {avatarUrl
-                            ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            : <span style={{ fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>👤</span>
-                          }
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: isMe ? '#4ade80' : '#e8f5ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {prof?.nickname || prof?.display_name || 'Unknown'}
-                            {isMe && <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>({t.you})</span>}
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: correct ? '#fbbf24' : correctWinner ? '#4ade80' : '#fff' }}>
-                          {tip.tip_home}
-                        </span>
-                        <span style={{ color: 'rgba(255,255,255,0.3)' }}>–</span>
-                        <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: correct ? '#fbbf24' : correctWinner ? '#4ade80' : '#fff' }}>
-                          {tip.tip_away}
-                        </span>
-                        {hasResult && (
-                          <span style={{ fontSize: '0.75rem', color: correct ? '#fbbf24' : 'rgba(255,255,255,0.3)', marginLeft: 4 }}>
-                            {correct ? '🎯' : correctWinner ? '✅' : '❌'}
-                          </span>
-                        )}
-                      </div>
-                      {hasResult && Number(tip.pts_with_multiplier) > 0 && (
-                        <div style={{ textAlign: 'center', marginTop: '0.25rem', fontSize: '0.72rem', color: '#fbbf24' }}>
-                          +{tip.pts_with_multiplier} pts
-                        </div>
+        ) : (
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: Math.max(500, lockedMatches.length * 80 + 120) }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.72rem', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', left: 0, background: '#0a0f0d', zIndex: 2, minWidth: 110 }}>
+                    {t.lang === 'pt' ? 'JOGADOR' : 'PLAYER'}
+                  </th>
+                  {lockedMatches.map((m: any) => (
+                    <th key={m.id} style={{ textAlign: 'center', padding: '0.4rem 0.5rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.65rem', borderBottom: '1px solid rgba(255,255,255,0.08)', minWidth: 72 }}>
+                      <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem' }}>{roundLabel[m.round] || m.round}</div>
+                      <div style={{ whiteSpace: 'nowrap' }}>{TEAM_FLAGS[m.home_team] || ''}{m.home_team?.split(' ')[0]}</div>
+                      <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem' }}>vs</div>
+                      <div style={{ whiteSpace: 'nowrap' }}>{TEAM_FLAGS[m.away_team] || ''}{m.away_team?.split(' ')[0]}</div>
+                      {m.status === 'completed' && m.home_score !== null && (
+                        <div style={{ color: '#4ade80', fontWeight: 700, fontSize: '0.72rem', marginTop: '0.2rem' }}>{m.home_score}–{m.away_score}</div>
                       )}
-                    </div>
+                    </th>
+                  ))}
+                  <th style={{ textAlign: 'center', padding: '0.5rem 0.75rem', color: 'var(--gold)', fontWeight: 700, fontSize: '0.72rem', borderBottom: '1px solid rgba(255,255,255,0.08)', minWidth: 60 }}>PTS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((player: any) => {
+                  const totalPts = leaderboard.find((r: any) => r.user_id === player.id)?.total_points || 0
+                  return (
+                    <tr key={player.id} style={{ background: player.isMe ? 'rgba(74,222,128,0.04)' : 'transparent' }}>
+                      <td style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'sticky', left: 0, background: player.isMe ? 'rgba(74,222,128,0.06)' : '#0a0f0d', zIndex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'rgba(255,255,255,0.08)' }}>
+                            {player.avatar ? <img src={player.avatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <span style={{ fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>👤</span>}
+                          </div>
+                          <span style={{ color: player.isMe ? '#4ade80' : '#e8f5ee', fontWeight: player.isMe ? 600 : 400, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
+                            {player.name}{player.isMe ? ' ✦' : ''}
+                          </span>
+                        </div>
+                      </td>
+                      {lockedMatches.map((m: any) => {
+                        const tip = allTips.find((tp: any) => tp.match_id === m.id && tp.user_id === player.id)
+                        const hasResult = m.status === 'completed' && m.home_score !== null
+                        const exact = hasResult && tip && tip.tip_home === m.home_score && tip.tip_away === m.away_score
+                        const correctWin = hasResult && tip && (
+                          (tip.tip_home > tip.tip_away && m.home_score > m.away_score) ||
+                          (tip.tip_home < tip.tip_away && m.home_score < m.away_score) ||
+                          (tip.tip_home === tip.tip_away && m.home_score === m.away_score)
+                        )
+                        return (
+                          <td key={m.id} style={{ textAlign: 'center', padding: '0.5rem 0.4rem', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            background: exact ? 'rgba(251,191,36,0.08)' : correctWin ? 'rgba(74,222,128,0.06)' : 'transparent' }}>
+                            {tip ? (
+                              <div>
+                                <span style={{ fontFamily: 'var(--font-display)', color: exact ? '#fbbf24' : correctWin ? '#4ade80' : 'rgba(255,255,255,0.7)', fontSize: '0.85rem' }}>
+                                  {tip.tip_home}–{tip.tip_away}
+                                </span>
+                                {hasResult && <div style={{ fontSize: '0.6rem', marginTop: '0.1rem' }}>{exact ? '🎯' : correctWin ? '✅' : '❌'}</div>}
+                                {hasResult && Number(tip.pts_with_multiplier) > 0 && <div style={{ fontSize: '0.6rem', color: '#fbbf24' }}>+{tip.pts_with_multiplier}</div>}
+                              </div>
+                            ) : (
+                              <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.72rem' }}>–</span>
+                            )}
+                          </td>
+                        )
+                      })}
+                      <td style={{ textAlign: 'center', padding: '0.5rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'var(--gold)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+                        {totalPts}
+                      </td>
+                    </tr>
                   )
                 })}
-            </div>
-          )}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {/* ── PREDICTIONS TABLE ── */}
+      {view === 'predictions' && (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: 500 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', left: 0, background: '#0a0f0d', minWidth: 110 }}>
+                  {t.lang === 'pt' ? 'JOGADOR' : 'PLAYER'}
+                </th>
+                {['🏆 Winner', '🥈 2nd', '🥉 3rd', '⚽ Top Scorer'].map(h => (
+                  <th key={h} style={{ textAlign: 'center', padding: '0.5rem 0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid rgba(255,255,255,0.08)', minWidth: 100 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((player: any) => {
+                const tt = allTips.find((tp: any) => tp.user_id === player.id && tp.tip_winner !== undefined)
+                return (
+                  <tr key={player.id} style={{ background: player.isMe ? 'rgba(74,222,128,0.04)' : 'transparent' }}>
+                    <td style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'sticky', left: 0, background: player.isMe ? 'rgba(74,222,128,0.06)' : '#0a0f0d' }}>
+                      <span style={{ color: player.isMe ? '#4ade80' : '#e8f5ee', fontWeight: player.isMe ? 600 : 400, fontSize: '0.78rem' }}>{player.name}</span>
+                    </td>
+                    {['tip_winner','tip_second','tip_third','tip_top_scorer'].map(f => (
+                      <td key={f} style={{ textAlign: 'center', padding: '0.5rem 0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', color: tt ? '#e8f5ee' : 'rgba(255,255,255,0.2)', fontSize: '0.78rem' }}>
+                        {tt?.[f] ? <>{TEAM_FLAGS[tt[f]] || ''} {tt[f]}</> : '–'}
+                      </td>
+                    ))}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -1442,7 +1464,8 @@ function Avatar({ userId, avatars, size = 32, style = {} }: { userId: string, av
 
 function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
-  const isLocked = match.status !== 'upcoming' || isPast(subHours(new Date(match.kickoff_at), 2))
+  const lockMins = tournament?.tip_lock_minutes ?? 120
+  const isLocked = match.status !== 'upcoming' || isPast(subMinutes(new Date(match.kickoff_at), lockMins))
   const [home, setHome] = useState(tip?.tip_home ?? '')
   const [away, setAway] = useState(tip?.tip_away ?? '')
   const [saving, setSaving] = useState(false)
@@ -1539,7 +1562,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
   const [topScorer, setTopScorer] = useState(existing?.tip_top_scorer || '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const isLocked = existing?.is_locked
+  const isLocked = existing?.is_locked || false
   const supabase = createClient()
 
   async function save() {
