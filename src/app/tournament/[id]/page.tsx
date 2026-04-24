@@ -111,6 +111,7 @@ export default function TournamentPage() {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [myTournamentTip, setMyTournamentTip] = useState<any>(null)
   const [allTips, setAllTips] = useState<any[]>([])
+  const [allTournamentTips, setAllTournamentTips] = useState<any[]>([])
   const [avatars, setAvatars] = useState<Record<string, string>>({})
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
   const [approvedCount, setApprovedCount] = useState(0)
@@ -125,7 +126,7 @@ export default function TournamentPage() {
     if (!user) { router.push('/auth'); return }
     setUser(user)
 
-    const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes] = await Promise.all([
+    const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes, allTtRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
       supabase.from('tournament_members').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
@@ -136,6 +137,7 @@ export default function TournamentPage() {
       supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position'),
       supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
+      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
     ])
 
     setProfile(profRes.data)
@@ -157,6 +159,7 @@ export default function TournamentPage() {
     setProfilesMap(profileMap)
     setApprovedCount(approvedMembersRes.data?.length || 0)
     setMyTournamentTip(ttRes.data)
+    setAllTournamentTips(allTtRes.data || [])
     setLoading(false)
   }
 
@@ -329,7 +332,7 @@ export default function TournamentPage() {
 
         {/* Tips Reveal — visible once a match is locked */}
         {tab === 'tips_reveal' && (
-          <TipsReveal matches={matches} allTips={allTips} leaderboard={leaderboard} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
+          <TipsReveal matches={matches} allTips={allTips} allTournamentTips={allTournamentTips} leaderboard={leaderboard} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
         )}
 
         {/* Rules */}
@@ -1294,8 +1297,8 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
 
 
 
-function TipsReveal({ matches, allTips, leaderboard, avatars, profilesMap, userId, t }: any) {
-  const [view, setView] = useState<'matches' | 'predictions'>('matches')
+function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars, profilesMap, userId, t }: any) {
+  const [view, setView] = useState<'matches' | 'qualifiers' | 'predictions'>('matches')
   const roundLabel: Record<string, string> = {
     group: 'Group', r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third_place: '3rd', final: 'Final'
   }
@@ -1322,15 +1325,15 @@ function TipsReveal({ matches, allTips, leaderboard, avatars, profilesMap, userI
       </p>
 
       {/* View toggle */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-        {(['matches', 'predictions'] as const).map(v => (
-          <button key={v} onClick={() => setView(v)} style={{
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        {([['matches', '⚽ Match Tips', '⚽ Partidas'], ['qualifiers', '🗂️ Group Qualifiers', '🗂️ Classificados'], ['predictions', '🏆 Predictions', '🏆 Previsões']] as const).map(([v, en, pt]) => (
+          <button key={v} onClick={() => setView(v as any)} style={{
             padding: '0.4rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
             border: `1px solid ${view === v ? 'var(--green)' : 'rgba(255,255,255,0.15)'}`,
             background: view === v ? 'rgba(74,222,128,0.12)' : 'transparent',
             color: view === v ? '#4ade80' : 'rgba(255,255,255,0.5)',
           }}>
-            {v === 'matches' ? (t.lang === 'pt' ? '⚽ Partidas' : '⚽ Match Tips') : (t.lang === 'pt' ? '🏆 Previsões' : '🏆 Predictions')}
+            {t.lang === 'pt' ? pt : en}
           </button>
         ))}
       </div>
@@ -1417,6 +1420,67 @@ function TipsReveal({ matches, allTips, leaderboard, avatars, profilesMap, userI
         )
       )}
 
+      {/* ── GROUP QUALIFIERS TABLE ── */}
+      {view === 'qualifiers' && (
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          {allTournamentTips.length === 0 ? (
+            <p style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '2rem' }}>
+              {t.lang === 'pt' ? 'Nenhum palpite registrado ainda.' : 'No qualifier picks submitted yet.'}
+            </p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: 600 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', left: 0, background: '#0a0f0d', minWidth: 110 }}>
+                    {t.lang === 'pt' ? 'JOGADOR' : 'PLAYER'}
+                  </th>
+                  {['A','B','C','D','E','F','G','H','I','J','K','L'].map(g => (
+                    <th key={g} style={{ textAlign: 'center', padding: '0.5rem 0.5rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid rgba(255,255,255,0.08)', minWidth: 110 }}>
+                      Group {g}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((player: any) => {
+                  const tt = allTournamentTips.find((tp: any) => tp.user_id === player.id)
+                  return (
+                    <tr key={player.id} style={{ background: player.isMe ? 'rgba(74,222,128,0.04)' : 'transparent' }}>
+                      <td style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'sticky', left: 0, background: player.isMe ? 'rgba(74,222,128,0.06)' : '#0a0f0d' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'rgba(255,255,255,0.08)' }}>
+                            {player.avatar ? <img src={player.avatar} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <span style={{ fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>👤</span>}
+                          </div>
+                          <span style={{ color: player.isMe ? '#4ade80' : '#e8f5ee', fontWeight: player.isMe ? 600 : 400, whiteSpace: 'nowrap', fontSize: '0.78rem' }}>
+                            {player.name}{player.isMe ? ' ✦' : ''}
+                          </span>
+                        </div>
+                      </td>
+                      {['a','b','c','d','e','f','g','h','i','j','k','l'].map(g => {
+                        const first = tt?.[`tip_group_${g}_1`]
+                        const second = tt?.[`tip_group_${g}_2`]
+                        return (
+                          <td key={g} style={{ textAlign: 'center', padding: '0.4rem 0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.72rem' }}>
+                            {first || second ? (
+                              <div>
+                                {first && <div style={{ color: '#fbbf24', whiteSpace: 'nowrap' }}>🥇 {TEAM_FLAGS[first] || ''}{first}</div>}
+                                {second && <div style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>🥈 {TEAM_FLAGS[second] || ''}{second}</div>}
+                              </div>
+                            ) : (
+                              <span style={{ color: 'rgba(255,255,255,0.15)' }}>–</span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
       {/* ── PREDICTIONS TABLE ── */}
       {view === 'predictions' && (
         <div style={{ overflowX: 'auto' }}>
@@ -1433,15 +1497,15 @@ function TipsReveal({ matches, allTips, leaderboard, avatars, profilesMap, userI
             </thead>
             <tbody>
               {players.map((player: any) => {
-                const tt = allTips.find((tp: any) => tp.user_id === player.id && tp.tip_winner !== undefined)
+                const tt = allTournamentTips.find((tp: any) => tp.user_id === player.id)
                 return (
                   <tr key={player.id} style={{ background: player.isMe ? 'rgba(74,222,128,0.04)' : 'transparent' }}>
                     <td style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', position: 'sticky', left: 0, background: player.isMe ? 'rgba(74,222,128,0.06)' : '#0a0f0d' }}>
                       <span style={{ color: player.isMe ? '#4ade80' : '#e8f5ee', fontWeight: player.isMe ? 600 : 400, fontSize: '0.78rem' }}>{player.name}</span>
                     </td>
-                    {['tip_winner','tip_second','tip_third','tip_top_scorer'].map(f => (
+                    {(['tip_winner','tip_second','tip_third','tip_top_scorer'] as const).map(f => (
                       <td key={f} style={{ textAlign: 'center', padding: '0.5rem 0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', color: tt ? '#e8f5ee' : 'rgba(255,255,255,0.2)', fontSize: '0.78rem' }}>
-                        {tt?.[f] ? <>{TEAM_FLAGS[tt[f]] || ''} {tt[f]}</> : '–'}
+                        {tt?.[f as string] ? <>{TEAM_FLAGS[tt[f as string]] || ''} {tt[f as string]}</> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>–</span>}
                       </td>
                     ))}
                   </tr>
