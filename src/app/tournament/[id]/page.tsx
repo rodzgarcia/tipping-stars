@@ -136,7 +136,7 @@ export default function TournamentPage() {
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position'),
       supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
-      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
+      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).maybeSingle(),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
     ])
 
@@ -158,7 +158,8 @@ export default function TournamentPage() {
     setAvatars(avatarMap)
     setProfilesMap(profileMap)
     setApprovedCount(approvedMembersRes.data?.length || 0)
-    setMyTournamentTip(ttRes.data)
+    if (ttRes.error) console.warn('tournament_tips load:', ttRes.error.message)
+    setMyTournamentTip(ttRes.data || null)
     setAllTournamentTips(allTtRes.data || [])
     setLoading(false)
   }
