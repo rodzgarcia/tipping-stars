@@ -371,7 +371,7 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
       }
     })
     setPicks(init)
-  }, [existing?.id, existing?.updated_at, tournament?.qualifiers_locked])
+  }, [existing?.id, existing?.updated_at])
 
   const ptsPerGroup = tournament.pts_qualify || 0
   // Honour DB lock — read from tournament object (set by admin via tournaments table)
@@ -476,7 +476,10 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: '0.75rem' }}>{t.lockedGroups}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
             {lockedGroups.map(group => {
-              const p = picks[group]
+              // Read directly from DB row (existing) as source of truth — not local state
+              const g = group.toLowerCase()
+              const first = existing?.[`tip_group_${g}_1`] || picks[group]?.first || ''
+              const second = existing?.[`tip_group_${g}_2`] || picks[group]?.second || ''
               return (
                 <div key={group} className="card" style={{ padding: '1.25rem', opacity: 0.7 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -486,8 +489,8 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />{t.locked}</span>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
-                    <div>🥇 {p?.first || <span style={{ color: 'rgba(255,255,255,0.25)' }}>{t.noPick}</span>}</div>
-                    <div style={{ marginTop: '0.25rem' }}>🥈 {p?.second || <span style={{ color: 'rgba(255,255,255,0.25)' }}>{t.noPick}</span>}</div>
+                    <div>🥇 {first ? <span>{TEAM_FLAGS[first] || ''} {first}</span> : <span style={{ color: 'rgba(255,255,255,0.25)' }}>{t.noPick}</span>}</div>
+                    <div style={{ marginTop: '0.25rem' }}>🥈 {second ? <span>{TEAM_FLAGS[second] || ''} {second}</span> : <span style={{ color: 'rgba(255,255,255,0.25)' }}>{t.noPick}</span>}</div>
                   </div>
                 </div>
               )
@@ -1639,10 +1642,10 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
       setThird(existing.tip_third || '')
       setTopScorer(existing.tip_top_scorer || '')
     }
-  }, [existing?.id, existing?.updated_at, existing?.is_locked, tournament?.predictions_locked])
+  }, [existing?.id, existing?.updated_at])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const isLocked = tournament?.predictions_locked || existing?.is_locked || false
+  const isLocked = tournament?.predictions_locked || false
   const supabase = createClient()
 
   async function save() {
