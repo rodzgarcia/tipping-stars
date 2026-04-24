@@ -357,21 +357,21 @@ export default function TournamentPage() {
 
 function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }: any) {
   const supabase = createClient()
-  const [picks, setPicks] = useState<Record<string, { first: string, second: string }>>({})
+  // localPicks only holds unsaved edits — we always fall back to existing (DB) for display
+  const [localPicks, setLocalPicks] = useState<Record<string, { first?: string, second?: string }>>({})
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // Sync picks whenever existing data loads or changes
-  useEffect(() => {
-    const init: Record<string, { first: string, second: string }> = {}
-    Object.keys(GROUPS).forEach(g => {
-      init[g] = {
-        first: existing?.[`tip_group_${g.toLowerCase()}_1`] || '',
-        second: existing?.[`tip_group_${g.toLowerCase()}_2`] || '',
-      }
-    })
-    setPicks(init)
-  }, [existing?.id, existing?.updated_at])
+  // Helper: get current value for a group/position — prefer local edits, fall back to DB
+  function getVal(group: string, pos: 'first' | 'second'): string {
+    if (localPicks[group]?.[pos] !== undefined) return localPicks[group][pos] || ''
+    const g = group.toLowerCase()
+    return existing?.[`tip_group_${g}_${pos === 'first' ? '1' : '2'}`] || ''
+  }
+
+  function setPick(group: string, pos: 'first' | 'second', val: string) {
+    setLocalPicks(prev => ({ ...prev, [group]: { ...prev[group], [pos]: val } }))
+  }
 
   const ptsPerGroup = tournament.pts_qualify || 0
   // Honour DB lock — read from tournament object (set by admin via tournaments table)
@@ -394,17 +394,19 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
   async function save() {
     setSaving(true)
     const payload: Record<string, any> = { tournament_id: tournament.id, user_id: userId }
-    Object.entries(picks).forEach(([g, p]) => {
-      payload[`tip_group_${g.toLowerCase()}_1`] = p.first
-      payload[`tip_group_${g.toLowerCase()}_2`] = p.second
+    Object.keys(GROUPS).forEach(g => {
+      payload[`tip_group_${g.toLowerCase()}_1`] = getVal(g, 'first')
+      payload[`tip_group_${g.toLowerCase()}_2`] = getVal(g, 'second')
     })
     if (existing?.id) {
       await supabase.from('tournament_tips').update(payload).eq('id', existing.id)
     } else {
-      await supabase.from('tournament_tips').insert(payload)
+      await supabase.from('tournament_tips').insert({ ...payload })
     }
     setSaved(true); setTimeout(() => setSaved(false), 2500)
-    setSaving(false); onSave()
+    setSaving(false)
+    setLocalPicks({}) // clear local edits — DB is now source of truth
+    onSave()
   }
 
   const unlockedGroups = Object.keys(GROUPS).filter(g => !isGroupLocked(g))
@@ -439,14 +441,14 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>🥇 {t.firstPlace}</label>
-                    <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={picks[group]?.first || ''} onChange={e => setPicks(prev => ({ ...prev, [group]: { ...prev[group], first: e.target.value } }))}>
+                    <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={getVal(group, 'first')} onChange={e => setPick(group, 'first', e.target.value)}>
                       <option value="">{t.selectTeam}</option>
                       {teams.map(tm => <option key={tm} value={tm}>{tm}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>🥈 {t.secondPlace}</label>
-                    <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={picks[group]?.second || ''} onChange={e => setPicks(prev => ({ ...prev, [group]: { ...prev[group], second: e.target.value } }))}>
+                    <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={getVal(group, 'second')} onChange={e => setPick(group, 'second', e.target.value)}>
                       <option value="">{t.selectTeam}</option>
                       {teams.map(tm => <option key={tm} value={tm}>{tm}</option>)}
                     </select>
@@ -476,10 +478,9 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: '0.75rem' }}>{t.lockedGroups}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
             {lockedGroups.map(group => {
-              // Read directly from DB row (existing) as source of truth — not local state
-              const g = group.toLowerCase()
-              const first = existing?.[`tip_group_${g}_1`] || picks[group]?.first || ''
-              const second = existing?.[`tip_group_${g}_2`] || picks[group]?.second || ''
+              // getVal reads from existing (DB) first, then local edits
+              const first = getVal(group, 'first')
+              const second = getVal(group, 'second')
               return (
                 <div key={group} className="card" style={{ padding: '1.25rem', opacity: 0.7 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
