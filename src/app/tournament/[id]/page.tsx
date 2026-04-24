@@ -159,6 +159,7 @@ export default function TournamentPage() {
     setProfilesMap(profileMap)
     setApprovedCount(approvedMembersRes.data?.length || 0)
     if (ttRes.error) console.warn('tournament_tips load:', ttRes.error.message)
+    console.log('ttRes.data:', JSON.stringify(ttRes.data))
     setMyTournamentTip(ttRes.data || null)
     setAllTournamentTips(allTtRes.data || [])
     setLoading(false)
