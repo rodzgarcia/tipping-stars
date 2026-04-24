@@ -1480,8 +1480,8 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                           <td key={g} style={{ textAlign: 'center', padding: '0.4rem 0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.72rem' }}>
                             {first || second ? (
                               <div>
-                                {first && <div style={{ color: '#fbbf24', whiteSpace: 'nowrap' }}>🥇 {TEAM_FLAGS[first] || ''}{first}</div>}
-                                {second && <div style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>🥈 {TEAM_FLAGS[second] || ''}{second}</div>}
+                                {first && <div style={{ color: '#fbbf24', whiteSpace: 'nowrap' }}>🥇 <span style={{fontFamily:'"Segoe UI Emoji","Apple Color Emoji",sans-serif'}}>{TEAM_FLAGS[first] || ''}</span>{first}</div>}
+                                {second && <div style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>🥈 <span style={{fontFamily:'"Segoe UI Emoji","Apple Color Emoji",sans-serif'}}>{TEAM_FLAGS[second] || ''}</span>{second}</div>}
                               </div>
                             ) : (
                               <span style={{ color: 'rgba(255,255,255,0.15)' }}>–</span>
@@ -1522,7 +1522,7 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                     </td>
                     {(['tip_winner','tip_second','tip_third','tip_top_scorer'] as const).map(f => (
                       <td key={f} style={{ textAlign: 'center', padding: '0.5rem 0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', color: tt ? '#e8f5ee' : 'rgba(255,255,255,0.2)', fontSize: '0.78rem' }}>
-                        {tt?.[f as string] ? <>{TEAM_FLAGS[tt[f as string]] || ''} {tt[f as string]}</> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>–</span>}
+                        {tt?.[f as string] ? <><span style={{fontFamily:'"Segoe UI Emoji","Apple Color Emoji",sans-serif'}}>{TEAM_FLAGS[tt[f as string]] || ''}</span> {tt[f as string]}</> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>–</span>}
                       </td>
                     ))}
                   </tr>

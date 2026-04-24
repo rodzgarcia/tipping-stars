@@ -103,28 +103,7 @@ export default function AdminPage() {
   }
 
   async function saveTournamentResults(results: { winner: string, second: string, third: string, top_scorer: string, group_results: Record<string, { first: string, second: string }> }) {
-    // Save group qualifier results and calculate points
-    for (const [group, teams] of Object.entries(results.group_results)) {
-      if (!teams.first && !teams.second) continue
-      // Get all qualifier tips for this group
-      const { data: picks } = await supabase
-        .from('group_qualifier_tips')
-        .select('*')
-        .eq('tournament_id', selectedTournament)
-        .eq('group_label', group)
-      const ptsPerTeam = currentTournament?.pts_qualify || currentTournament?.pts_qualifying_teams || 10
-      for (const pick of (picks || [])) {
-        let pts = 0
-        // Check 1st pick
-        if (pick.tip_first && pick.tip_first === teams.first) pts += ptsPerTeam
-        else if (pick.tip_first && pick.tip_first === teams.second) pts += Math.floor(ptsPerTeam / 2)
-        // Check 2nd pick
-        if (pick.tip_second && pick.tip_second === teams.second) pts += ptsPerTeam
-        else if (pick.tip_second && pick.tip_second === teams.first) pts += Math.floor(ptsPerTeam / 2)
-        await supabase.from('group_qualifier_tips').update({ pts_total: pts, actual_first: teams.first, actual_second: teams.second }).eq('id', pick.id)
-      }
-    }
-    // Save tournament prediction results
+    await calculateGroupQualifierPoints(results.group_results)
     if (results.winner || results.second || results.third || results.top_scorer) {
       await supabase.rpc('calculate_tournament_points', {
         p_tournament_id: selectedTournament,
@@ -135,6 +114,37 @@ export default function AdminPage() {
       })
     }
     loadTournamentData()
+  }
+
+  async function calculateGroupQualifierPoints(groupResults: Record<string, { first: string, second: string }>) {
+    const ptsPerTeam = currentTournament?.pts_qualify || currentTournament?.pts_qualifying_teams || 10
+    // Read ALL users' tournament_tips for this tournament
+    const { data: allTips } = await supabase
+      .from('tournament_tips')
+      .select('id, user_id, ' + ['a','b','c','d','e','f','g','h','i','j','k','l'].map(g => `tip_group_${g}_1, tip_group_${g}_2`).join(', '))
+      .eq('tournament_id', selectedTournament)
+
+    for (const tip of (allTips || [])) {
+      let totalQualifierPts = 0
+      for (const [group, teams] of Object.entries(groupResults)) {
+        if (!teams.first && !teams.second) continue
+        const g = group.toLowerCase()
+        const pick1 = tip[`tip_group_${g}_1`]
+        const pick2 = tip[`tip_group_${g}_2`]
+        // 1st place pick
+        if (pick1) {
+          if (pick1 === teams.first) totalQualifierPts += ptsPerTeam
+          else if (pick1 === teams.second) totalQualifierPts += Math.floor(ptsPerTeam / 2)
+        }
+        // 2nd place pick
+        if (pick2) {
+          if (pick2 === teams.second) totalQualifierPts += ptsPerTeam
+          else if (pick2 === teams.first) totalQualifierPts += Math.floor(ptsPerTeam / 2)
+        }
+      }
+      // Store qualifier points on the tournament_tips row
+      await supabase.from('tournament_tips').update({ pts_group_qualifiers: totalQualifierPts }).eq('id', tip.id)
+    }
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div style={{ fontFamily: 'var(--font-display)', color: 'var(--green-light)', letterSpacing: '0.1em' }}>LOADING...</div></div>
@@ -294,6 +304,12 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
     setSaved(true); setTimeout(() => setSaved(false), 3000); setSaving(false)
   }
 
+  async function handleRecalculate() {
+    setSaving(true)
+    await onSave({ winner, second, third, top_scorer: topScorer, group_results: groupResults })
+    setSaved(true); setTimeout(() => setSaved(false), 3000); setSaving(false)
+  }
+
   const selectStyle = { background: '#1a1a2e', color: '#fff', width: '100%' }
   const activeGroups = GROUPS.filter(g => teamsByGroup[g]?.length > 0)
 
@@ -380,9 +396,14 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
         </div>
       </div>
 
-      <button className="btn btn-primary" disabled={saving} onClick={handleSave} style={{ padding: '0.6rem 1.5rem' }}>
-        {saved ? '✔ Points Calculated!' : saving ? 'Calculating...' : '⚡ Save Results & Calculate Points'}
-      </button>
+      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <button className="btn btn-primary" disabled={saving} onClick={handleSave} style={{ padding: '0.6rem 1.5rem' }}>
+          {saved ? '✔ Points Calculated!' : saving ? 'Calculating...' : '⚡ Save Results & Calculate Points'}
+        </button>
+        <button className="btn btn-ghost" disabled={saving} onClick={handleRecalculate} style={{ padding: '0.6rem 1.1rem', fontSize: '0.82rem' }}>
+          🔄 {saving ? 'Calculating...' : 'Recalculate Points Only'}
+        </button>
+      </div>
     </div>
   )
 }
