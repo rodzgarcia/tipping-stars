@@ -399,14 +399,23 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
       payload[`tip_group_${g.toLowerCase()}_1`] = getVal(g, 'first')
       payload[`tip_group_${g.toLowerCase()}_2`] = getVal(g, 'second')
     })
+    console.log('Saving qualifier payload:', payload)
+    let result
     if (existing?.id) {
-      await supabase.from('tournament_tips').update(payload).eq('id', existing.id)
+      result = await supabase.from('tournament_tips').update(payload).eq('id', existing.id)
     } else {
-      await supabase.from('tournament_tips').insert({ ...payload })
+      result = await supabase.from('tournament_tips').insert({ ...payload })
     }
+    if (result.error) {
+      console.error('Qualifier save error:', result.error)
+      alert('Save failed: ' + result.error.message)
+      setSaving(false)
+      return
+    }
+    console.log('Qualifier save success')
     setSaved(true); setTimeout(() => setSaved(false), 2500)
     setSaving(false)
-    setLocalPicks({}) // clear local edits — DB is now source of truth
+    setLocalPicks({})
     onSave()
   }
 
