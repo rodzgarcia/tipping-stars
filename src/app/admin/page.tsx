@@ -129,8 +129,9 @@ export default function AdminPage() {
       for (const [group, teams] of Object.entries(groupResults)) {
         if (!teams.first && !teams.second) continue
         const g = group.toLowerCase()
-        const pick1 = tip[`tip_group_${g}_1`]
-        const pick2 = tip[`tip_group_${g}_2`]
+        const t = tip as any
+        const pick1 = t[`tip_group_${g}_1`]
+        const pick2 = t[`tip_group_${g}_2`]
         // 1st place pick
         if (pick1) {
           if (pick1 === teams.first) totalQualifierPts += ptsPerTeam
