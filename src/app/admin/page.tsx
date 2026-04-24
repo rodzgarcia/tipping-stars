@@ -102,8 +102,10 @@ export default function AdminPage() {
     loadTournamentData()
   }
 
+  const currentTournament = tournaments.find((t: any) => t.id === selectedTournament)
   async function saveTournamentResults(results: { winner: string, second: string, third: string, top_scorer: string, group_results: Record<string, { first: string, second: string }> }) {
-    await calculateGroupQualifierPoints(results.group_results)
+    const pts = currentTournament?.pts_qualify || currentTournament?.pts_qualifying_teams || 10
+    await calculateGroupQualifierPoints(results.group_results, pts)
     if (results.winner || results.second || results.third || results.top_scorer) {
       await supabase.rpc('calculate_tournament_points', {
         p_tournament_id: selectedTournament,
@@ -116,8 +118,8 @@ export default function AdminPage() {
     loadTournamentData()
   }
 
-  async function calculateGroupQualifierPoints(groupResults: Record<string, { first: string, second: string }>) {
-    const ptsPerTeam = currentTournament?.pts_qualify || currentTournament?.pts_qualifying_teams || 10
+  async function calculateGroupQualifierPoints(groupResults: Record<string, { first: string, second: string }>, ptsOverride?: number) {
+    const ptsPerTeam = ptsOverride || currentTournament?.pts_qualify || currentTournament?.pts_qualifying_teams || 10
     // Read ALL users' tournament_tips for this tournament
     const { data: allTips } = await supabase
       .from('tournament_tips')
@@ -148,9 +150,8 @@ export default function AdminPage() {
     }
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div style={{ fontFamily: 'var(--font-display)', color: 'var(--green-light)', letterSpacing: '0.1em' }}>LOADING...</div></div>
 
-  const currentTournament = tournaments.find((t: any) => t.id === selectedTournament)
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div style={{ fontFamily: 'var(--font-display)', color: 'var(--green-light)', letterSpacing: '0.1em' }}>LOADING...</div></div>
 
   return (
     <div className="min-h-screen">
@@ -275,14 +276,16 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
   const [saved, setSaved] = useState(false)
   const [teamsByGroup, setTeamsByGroup] = useState<Record<string, string[]>>({})
 
+  // Load persisted results from tournaments table on mount / tournament change
   useEffect(() => {
     if (!tournamentId) return
+
+    // Load match teams for dropdowns
     supabase.from('matches').select('home_team,away_team,group_name,round').eq('tournament_id', tournamentId).eq('round', 'group')
       .then(({ data }: any) => {
         const map: Record<string, Set<string>> = {}
         data?.forEach((m: any) => {
           if (!m.group_name) return
-          // Normalise: "Group A" -> "A", or keep as-is if already single letter
           const raw = String(m.group_name).trim()
           const key = raw.length === 1 ? raw : raw.replace(/^group\s*/i, '').trim()
           if (!map[key]) map[key] = new Set()
@@ -293,23 +296,45 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
         Object.entries(map).forEach(([g, s]) => { result[g] = Array.from(s).sort() })
         setTeamsByGroup(result)
       })
+
+    // Load saved results from tournaments table
+    supabase.from('tournaments').select('result_winner,result_second,result_third,result_top_scorer,result_groups').eq('id', tournamentId).single()
+      .then(({ data }: any) => {
+        if (!data) return
+        if (data.result_winner) setWinner(data.result_winner)
+        if (data.result_second) setSecond(data.result_second)
+        if (data.result_third) setThird(data.result_third)
+        if (data.result_top_scorer) setTopScorer(data.result_top_scorer)
+        if (data.result_groups) {
+          try {
+            const g = typeof data.result_groups === 'string' ? JSON.parse(data.result_groups) : data.result_groups
+            setGroupResults(g)
+          } catch {}
+        }
+      })
   }, [tournamentId])
 
   function setGroup(group: string, pos: 'first' | 'second', val: string) {
     setGroupResults(prev => ({ ...prev, [group]: { ...(prev[group] || { first: '', second: '' }), [pos]: val } }))
   }
 
-  async function handleSave() {
+  async function persistAndCalculate() {
     setSaving(true)
+    // Persist results to tournaments table so they survive page refresh
+    await supabase.from('tournaments').update({
+      result_winner: winner,
+      result_second: second,
+      result_third: third,
+      result_top_scorer: topScorer,
+      result_groups: groupResults as any,
+    }).eq('id', tournamentId)
+    // Now calculate points
     await onSave({ winner, second, third, top_scorer: topScorer, group_results: groupResults })
     setSaved(true); setTimeout(() => setSaved(false), 3000); setSaving(false)
   }
 
-  async function handleRecalculate() {
-    setSaving(true)
-    await onSave({ winner, second, third, top_scorer: topScorer, group_results: groupResults })
-    setSaved(true); setTimeout(() => setSaved(false), 3000); setSaving(false)
-  }
+  async function handleSave() { await persistAndCalculate() }
+  async function handleRecalculate() { await persistAndCalculate() }
 
   const selectStyle = { background: '#1a1a2e', color: '#fff', width: '100%' }
   const activeGroups = GROUPS.filter(g => teamsByGroup[g]?.length > 0)
