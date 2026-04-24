@@ -394,30 +394,22 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
 
   async function save() {
     setSaving(true)
-    const qualifierCols: Record<string, any> = {}
-    Object.keys(GROUPS).forEach(g => {
-      qualifierCols[`tip_group_${g.toLowerCase()}_1`] = getVal(g, 'first')
-      qualifierCols[`tip_group_${g.toLowerCase()}_2`] = getVal(g, 'second')
+    const result = await supabase.rpc('save_qualifier_picks', {
+      p_user_id: userId,
+      p_tournament_id: tournament.id,
+      p_a1: getVal('A','first'), p_a2: getVal('A','second'),
+      p_b1: getVal('B','first'), p_b2: getVal('B','second'),
+      p_c1: getVal('C','first'), p_c2: getVal('C','second'),
+      p_d1: getVal('D','first'), p_d2: getVal('D','second'),
+      p_e1: getVal('E','first'), p_e2: getVal('E','second'),
+      p_f1: getVal('F','first'), p_f2: getVal('F','second'),
+      p_g1: getVal('G','first'), p_g2: getVal('G','second'),
+      p_h1: getVal('H','first'), p_h2: getVal('H','second'),
+      p_i1: getVal('I','first'), p_i2: getVal('I','second'),
+      p_j1: getVal('J','first'), p_j2: getVal('J','second'),
+      p_k1: getVal('K','first'), p_k2: getVal('K','second'),
+      p_l1: getVal('L','first'), p_l2: getVal('L','second'),
     })
-
-    let result
-    if (existing?.id) {
-      // Update only qualifier columns — bypass is_locked check by using the row id directly
-      // Use rpc to bypass RLS lock restriction for qualifier columns only
-      result = await supabase.rpc('upsert_qualifier_picks', {
-        p_row_id: existing.id,
-        p_user_id: userId,
-        p_tournament_id: tournament.id,
-        p_picks: qualifierCols,
-      })
-    } else {
-      result = await supabase.from('tournament_tips').insert({
-        tournament_id: tournament.id,
-        user_id: userId,
-        is_locked: false,
-        ...qualifierCols,
-      })
-    }
     if (result.error) {
       console.error('Qualifier save error:', result.error)
       alert('Save failed: ' + result.error.message)
