@@ -159,7 +159,6 @@ export default function TournamentPage() {
     setProfilesMap(profileMap)
     setApprovedCount(approvedMembersRes.data?.length || 0)
     if (ttRes.error) console.warn('tournament_tips load:', ttRes.error.message)
-    console.log('ttRes.data:', JSON.stringify(ttRes.data))
     setMyTournamentTip(ttRes.data || null)
     setAllTournamentTips(allTtRes.data || [])
     setLoading(false)
@@ -395,17 +394,29 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
 
   async function save() {
     setSaving(true)
-    const payload: Record<string, any> = { tournament_id: tournament.id, user_id: userId }
+    const qualifierCols: Record<string, any> = {}
     Object.keys(GROUPS).forEach(g => {
-      payload[`tip_group_${g.toLowerCase()}_1`] = getVal(g, 'first')
-      payload[`tip_group_${g.toLowerCase()}_2`] = getVal(g, 'second')
+      qualifierCols[`tip_group_${g.toLowerCase()}_1`] = getVal(g, 'first')
+      qualifierCols[`tip_group_${g.toLowerCase()}_2`] = getVal(g, 'second')
     })
-    console.log('Saving qualifier payload:', payload)
+
     let result
     if (existing?.id) {
-      result = await supabase.from('tournament_tips').update(payload).eq('id', existing.id)
+      // Update only qualifier columns — bypass is_locked check by using the row id directly
+      // Use rpc to bypass RLS lock restriction for qualifier columns only
+      result = await supabase.rpc('upsert_qualifier_picks', {
+        p_row_id: existing.id,
+        p_user_id: userId,
+        p_tournament_id: tournament.id,
+        p_picks: qualifierCols,
+      })
     } else {
-      result = await supabase.from('tournament_tips').insert({ ...payload })
+      result = await supabase.from('tournament_tips').insert({
+        tournament_id: tournament.id,
+        user_id: userId,
+        is_locked: false,
+        ...qualifierCols,
+      })
     }
     if (result.error) {
       console.error('Qualifier save error:', result.error)
@@ -413,7 +424,6 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
       setSaving(false)
       return
     }
-    console.log('Qualifier save success')
     setSaved(true); setTimeout(() => setSaved(false), 2500)
     setSaving(false)
     setLocalPicks({})
