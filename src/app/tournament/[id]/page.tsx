@@ -371,11 +371,11 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
       }
     })
     setPicks(init)
-  }, [existing?.id, existing?.updated_at])
+  }, [existing?.id, existing?.updated_at, tournament?.qualifiers_locked])
 
   const ptsPerGroup = tournament.pts_qualify || 0
-  // Honour DB lock — admin can lock even if time hasn't expired
-  const dbLocked = existing?.is_locked || false
+  // Honour DB lock — read from tournament object (set by admin via tournaments table)
+  const dbLocked = tournament?.qualifiers_locked || false
 
   function isGroupLocked(group: string) {
     if (dbLocked) return true  // Admin has manually locked all qualifier tips
@@ -1625,7 +1625,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   )
 }
 
-function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
+function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // tournament has qualifiers_locked and predictions_locked
   const [winner, setWinner] = useState(existing?.tip_winner || '')
   const [second, setSecond] = useState(existing?.tip_second || '')
   const [third, setThird] = useState(existing?.tip_third || '')
@@ -1639,10 +1639,10 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
       setThird(existing.tip_third || '')
       setTopScorer(existing.tip_top_scorer || '')
     }
-  }, [existing?.id, existing?.updated_at, existing?.is_locked])
+  }, [existing?.id, existing?.updated_at, existing?.is_locked, tournament?.predictions_locked])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const isLocked = existing?.is_locked || false
+  const isLocked = tournament?.predictions_locked || existing?.is_locked || false
   const supabase = createClient()
 
   async function save() {

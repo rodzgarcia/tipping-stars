@@ -755,22 +755,42 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
   const [saving, setSaving] = useState<string | null>(null)
   const [lockingQualifiers, setLockingQualifiers] = useState(false)
   const [lockingPredictions, setLockingPredictions] = useState(false)
-  const [qualifiersLocked, setQualifiersLocked] = useState(false)
-  const [predictionsLocked, setPredictionsLocked] = useState(false)
+  const [qualifiersLocked, setQualifiersLocked] = useState<boolean | null>(null)
+  const [predictionsLocked, setPredictionsLocked] = useState<boolean | null>(null)
 
-  async function lockAllQualifiers() {
-    if (!confirm('Lock all group qualifier picks? Players will no longer be able to change their 1st/2nd place picks for any group.')) return
+  // Load lock state directly from tournaments table (always reliable)
+  useEffect(() => {
+    if (!tournamentId) return
+    supabase.from('tournaments').select('qualifiers_locked, predictions_locked').eq('id', tournamentId).single()
+      .then(({ data }: any) => {
+        if (data) {
+          setQualifiersLocked(data.qualifiers_locked || false)
+          setPredictionsLocked(data.predictions_locked || false)
+        }
+      })
+  }, [tournamentId])
+
+  async function toggleQualifiers() {
+    const newVal = !qualifiersLocked
+    if (newVal && !confirm('Lock group qualifier picks? Players will not be able to edit until you unlock.')) return
     setLockingQualifiers(true)
-    await supabase.from('group_qualifier_tips').update({ is_locked: true }).eq('tournament_id', tournamentId)
-    setQualifiersLocked(true)
+    // Update tournaments table (single source of truth)
+    await supabase.from('tournaments').update({ qualifiers_locked: newVal }).eq('id', tournamentId)
+    // Also sync all existing tip rows
+    await supabase.from('tournament_tips').update({ is_locked: newVal }).eq('tournament_id', tournamentId)
+    setQualifiersLocked(newVal)
     setLockingQualifiers(false)
   }
 
-  async function lockAllPredictions() {
-    if (!confirm('Lock all tournament predictions (winner, 2nd, 3rd, top scorer)? Players will no longer be able to change them.')) return
+  async function togglePredictions() {
+    const newVal = !predictionsLocked
+    if (newVal && !confirm('Lock tournament predictions (winner, 2nd, 3rd, top scorer)?')) return
     setLockingPredictions(true)
-    await supabase.from('tournament_tips').update({ is_locked: true }).eq('tournament_id', tournamentId)
-    setPredictionsLocked(true)
+    // Update tournaments table (single source of truth)
+    await supabase.from('tournaments').update({ predictions_locked: newVal }).eq('id', tournamentId)
+    // Also sync all existing tip rows
+    await supabase.from('tournament_tips').update({ is_locked: newVal }).eq('tournament_id', tournamentId)
+    setPredictionsLocked(newVal)
     setLockingPredictions(false)
   }
 
@@ -809,28 +829,35 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
 
       {/* Admin lock controls */}
       <div className="card" style={{ padding: '1.25rem 1.5rem', border: '1px solid rgba(251,191,36,0.2)', background: 'rgba(251,191,36,0.03)' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', marginBottom: '0.35rem', color: 'rgba(255,255,255,0.5)' }}>🔐 LOCK TIPPING INPUTS</h3>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', marginBottom: '0.35rem', color: 'rgba(255,255,255,0.5)' }}>🔐 LOCK / UNLOCK TIPPING</h3>
         <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', marginBottom: '1rem' }}>
-          Once locked, players can no longer edit those predictions. This is permanent — use carefully.
+          Toggle to lock or unlock player editing. You can lock and re-open as needed.
         </p>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-ghost"
-            style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem', borderColor: qualifiersLocked ? '#4ade80' : 'rgba(251,191,36,0.5)', color: qualifiersLocked ? '#4ade80' : '#fbbf24' }}
-            disabled={lockingQualifiers || qualifiersLocked}
-            onClick={lockAllQualifiers}
+            style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem',
+              borderColor: qualifiersLocked ? '#f87171' : 'rgba(251,191,36,0.5)',
+              color: qualifiersLocked ? '#f87171' : '#fbbf24' }}
+            disabled={lockingQualifiers || qualifiersLocked === null}
+            onClick={toggleQualifiers}
           >
-            {qualifiersLocked ? '✔ Group Qualifiers Locked' : lockingQualifiers ? 'Locking...' : '🗂️ Lock Group Qualifier Picks'}
+            {lockingQualifiers ? '...' : qualifiersLocked ? '🔓 Unlock Group Qualifier Picks' : '🔒 Lock Group Qualifier Picks'}
           </button>
           <button
             className="btn btn-ghost"
-            style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem', borderColor: predictionsLocked ? '#4ade80' : 'rgba(251,191,36,0.5)', color: predictionsLocked ? '#4ade80' : '#fbbf24' }}
-            disabled={lockingPredictions || predictionsLocked}
-            onClick={lockAllPredictions}
+            style={{ fontSize: '0.82rem', padding: '0.55rem 1.1rem',
+              borderColor: predictionsLocked ? '#f87171' : 'rgba(251,191,36,0.5)',
+              color: predictionsLocked ? '#f87171' : '#fbbf24' }}
+            disabled={lockingPredictions || predictionsLocked === null}
+            onClick={togglePredictions}
           >
-            {predictionsLocked ? '✔ Predictions Locked' : lockingPredictions ? 'Locking...' : '🏆 Lock Tournament Predictions'}
+            {lockingPredictions ? '...' : predictionsLocked ? '🔓 Unlock Tournament Predictions' : '🔒 Lock Tournament Predictions'}
           </button>
         </div>
+        <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.75rem' }}>
+          🔒 = players cannot edit · 🔓 = players can edit · Current state loads from database on page open
+        </p>
       </div>
 
       {live.length > 0 && (
