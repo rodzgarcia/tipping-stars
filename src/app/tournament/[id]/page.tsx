@@ -250,6 +250,7 @@ export default function TournamentPage() {
             userId={user.id}
             existing={myTournamentTip}
             onSave={loadAll}
+            matches={matches}
             t={t}
           />
         )}
@@ -351,7 +352,7 @@ export default function TournamentPage() {
 }
 
 
-function GroupQualifierTips({ tournament, userId, existing, onSave, t }: any) {
+function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }: any) {
   const supabase = createClient()
   const [picks, setPicks] = useState<Record<string, { first: string, second: string }>>(() => {
     const init: Record<string, { first: string, second: string }> = {}
