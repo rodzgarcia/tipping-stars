@@ -264,13 +264,14 @@ export default function TournamentPage() {
           <div style={{ paddingBottom: '3rem' }}>
             <div className="card" style={{ overflow: 'hidden' }}>
               {/* Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
                 <div></div>
                 <div></div>
                 <div>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
                 <div style={{ textAlign: 'center' }} title="Exact scores">🎯</div>
                 <div style={{ textAlign: 'center' }} title="Correct goal difference">⚖️</div>
                 <div style={{ textAlign: 'center' }} title="Correct winner">✅</div>
+                <div style={{ textAlign: 'center' }} title="Qualifier teams correct">🏟️</div>
                 <div style={{ textAlign: 'center' }}>{t.lang === 'pt' ? 'PTS' : 'PTS'}</div>
               </div>
               {leaderboard.length === 0 ? (
@@ -281,7 +282,7 @@ export default function TournamentPage() {
                   return b.correct_goal_diff - a.correct_goal_diff
                 }).map((row: any, i: number) => (
                 <div key={row.user_id}
-                  style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', alignItems: 'center', padding: '0.9rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
+                  style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', alignItems: 'center', padding: '0.9rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}
                   </div>
@@ -309,6 +310,23 @@ export default function TournamentPage() {
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: row.correct_winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>
                     {row.correct_winners ?? 0}
                   </div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
+                    {(() => {
+                      const tt = allTournamentTips.find((tp: any) => tp.user_id === row.user_id)
+                      const groups = tournament?.result_groups
+                      if (!tt || !groups) return <span style={{ color: 'rgba(255,255,255,0.2)' }}>–</span>
+                      let count = 0
+                      Object.entries(groups).forEach(([g, res]: any) => {
+                        const pick1 = tt[`tip_group_${g.toLowerCase()}_1`]
+                        const pick2 = tt[`tip_group_${g.toLowerCase()}_2`]
+                        if (pick1 === res.first) count += 1
+                        else if (pick1 === res.second) count += 0.5
+                        if (pick2 === res.second) count += 1
+                        else if (pick2 === res.first) count += 0.5
+                      })
+                      return <span style={{ color: count > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{count}</span>
+                    })()}
+                  </div>
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
                     {row.total_points}
                   </div>
@@ -319,6 +337,7 @@ export default function TournamentPage() {
               <span>🎯 {t.lang === 'pt' ? 'Placar exato' : 'Exact score'}</span>
               <span>⚖️ {t.lang === 'pt' ? 'Saldo de gols' : 'Goal difference'}</span>
               <span>✅ {t.lang === 'pt' ? 'Vencedor correto' : 'Correct winner'}</span>
+              <span>🏟️ {t.lang === 'pt' ? 'Times classificados corretos' : 'Qualifier teams correct'} (1 = certo, 0.5 = posição errada)</span>
               <span>{t.lang === 'pt' ? 'Desempate: placar exato → saldo de gols' : 'Tiebreak: exact scores → goal diff'}</span>
             </div>
 

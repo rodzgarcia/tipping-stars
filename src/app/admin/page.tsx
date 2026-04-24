@@ -9,6 +9,77 @@ import { useLang } from '../LanguageContext'
 
 type AdminTab = 'tournaments' | 'members' | 'matches' | 'results'
 
+function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
+  const [leaderboard, setLeaderboard] = useState<any[]>([])
+  const [profiles, setProfiles] = useState<Record<string, any>>({})
+  const [loading, setLoading] = useState(false)
+  const tournament = tournaments.find((t: any) => t.id === tournamentId)
+
+  useEffect(() => {
+    if (!tournamentId) return
+    setLoading(true)
+    Promise.all([
+      supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
+      supabase.from('profiles').select('id, display_name, nickname'),
+    ]).then(([lbRes, profRes]: any) => {
+      setLeaderboard(lbRes.data || [])
+      const map: Record<string, any> = {}
+      profRes.data?.forEach((p: any) => { map[p.id] = p })
+      setProfiles(map)
+      setLoading(false)
+    })
+  }, [tournamentId])
+
+  if (loading) return <div style={{ padding: '2rem', color: 'rgba(255,255,255,0.4)' }}>Loading...</div>
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>
+        🏆 LEADERBOARD — {tournament?.name}
+      </h2>
+      {leaderboard.length === 0 ? (
+        <p style={{ color: 'rgba(255,255,255,0.3)' }}>No scores yet.</p>
+      ) : (
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 4rem 4rem 4rem 4rem 5rem', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+            <div>#</div><div>PLAYER</div>
+            <div style={{ textAlign: 'center' }}>🎯</div>
+            <div style={{ textAlign: 'center' }}>✅</div>
+            <div style={{ textAlign: 'center' }}>🏟️</div>
+            <div style={{ textAlign: 'center' }}>MATCH</div>
+            <div style={{ textAlign: 'center' }}>TOTAL</div>
+          </div>
+          {leaderboard.map((row: any, i: number) => {
+            const prof = profiles[row.user_id]
+            const name = prof?.nickname || prof?.display_name || row.display_name
+            return (
+              <div key={row.user_id} style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 4rem 4rem 4rem 4rem 5rem', gap: '0.5rem', alignItems: 'center', padding: '0.75rem 1.25rem', borderBottom: i < leaderboard.length - 1 ? '1px solid var(--dark-border)' : 'none' }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#e8f5ee' }}>{name}</div>
+                  {prof?.nickname && <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>{prof.display_name}</div>}
+                  <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)' }}>{row.tips_submitted} tips</div>
+                </div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: row.exact_scores > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{row.exact_scores ?? 0}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: row.correct_winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{row.correct_winners ?? 0}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: (row.qualifier_points ?? 0) > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{row.qualifier_points ?? 0}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: 'rgba(255,255,255,0.6)' }}>{row.match_points ?? 0}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : '#e8f5ee' }}>{row.total_points}</div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.75rem' }}>
+        🎯 Exact scores · ✅ Correct winners · 🏟️ Qualifier pts · MATCH = match tip pts only
+      </p>
+    </div>
+  )
+}
+
+
 export default function AdminPage() {
   const { t } = useLang()
   const router = useRouter()
@@ -237,6 +308,10 @@ export default function AdminPage() {
         )}
 
         {/* Results */}
+        {tab === 'leaderboard' && selectedTournament && (
+          <AdminLeaderboard tournamentId={selectedTournament} supabase={supabase} tournaments={tournaments} />
+        )}
+
         {tab === 'results' && (
           <ResultsEntry matches={matches} tournament={currentTournament} tournamentId={selectedTournament} supabase={supabase} onSave={saveResult} onLock={lockResult} onEdit={lockResult} onGoLive={goLive} onUpdateLive={updateLiveScore} onEndLive={endLive} onSaveTournamentResults={saveTournamentResults} />
         )}
