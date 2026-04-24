@@ -354,7 +354,12 @@ export default function TournamentPage() {
 
 function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }: any) {
   const supabase = createClient()
-  const [picks, setPicks] = useState<Record<string, { first: string, second: string }>>(() => {
+  const [picks, setPicks] = useState<Record<string, { first: string, second: string }>>({})
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  // Sync picks whenever existing data loads or changes
+  useEffect(() => {
     const init: Record<string, { first: string, second: string }> = {}
     Object.keys(GROUPS).forEach(g => {
       init[g] = {
@@ -362,19 +367,19 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
         second: existing?.[`tip_group_${g.toLowerCase()}_2`] || '',
       }
     })
-    return init
-  })
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+    setPicks(init)
+  }, [existing?.id, existing?.updated_at])
 
   const ptsPerGroup = tournament.pts_qualify || 0
+  // Honour DB lock — admin can lock even if time hasn't expired
+  const dbLocked = existing?.is_locked || false
 
   function isGroupLocked(group: string) {
+    if (dbLocked) return true  // Admin has manually locked all qualifier tips
     const lockMins = tournament?.tip_lock_minutes ?? 120
     const mode = tournament?.group_lock_mode ?? 'per_match'
     if (mode === 'first_game') {
-      // Lock all groups based on first match of the whole tournament
-      const first = matches.filter((m: any) => m.round === 'group').sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0]
+      const first = (matches || []).filter((m: any) => m.round === 'group').sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0]
       if (!first) return false
       return isPast(subMinutes(new Date(first.kickoff_at), lockMins))
     }
@@ -1561,6 +1566,16 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) {
   const [second, setSecond] = useState(existing?.tip_second || '')
   const [third, setThird] = useState(existing?.tip_third || '')
   const [topScorer, setTopScorer] = useState(existing?.tip_top_scorer || '')
+
+  // Sync state if existing loads after first render
+  useEffect(() => {
+    if (existing) {
+      setWinner(existing.tip_winner || '')
+      setSecond(existing.tip_second || '')
+      setThird(existing.tip_third || '')
+      setTopScorer(existing.tip_top_scorer || '')
+    }
+  }, [existing?.id, existing?.updated_at, existing?.is_locked])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const isLocked = existing?.is_locked || false
