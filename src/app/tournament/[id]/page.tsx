@@ -10,25 +10,40 @@ import { useLang } from '../../LanguageContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 const TEAM_FLAGS: Record<string, string> = {
-  'Albania':'🇦🇱',  'Argentina':'🇦🇷',  'Australia':'🇦🇺',  'Austria':'🇦🇹',
-  'Belgium':'🇧🇪',  'Bolivia':'🇧🇴',  'Brazil':'🇧🇷',  'Canada':'🇨🇦',
-  'Chile':'🇨🇱',  'Colombia':'🇨🇴',  'Costa Rica':'🇨🇷',  'Croatia':'🇭🇷',
-  'Czech Republic':'🇨🇿',  'Czechia':'🇨🇿',  'Ecuador':'🇪🇨',  'Egypt':'🇪🇬',
-  'France':'🇫🇷',  'Germany':'🇩🇪',  'Ghana':'🇬🇭',  'Greece':'🇬🇷',
-  'Honduras':'🇭🇳',  'Hungary':'🇭🇺',  'IR Iran':'🇮🇷',  'Italy':'🇮🇹',
-  'Jamaica':'🇯🇲',  'Japan':'🇯🇵',  'Kenya':'🇰🇪',  'Mali':'🇲🇱',
-  'Mexico':'🇲🇽',  'Morocco':'🇲🇦',  'Netherlands':'🇳🇱',  'New Zealand':'🇳🇿',
-  'Nigeria':'🇳🇬',  'Panama':'🇵🇦',  'Paraguay':'🇵🇾',  'Peru':'🇵🇪',
-  'Poland':'🇵🇱',  'Portugal':'🇵🇹',  'Qatar':'🇶🇦',  'Saudi Arabia':'🇸🇦',
-  'Senegal':'🇸🇳',  'Serbia':'🇷🇸',  'Slovakia':'🇸🇰',  'Slovenia':'🇸🇮',
-  'South Korea':'🇰🇷',  'Spain':'🇪🇸',  'Switzerland':'🇨🇭',  'Trinidad & Tobago':'🇹🇹',
-  'Tunisia':'🇹🇳',  'Turkey':'🇹🇷',  'Ukraine':'🇺🇦',  'United States':'🇺🇸',
-  'USA':'🇺🇸',  'Uruguay':'🇺🇾',  'Venezuela':'🇻🇪',  'South Africa':'🇿🇦',
-  'Bosnia and Herzegovina':'🇧🇦',  'Cape Verde':'🇨🇻',  'Curacao':'🇨🇼',  'DR Congo':'🇨🇩',
-  'Haiti':'🇭🇹',  'Iraq':'🇮🇶',  'Jordan':'🇯🇴',  'Norway':'🇳🇴',
-  'Sweden':'🇸🇪',  'Uzbekistan':'🇺🇿',  'England':'🏴󠁧󠁢󠁥󠁮󠁧󠁿',  'Scotland':'🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  'Wales':'🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+  'Albania':'al',  'Argentina':'ar',  'Australia':'au',  'Austria':'at',
+  'Belgium':'be',  'Bolivia':'bo',  'Brazil':'br',  'Canada':'ca',
+  'Chile':'cl',  'Colombia':'co',  'Costa Rica':'cr',  'Croatia':'hr',
+  'Czech Republic':'cz',  'Czechia':'cz',  'Ecuador':'ec',  'Egypt':'eg',
+  'England':'gb-eng',  'France':'fr',  'Germany':'de',  'Ghana':'gh',
+  'Greece':'gr',  'Honduras':'hn',  'Hungary':'hu',  'IR Iran':'ir',
+  'Italy':'it',  'Jamaica':'jm',  'Japan':'jp',  'Kenya':'ke',
+  'Mali':'ml',  'Mexico':'mx',  'Morocco':'ma',  'Netherlands':'nl',
+  'New Zealand':'nz',  'Nigeria':'ng',  'Panama':'pa',  'Paraguay':'py',
+  'Peru':'pe',  'Poland':'pl',  'Portugal':'pt',  'Qatar':'qa',
+  'Saudi Arabia':'sa',  'Senegal':'sn',  'Serbia':'rs',  'Slovakia':'sk',
+  'Slovenia':'si',  'South Korea':'kr',  'Spain':'es',  'Switzerland':'ch',
+  'Trinidad & Tobago':'tt',  'Tunisia':'tn',  'Turkey':'tr',  'Ukraine':'ua',
+  'United States':'us',  'USA':'us',  'Uruguay':'uy',  'Venezuela':'ve',
+  'Wales':'gb-wls',  'Scotland':'gb-sct',  'South Africa':'za',  'Bosnia and Herzegovina':'ba',
+  'Cape Verde':'cv',  'Curacao':'cw',  'DR Congo':'cd',  'Haiti':'ht',
+  'Iraq':'iq',  'Jordan':'jo',  'Norway':'no',  'Sweden':'se',
+  'Uzbekistan':'uz',  'Ivory Coast':'ci',  'Cameroon':'cm',
 }
+
+function FlagImg({ team, size = 20 }: { team: string, size?: number }) {
+  const code = TEAM_FLAGS[team]
+  if (!code) return null
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${code}.png`}
+      width={size}
+      height={Math.round(size * 0.75)}
+      alt={team}
+      style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4, borderRadius: 2 }}
+    />
+  )
+}
+
 
 const TOP_SCORERS = [
   'Antoine Griezmann','Bukayo Saka','Bernardo Silva','Bruno Fernandes',
@@ -522,8 +537,8 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />{t.locked}</span>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
-                    <div>🥇 {first ? <span>{TEAM_FLAGS[first] || ''} {first}</span> : <span style={{ color: 'rgba(255,255,255,0.25)' }}>{t.noPick}</span>}</div>
-                    <div style={{ marginTop: '0.25rem' }}>🥈 {second ? <span>{TEAM_FLAGS[second] || ''} {second}</span> : <span style={{ color: 'rgba(255,255,255,0.25)' }}>{t.noPick}</span>}</div>
+                    <div>🥇 {first ? <span><><FlagImg team={first} />{first}</></span> : <span style={{ color: 'rgba(255,255,255,0.25)' }}>{t.noPick}</span>}</div>
+                    <div style={{ marginTop: '0.25rem' }}>🥈 {second ? <span><><FlagImg team={second} />{second}</></span> : <span style={{ color: 'rgba(255,255,255,0.25)' }}>{t.noPick}</span>}</div>
                   </div>
                 </div>
               )
@@ -1392,9 +1407,9 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                   {lockedMatches.map((m: any) => (
                     <th key={m.id} style={{ textAlign: 'center', padding: '0.4rem 0.5rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.65rem', borderBottom: '1px solid rgba(255,255,255,0.08)', minWidth: 72 }}>
                       <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem' }}>{roundLabel[m.round] || m.round}</div>
-                      <div style={{ whiteSpace: 'nowrap' }}>{TEAM_FLAGS[m.home_team] || ''}{m.home_team?.split(' ')[0]}</div>
+                      <div style={{ whiteSpace: 'nowrap' }}><><FlagImg team={m.home_team} size={14} />{m.home_team?.split(' ')[0]}</></div>
                       <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.6rem' }}>vs</div>
-                      <div style={{ whiteSpace: 'nowrap' }}>{TEAM_FLAGS[m.away_team] || ''}{m.away_team?.split(' ')[0]}</div>
+                      <div style={{ whiteSpace: 'nowrap' }}><><FlagImg team={m.away_team} size={14} />{m.away_team?.split(' ')[0]}</></div>
                       {m.status === 'completed' && m.home_score !== null && (
                         <div style={{ color: '#4ade80', fontWeight: 700, fontSize: '0.72rem', marginTop: '0.2rem' }}>{m.home_score}–{m.away_score}</div>
                       )}
@@ -1499,8 +1514,8 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                           <td key={g} style={{ textAlign: 'center', padding: '0.4rem 0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.72rem' }}>
                             {first || second ? (
                               <div>
-                                {first && <div style={{ color: '#fbbf24', whiteSpace: 'nowrap' }}>🥇 <span style={{fontFamily:'"Segoe UI Emoji","Apple Color Emoji",sans-serif'}}>{TEAM_FLAGS[first] || ''}</span>{first}</div>}
-                                {second && <div style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>🥈 <span style={{fontFamily:'"Segoe UI Emoji","Apple Color Emoji",sans-serif'}}>{TEAM_FLAGS[second] || ''}</span>{second}</div>}
+                                {first && <div style={{ color: '#fbbf24', whiteSpace: 'nowrap' }}>🥇 <FlagImg team={first} size={14} />{first}</div>}
+                                {second && <div style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>🥈 <FlagImg team={second} size={14} />{second}</div>}
                               </div>
                             ) : (
                               <span style={{ color: 'rgba(255,255,255,0.15)' }}>–</span>
@@ -1541,7 +1556,7 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                     </td>
                     {(['tip_winner','tip_second','tip_third','tip_top_scorer'] as const).map(f => (
                       <td key={f} style={{ textAlign: 'center', padding: '0.5rem 0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', color: tt ? '#e8f5ee' : 'rgba(255,255,255,0.2)', fontSize: '0.78rem' }}>
-                        {tt?.[f as string] ? <><span style={{fontFamily:'"Segoe UI Emoji","Apple Color Emoji",sans-serif'}}>{TEAM_FLAGS[tt[f as string]] || ''}</span> {tt[f as string]}</> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>–</span>}
+                        {tt?.[f as string] ? <><FlagImg team={tt[f as string]} />{tt[f as string]}</> : <span style={{ color: 'rgba(255,255,255,0.15)' }}>–</span>}
                       </td>
                     ))}
                   </tr>
@@ -1600,9 +1615,9 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
         {/* Teams + score display */}
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{TEAM_FLAGS[match.home_team] || '🏳️'} {match.home_team}</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}><><FlagImg team={match.home_team} />{match.home_team}</></span>
             <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>vs</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{TEAM_FLAGS[match.away_team] || '🏳️'} {match.away_team}</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 500 }}><><FlagImg team={match.away_team} />{match.away_team}</></span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
