@@ -144,7 +144,7 @@ export default function AdminPage() {
         }
       }
       // Store qualifier points on the tournament_tips row
-      await supabase.from('tournament_tips').update({ pts_group_qualifiers: totalQualifierPts }).eq('id', tip.id)
+      await supabase.from('tournament_tips').update({ pts_group_qualifiers: totalQualifierPts }).eq('id', (tip as any).id)
     }
   }
 
