@@ -1110,7 +1110,6 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
     }).join('\n')
 
     try {
-    try {
       const resp = await fetch('/api/banter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1126,7 +1125,6 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
       setLoaded(true)
     }
     setLoading(false)
-  }
   }
 
   if (loading) return (
