@@ -557,12 +557,25 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
 
 function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament, profilesMap, avatars, userId, t }: any) {
   const ispt = t.lang === 'pt'
-  const lockedMatches = matches.filter((m: any) => m.status === 'completed' || m.status === 'live' || new Date() >= new Date(m.kickoff_at))
+  const [statsView, setStatsView] = useState<'upcoming' | 'finished'>('upcoming')
+
+  // Upcoming = locked for tipping but not yet completed (tips visible, no result yet)
+  const lockMins = tournament?.tip_lock_minutes ?? 120
+  const upcomingLocked = matches.filter((m: any) => {
+    if (m.status === 'completed') return false
+    if (m.tip_lock_override) return true
+    const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
+    return new Date() >= lockTime
+  })
+  // Finished = completed with results
+  const finishedMatches = matches.filter((m: any) => m.status === 'completed' && m.home_score !== null)
+  const lockedMatches = [...upcomingLocked, ...finishedMatches]
+
   const totalTippers = leaderboard.length
   if (totalTippers === 0) return (
     <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
       <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📊</div>
-      <p>{ispt ? 'Stats disponíveis após o início das partidas.' : 'Stats available once matches kick off.'}</p>
+      <p>{ispt ? 'Stats disponíveis após o bloqueio das partidas.' : 'Stats available once matches are locked for tipping.'}</p>
     </div>
   )
 
@@ -659,10 +672,42 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
     </div>
   )
 
+  const activeMatchStats = matchStats.filter((ms: any) =>
+    statsView === 'upcoming'
+      ? ms.match.status !== 'completed'
+      : ms.match.status === 'completed'
+  )
+
   return (
     <div style={{ paddingBottom: '3rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-      {/* ── Accuracy leaderboard ── */}
+      {/* Sub-tab switcher */}
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {([['upcoming', ispt ? '🔒 Aguardando resultado' : '🔒 Locked, awaiting result', upcomingLocked.length],
+           ['finished',  ispt ? '✅ Partidas encerradas' : '✅ Finished matches', finishedMatches.length]] as const).map(([v, label, count]) => (
+          <button key={v} onClick={() => setStatsView(v)} style={{
+            padding: '0.45rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
+            border: `1px solid ${statsView === v ? 'var(--green)' : 'rgba(255,255,255,0.15)'}`,
+            background: statsView === v ? 'rgba(74,222,128,0.1)' : 'transparent',
+            color: statsView === v ? '#4ade80' : 'rgba(255,255,255,0.5)',
+          }}>
+            {label} <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>({count})</span>
+          </button>
+        ))}
+      </div>
+
+      {activeMatchStats.length === 0 && statsView === 'upcoming' && (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
+          {ispt ? 'Nenhuma partida bloqueada ainda. Volte quando o bloqueio de palpites estiver ativo.' : 'No matches locked yet. Check back once tipping has closed for upcoming games.'}
+        </div>
+      )}
+      {activeMatchStats.length === 0 && statsView === 'finished' && (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
+          {ispt ? 'Nenhuma partida encerrada ainda.' : 'No finished matches yet.'}
+        </div>
+      )}
+
+      {/* ── Accuracy leaderboard (finished only) ── */}
       <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
           🎯 {ispt ? 'PRECISÃO DOS PALPITEIROS' : 'TIPPER ACCURACY'}
@@ -690,15 +735,15 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
       </div>
 
       {/* ── Match consensus ── */}
-      {matchStats.length > 0 && (
+      {activeMatchStats.length > 0 && (
         <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
             ⚽ {ispt ? 'CONSENSO DAS PARTIDAS' : 'MATCH CONSENSUS'}
           </h3>
           <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
-            {ispt ? 'Como o grupo apostou em cada partida' : 'How the group split on each match'}
+            {statsView === 'upcoming' ? (ispt ? 'Como o grupo apostou — resultado ainda não conhecido' : 'How the group tipped — result not yet known') : (ispt ? 'Como o grupo apostou vs resultado final' : 'How the group tipped vs the final result')}
           </p>
-          {matchStats.map(({ match: m, homePct, drawPct, awayPct, popularScore, braveTippers, hasResult, outcomePct }: any) => (
+          {activeMatchStats.map(({ match: m, homePct, drawPct, awayPct, popularScore, braveTippers, hasResult, outcomePct }: any) => (
             <div key={m.id} style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{m.home_team} <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>vs</span> {m.away_team}</span>
@@ -772,8 +817,8 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
         </div>
       )}
 
-      {/* ── Most popular wrong picks ── */}
-      {wrongPicks.length > 0 && (
+      {/* ── Most popular wrong picks (finished only) ── */}
+      {statsView === 'finished' && wrongPicks.length > 0 && (
         <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
             😬 {ispt ? 'PALPITE MAIS POPULAR QUE ERROU' : 'MOST POPULAR WRONG PICK'}
@@ -1871,7 +1916,7 @@ function Avatar({ userId, avatars, size = 32, style = {} }: { userId: string, av
 function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
   const lockMins = tournament?.tip_lock_minutes ?? 120
-  const isLocked = match.status !== 'upcoming' || isPast(subMinutes(new Date(match.kickoff_at), lockMins))
+  const isLocked = match.tip_lock_override || match.status !== 'upcoming' || isPast(subMinutes(new Date(match.kickoff_at), lockMins))
   const [home, setHome] = useState(tip?.tip_home ?? '')
   const [away, setAway] = useState(tip?.tip_away ?? '')
   const [saving, setSaving] = useState(false)

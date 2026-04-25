@@ -724,6 +724,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   const emptyKo = { home_team: '', away_team: '', kickoff_at: '', round: 'r32', venue: '', tournament_id: tournamentId }
   const [koForm, setKoForm] = useState(emptyKo)
   const [savingKo, setSavingKo] = useState(false)
+  const [lockingMatch, setLockingMatch] = useState<string | null>(null)
 
   async function importFIFA2026() {
     if (!confirm('This will add all 72 FIFA World Cup 2026 group stage matches. Continue?')) return
@@ -742,6 +743,21 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
     setSaving(true)
     await supabase.from('matches').insert(form)
     setForm(emptyMatch); onUpdate(); setSaving(false)
+  }
+
+  async function toggleMatchLock(matchId: string, currentlyLocked: boolean) {
+    setLockingMatch(matchId)
+    // We store manual lock as a special kickoff_at in the past (1 min ago) to force lock
+    // Better approach: add a is_manually_locked column, or set kickoff_at to past
+    if (currentlyLocked) {
+      // Unlock: restore kickoff to 2 hours from now as placeholder
+      // Actually we store the real kickoff, just set tip_lock_override
+      await supabase.from('matches').update({ tip_lock_override: false }).eq('id', matchId)
+    } else {
+      await supabase.from('matches').update({ tip_lock_override: true }).eq('id', matchId)
+    }
+    onUpdate()
+    setLockingMatch(null)
   }
 
   async function addKoMatch() {
@@ -852,6 +868,13 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
               </div>
               <span className={`badge ${m.status === 'completed' ? 'badge-green' : m.status === 'live' ? 'badge-gold' : 'badge-grey'}`}>{m.status}</span>
               {m.status === 'completed' && <span style={{ fontSize: '0.85rem', fontFamily: 'var(--font-display)' }}>{m.home_score}–{m.away_score}</span>}
+              <button
+                onClick={() => toggleMatchLock(m.id, !!m.tip_lock_override)}
+                disabled={lockingMatch === m.id}
+                title={m.tip_lock_override ? 'Unlock tipping' : 'Manually lock tipping'}
+                style={{ background: 'none', border: `1px solid ${m.tip_lock_override ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 6, color: m.tip_lock_override ? '#fbbf24' : 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: '0.2rem 0.5rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 3 }}>
+                {lockingMatch === m.id ? '...' : m.tip_lock_override ? <><Lock size={11} /> Locked</> : <><Lock size={11} /> Lock</>}
+              </button>
               <button onClick={() => deleteMatch(m.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', padding: '0.25rem' }}><X size={14} /></button>
             </div>
           ))}
