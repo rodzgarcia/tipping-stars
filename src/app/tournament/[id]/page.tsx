@@ -572,7 +572,7 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
   const lockedMatches = [...upcomingLocked, ...finishedMatches]
 
   const totalTippers = leaderboard.length
-  if (totalTippers === 0) return (
+  if (lockedMatches.length === 0 && totalTippers === 0) return (
     <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
       <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📊</div>
       <p>{ispt ? 'Stats disponíveis após o bloqueio das partidas.' : 'Stats available once matches are locked for tipping.'}</p>
@@ -1686,7 +1686,10 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
 
   const lockedMatches = matches.filter((m: any) => {
     if (m.status === 'live' || m.status === 'completed') return true
-    return new Date() >= new Date(m.kickoff_at)
+    if (m.tip_lock_override) return true
+    const lockMins = tournament?.tip_lock_minutes ?? 120
+    const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
+    return new Date() >= lockTime
   })
 
   const players = leaderboard.map((r: any) => ({
@@ -1929,9 +1932,16 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
   const lockMins = tournament?.tip_lock_minutes ?? 120
   const isLocked = match.tip_lock_override || match.status !== 'upcoming' || isPast(subMinutes(new Date(match.kickoff_at), lockMins))
-  // Only show saved value if tip row actually exists (tip.id present)
   const [home, setHome] = useState(tip?.id != null ? String(tip.tip_home ?? '') : '')
   const [away, setAway] = useState(tip?.id != null ? String(tip.tip_away ?? '') : '')
+
+  // Sync if tip loads after initial render (e.g. on first page load)
+  useEffect(() => {
+    if (tip?.id != null) {
+      setHome(String(tip.tip_home ?? ''))
+      setAway(String(tip.tip_away ?? ''))
+    }
+  }, [tip?.id])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const supabase = createClient()
