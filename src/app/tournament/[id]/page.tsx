@@ -219,14 +219,14 @@ export default function TournamentPage() {
         )}
 
         {/* Tabs */}
-        <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
-          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')}>Match Tips</button>
-          <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')}>Group Qualifiers</button>
-          <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>Tournament Tips</button>
-          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
-          <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => setTab('tips_reveal')}>{t.lang === 'pt' ? '👁 Palpites' : '👁 All Tips'}</button>
-          <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 {t.lang === 'pt' ? 'Stats' : 'Stats'}</button>
-          <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')}>📋 {t.lang === 'pt' ? 'Regras' : 'Rules'}</button>
+        <div className="tab-nav" style={{ marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none', display: 'flex', flexWrap: 'nowrap' }}>
+          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>⚽ Tips</button>
+          <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🗂️ Groups</button>
+          <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🏆 Predict</button>
+          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📊 Board</button>
+          <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => setTab('tips_reveal')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>👁 All Tips</button>
+          <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📈 Stats</button>
+          <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📋 Rules</button>
         </div>
 
         {/* Match Tips */}
@@ -1075,6 +1075,18 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
   const [loading, setLoading] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(false)
+
+  const fetchedRef = useRef(false)
+  const finishedCount = matches.filter((m: any) => m.status === 'completed').length
+
+  useEffect(() => {
+    if (leaderboard.length === 0) return
+    if (fetchedRef.current) return
+    fetchedRef.current = true
+    generateBanter()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaderboard.length, finishedCount])
+
 
   async function generateBanter() {
     if (loading) return
