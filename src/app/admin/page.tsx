@@ -873,7 +873,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
                 disabled={lockingMatch === m.id}
                 title={m.tip_lock_override ? 'Unlock tipping' : 'Manually lock tipping'}
                 style={{ background: 'none', border: `1px solid ${m.tip_lock_override ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 6, color: m.tip_lock_override ? '#fbbf24' : 'rgba(255,255,255,0.3)', cursor: 'pointer', padding: '0.2rem 0.5rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: 3 }}>
-                {lockingMatch === m.id ? '...' : m.tip_lock_override ? <><Lock size={11} /> Locked</> : <><Lock size={11} /> Lock</>}
+                {lockingMatch === m.id ? '...' : m.tip_lock_override ? '🔒 Locked' : '🔒 Lock'}
               </button>
               <button onClick={() => deleteMatch(m.id)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', padding: '0.25rem' }}><X size={14} /></button>
             </div>
