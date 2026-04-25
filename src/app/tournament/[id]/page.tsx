@@ -959,7 +959,7 @@ function BanterGenerator({ matchStats, leaderboard, profilesMap, tournament, all
                        (tp.tip_home < tp.tip_away && m.home_score < m.away_score) ||
                        (tp.tip_home === tp.tip_away && m.home_score === m.away_score),
       }))
-      return `${m.home_team} vs ${m.away_team}: result ${result}. Tippers: ${tippers.map(t => `${t.name} tipped ${t.tip}${t.correct ? ' (exact!)' : t.correctWinner ? ' (got winner)' : ' (wrong)'}`).join(', ')}. Consensus: ${homePct}% backed ${m.home_team}, ${drawPct}% draw, ${awayPct}% ${m.away_team}.`
+      return `${m.home_team} vs ${m.away_team}: result ${result}. Tippers: ${tippers.map((t: any) => `${t.name} tipped ${t.tip}${t.correct ? ' (exact!)' : t.correctWinner ? ' (got winner)' : ' (wrong)'}`).join(', ')}. Consensus: ${homePct}% backed ${m.home_team}, ${drawPct}% draw, ${awayPct}% ${m.away_team}.`
     }).join('\n')
 
     const playerNames = [...new Set(leaderboard.map((r: any) => profilesMap?.[r.user_id]?.nickname || r.display_name))].join(', ')
