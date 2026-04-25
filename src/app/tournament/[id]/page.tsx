@@ -371,6 +371,22 @@ export default function TournamentPage() {
           <TipsReveal matches={matches} allTips={allTips} allTournamentTips={allTournamentTips} leaderboard={leaderboard} avatars={avatars} profilesMap={profilesMap} userId={user.id} tournament={tournament} t={t} />
         )}
 
+
+        {/* Stats */}
+        {tab === 'stats' && (
+          <StatsTab
+            matches={matches}
+            allTips={allTips}
+            allTournamentTips={allTournamentTips}
+            leaderboard={leaderboard}
+            tournament={tournament}
+            profilesMap={profilesMap}
+            avatars={avatars}
+            userId={user.id}
+            t={t}
+          />
+        )}
+
         {/* Rules */}
         {tab === 'rules' && (
           <TournamentRules tournament={tournament} approvedCount={approvedCount} t={t} />
