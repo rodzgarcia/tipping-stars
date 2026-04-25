@@ -952,7 +952,9 @@ function HelpChat({ t, tournament }: { t: any, tournament?: any }) {
   }, [messages])
 
   async function send() {
+    console.log('send() called, input:', input.trim(), 'loading:', loading)
     if (!input.trim() || loading) return
+    console.log('Sending to /api/help...')
     const userMsg = { role: 'user', content: input.trim() }
     const newMsgs = [...messages, userMsg]
     setMessages(newMsgs)
