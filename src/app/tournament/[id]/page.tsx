@@ -368,7 +368,7 @@ export default function TournamentPage() {
 
         {/* Tips Reveal — visible once a match is locked */}
         {tab === 'tips_reveal' && (
-          <TipsReveal matches={matches} allTips={allTips} allTournamentTips={allTournamentTips} leaderboard={leaderboard} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
+          <TipsReveal matches={matches} allTips={allTips} allTournamentTips={allTournamentTips} leaderboard={leaderboard} avatars={avatars} profilesMap={profilesMap} userId={user.id} tournament={tournament} t={t} />
         )}
 
         {/* Rules */}
@@ -779,8 +779,8 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
         </div>
       )}
 
-      {/* ── Tournament predictions consensus ── */}
-      {allTournamentTips.length > 0 && (
+      {/* ── Tournament predictions consensus (only when locked) ── */}
+      {allTournamentTips.length > 0 && tournament?.predictions_locked && (
         <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
             🏆 {ispt ? 'PREVISÕES DO TORNEIO' : 'TOURNAMENT PREDICTIONS'}
@@ -838,8 +838,8 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
         </div>
       )}
 
-      {/* ── Group qualifier consensus ── */}
-      {allTournamentTips.length > 0 && Object.keys(GROUPS).length > 0 && (
+      {/* ── Group qualifier consensus (only when locked) ── */}
+      {allTournamentTips.length > 0 && tournament?.qualifiers_locked && Object.keys(GROUPS).length > 0 && (
         <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
             🗂️ {ispt ? 'CONSENSO DOS CLASSIFICADOS' : 'GROUP QUALIFIER CONSENSUS'}
@@ -1678,7 +1678,7 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
 
 
 
-function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars, profilesMap, userId, t }: any) {
+function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars, profilesMap, userId, tournament, t }: any) {
   const [view, setView] = useState<'matches' | 'qualifiers' | 'predictions'>('matches')
   const roundLabel: Record<string, string> = {
     group: 'Group', r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third_place: '3rd', final: 'Final'
@@ -1802,7 +1802,13 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
       )}
 
       {/* ── GROUP QUALIFIERS TABLE ── */}
-      {view === 'qualifiers' && (
+      {view === 'qualifiers' && !tournament?.qualifiers_locked && (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+          <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🔒</div>
+          <p>{t.lang === 'pt' ? 'Os palpites de classificados ficam visíveis após o bloqueio pelo admin.' : 'Group qualifier picks are revealed once the admin locks them.'}</p>
+        </div>
+      )}
+      {view === 'qualifiers' && tournament?.qualifiers_locked && (
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           {allTournamentTips.length === 0 ? (
             <p style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '2rem' }}>
@@ -1863,7 +1869,13 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
       )}
 
       {/* ── PREDICTIONS TABLE ── */}
-      {view === 'predictions' && (
+      {view === 'predictions' && !tournament?.predictions_locked && (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+          <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🔒</div>
+          <p>{t.lang === 'pt' ? 'As previsões ficam visíveis após o bloqueio pelo admin.' : 'Tournament predictions are revealed once the admin locks them.'}</p>
+        </div>
+      )}
+      {view === 'predictions' && tournament?.predictions_locked && (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: 500 }}>
             <thead>
@@ -1917,8 +1929,9 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
   const lockMins = tournament?.tip_lock_minutes ?? 120
   const isLocked = match.tip_lock_override || match.status !== 'upcoming' || isPast(subMinutes(new Date(match.kickoff_at), lockMins))
-  const [home, setHome] = useState(tip?.tip_home ?? '')
-  const [away, setAway] = useState(tip?.tip_away ?? '')
+  // Only show saved value if tip row actually exists (tip.id present)
+  const [home, setHome] = useState(tip?.id != null ? String(tip.tip_home ?? '') : '')
+  const [away, setAway] = useState(tip?.id != null ? String(tip.tip_away ?? '') : '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const supabase = createClient()
