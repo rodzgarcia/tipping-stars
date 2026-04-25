@@ -28,43 +28,39 @@ ${matchContext || 'No completed matches yet'}
 
 Reply with ONLY a JSON array of 3 strings, nothing else. Example: ["line one", "line two", "line three"]`
 
-    // Try gemini-1.5-flash first (widely available), fall back to gemini-pro
-    const models = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro']
+    // Try models in order of likelihood to work
+    const models = [
+      'gemini-2.0-flash-lite',
+      'gemini-1.5-flash-8b',
+      'gemini-1.5-flash-002',
+      'gemini-1.5-pro-latest',
+    ]
     let text = ''
 
     for (const model of models) {
       try {
-        const resp = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 1.1, maxOutputTokens: 300 },
-            })
-          }
-        )
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 1.1, maxOutputTokens: 300 },
+          })
+        })
         const data = await resp.json()
-        console.log(`Model ${model} status:`, resp.status)
-        console.log(`Model ${model} response:`, JSON.stringify(data).slice(0, 300))
-
-        text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        if (text) {
-          console.log('Got text from model:', model, text)
-          break
+        console.log(`${model}: status=${resp.status}`)
+        if (resp.status === 200) {
+          text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+          if (text) { console.log('Success with', model); break }
         }
-      } catch (modelErr) {
-        console.log(`Model ${model} failed:`, modelErr)
+      } catch (e) {
+        console.log(`${model} failed:`, e)
       }
     }
 
-    if (!text) {
-      console.log('All models returned empty text')
-      return NextResponse.json({ banter: FALLBACKS })
-    }
+    if (!text) return NextResponse.json({ banter: FALLBACKS })
 
-    // Parse response
     let parsed: string[] = []
     try {
       const clean = text.replace(/```json\n?|\n?```/g, '').trim()
@@ -74,13 +70,11 @@ Reply with ONLY a JSON array of 3 strings, nothing else. Example: ["line one", "
       if (matches) parsed = matches.map((s: string) => s.slice(1, -1))
     }
 
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return NextResponse.json({ banter: FALLBACKS })
-    }
-
-    return NextResponse.json({ banter: parsed.slice(0, 3) })
+    return NextResponse.json({ 
+      banter: Array.isArray(parsed) && parsed.length > 0 ? parsed.slice(0, 3) : FALLBACKS 
+    })
   } catch (e) {
-    console.error('Banter API error:', e)
+    console.error('Banter error:', e)
     return NextResponse.json({ banter: FALLBACKS })
   }
 }
