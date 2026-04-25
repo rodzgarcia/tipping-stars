@@ -570,6 +570,7 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
           </div>
         </div>
       )}
+      <HelpChat t={t} />
     </div>
   )
 }
@@ -1265,7 +1266,6 @@ Return ONLY a JSON array of 6 strings, no other text. Example format: ["comment 
           </button>
         </div>
       )}
-      <HelpChat t={t} />
     </div>
   )
 }
