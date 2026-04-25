@@ -72,7 +72,7 @@ const WC2026_TEAMS = [
 
 
 
-type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers' | 'rules' | 'tips_reveal'
+type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers' | 'rules' | 'tips_reveal' | 'stats'
 type SortKey = 'total_points' | 'exact_scores' | 'correct_winners' | 'correct_goal_diff'
 
 function formatLocalTime(dateStr: string) {
@@ -225,6 +225,7 @@ export default function TournamentPage() {
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')}>Tournament Tips</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>Leaderboard</button>
           <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => setTab('tips_reveal')}>{t.lang === 'pt' ? '👁 Palpites' : '👁 All Tips'}</button>
+          <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')}>📊 {t.lang === 'pt' ? 'Stats' : 'Stats'}</button>
           <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')}>📋 {t.lang === 'pt' ? 'Regras' : 'Rules'}</button>
         </div>
 
@@ -552,6 +553,290 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
 
 
 
+
+
+function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament, profilesMap, avatars, userId, t }: any) {
+  const ispt = t.lang === 'pt'
+  const lockedMatches = matches.filter((m: any) => m.status === 'completed' || m.status === 'live' || new Date() >= new Date(m.kickoff_at))
+  const totalTippers = leaderboard.length
+  if (totalTippers === 0) return (
+    <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+      <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📊</div>
+      <p>{ispt ? 'Stats disponíveis após o início das partidas.' : 'Stats available once matches kick off.'}</p>
+    </div>
+  )
+
+  // ── Match consensus ──────────────────────────────────────────────────────
+  const matchStats = lockedMatches.map((m: any) => {
+    const tips = allTips.filter((tp: any) => tp.match_id === m.id)
+    const total = tips.length || 1
+    const homeWin = tips.filter((tp: any) => tp.tip_home > tp.tip_away).length
+    const draw    = tips.filter((tp: any) => tp.tip_home === tp.tip_away).length
+    const awayWin = tips.filter((tp: any) => tp.tip_home < tp.tip_away).length
+    const homePct = Math.round(homeWin / total * 100)
+    const drawPct = Math.round(draw / total * 100)
+    const awayPct = Math.round(awayWin / total * 100)
+    // Most popular exact score
+    const scoreCounts: Record<string, number> = {}
+    tips.forEach((tp: any) => {
+      const key = `${tp.tip_home}-${tp.tip_away}`
+      scoreCounts[key] = (scoreCounts[key] || 0) + 1
+    })
+    const popularScore = Object.entries(scoreCounts).sort((a: any, b: any) => b[1] - a[1])[0]
+    // Brave tippers — tipped the least popular outcome that proved correct
+    const hasResult = m.status === 'completed' && m.home_score !== null
+    const actualOutcome = hasResult ? (m.home_score > m.away_score ? 'home' : m.home_score < m.away_score ? 'away' : 'draw') : null
+    const outcomePct = actualOutcome === 'home' ? homePct : actualOutcome === 'away' ? awayPct : drawPct
+    const braveTippers = hasResult && outcomePct < 30
+      ? tips.filter((tp: any) => {
+          const o = tp.tip_home > tp.tip_away ? 'home' : tp.tip_home < tp.tip_away ? 'away' : 'draw'
+          return o === actualOutcome
+        }).map((tp: any) => profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name)
+      : []
+    return { match: m, tips, total, homePct, drawPct, awayPct, popularScore, braveTippers, hasResult, outcomePct }
+  })
+
+  // ── Tournament predictions consensus ─────────────────────────────────────
+  const predictionCounts = (field: string) => {
+    const counts: Record<string, number> = {}
+    allTournamentTips.forEach((tt: any) => {
+      const v = tt[field]
+      if (v) counts[v] = (counts[v] || 0) + 1
+    })
+    return Object.entries(counts).sort((a: any, b: any) => b[1] - a[1]).slice(0, 6)
+  }
+
+  // ── Accuracy stats ────────────────────────────────────────────────────────
+  const accuracyStats = leaderboard.map((row: any) => {
+    const userTips = allTips.filter((tp: any) => tp.user_id === row.user_id)
+    const locked = userTips.filter((tp: any) => {
+      const m = matches.find((mm: any) => mm.id === tp.match_id)
+      return m?.status === 'completed'
+    })
+    const correct = locked.filter((tp: any) => {
+      const m = matches.find((mm: any) => mm.id === tp.match_id)
+      if (!m) return false
+      const tipOut = tp.tip_home > tp.tip_away ? 'h' : tp.tip_home < tp.tip_away ? 'a' : 'd'
+      const actOut = m.home_score > m.away_score ? 'h' : m.home_score < m.away_score ? 'a' : 'd'
+      return tipOut === actOut
+    })
+    const acc = locked.length > 0 ? Math.round(correct.length / locked.length * 100) : 0
+    return {
+      ...row,
+      name: profilesMap?.[row.user_id]?.nickname || row.display_name,
+      accuracy: acc,
+      correct: correct.length,
+      played: locked.length,
+    }
+  }).sort((a: any, b: any) => b.accuracy - a.accuracy)
+
+  // ── Most popular wrong pick ───────────────────────────────────────────────
+  const wrongPicks: { match: string, score: string, count: number, pct: number }[] = []
+  lockedMatches.filter((m: any) => m.status === 'completed').forEach((m: any) => {
+    const tips = allTips.filter((tp: any) => tp.match_id === m.id)
+    const scoreCounts: Record<string, number> = {}
+    tips.forEach((tp: any) => {
+      if (tp.tip_home !== m.home_score || tp.tip_away !== m.away_score) {
+        const key = `${tp.tip_home}-${tp.tip_away}`
+        scoreCounts[key] = (scoreCounts[key] || 0) + 1
+      }
+    })
+    const top = Object.entries(scoreCounts).sort((a: any, b: any) => (b[1] as number) - (a[1] as number))[0]
+    if (top && (top[1] as number) > 1) {
+      wrongPicks.push({
+        match: `${m.home_team} vs ${m.away_team}`,
+        score: top[0],
+        count: top[1] as number,
+        pct: Math.round((top[1] as number) / (tips.length || 1) * 100)
+      })
+    }
+  })
+  wrongPicks.sort((a, b) => b.pct - a.pct)
+
+  const Bar = ({ pct, color }: { pct: number, color: string }) => (
+    <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', flex: 1 }}>
+      <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 0.4s ease' }} />
+    </div>
+  )
+
+  return (
+    <div style={{ paddingBottom: '3rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+      {/* ── Accuracy leaderboard ── */}
+      <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
+          🎯 {ispt ? 'PRECISÃO DOS PALPITEIROS' : 'TIPPER ACCURACY'}
+        </h3>
+        <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+          {ispt ? 'Porcentagem de resultados acertados (vencedor correto)' : 'Percentage of correct outcomes (winner) across completed matches'}
+        </p>
+        {accuracyStats.map((row: any, i: number) => (
+          <div key={row.user_id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem' }}>
+            <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'rgba(255,255,255,0.08)' }}>
+              {avatars[row.user_id] ? <img src={avatars[row.user_id]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <span style={{ fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>👤</span>}
+            </div>
+            <div style={{ minWidth: 90, fontSize: '0.82rem', fontWeight: row.user_id === userId ? 600 : 400, color: row.user_id === userId ? '#4ade80' : '#e8f5ee' }}>
+              {row.name}{row.user_id === userId ? ' ✦' : ''}
+            </div>
+            <Bar pct={row.accuracy} color={row.accuracy >= 60 ? '#4ade80' : row.accuracy >= 40 ? '#fbbf24' : '#f87171'} />
+            <div style={{ minWidth: 60, textAlign: 'right', fontSize: '0.82rem', fontFamily: 'var(--font-display)', color: row.accuracy >= 60 ? '#4ade80' : row.accuracy >= 40 ? '#fbbf24' : '#f87171' }}>
+              {row.accuracy}%
+            </div>
+            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)', minWidth: 50, textAlign: 'right' }}>
+              {row.correct}/{row.played}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Match consensus ── */}
+      {matchStats.length > 0 && (
+        <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
+            ⚽ {ispt ? 'CONSENSO DAS PARTIDAS' : 'MATCH CONSENSUS'}
+          </h3>
+          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+            {ispt ? 'Como o grupo apostou em cada partida' : 'How the group split on each match'}
+          </p>
+          {matchStats.map(({ match: m, homePct, drawPct, awayPct, popularScore, braveTippers, hasResult, outcomePct }: any) => (
+            <div key={m.id} style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{m.home_team} <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>vs</span> {m.away_team}</span>
+                {hasResult && <span style={{ fontSize: '0.75rem', color: '#4ade80' }}>{m.home_score}–{m.away_score}</span>}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.3rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', minWidth: 70 }}>{m.home_team.split(' ')[0]} win</span>
+                <Bar pct={homePct} color="#4ade80" />
+                <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-display)', color: '#4ade80', minWidth: 36, textAlign: 'right' }}>{homePct}%</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.3rem' }}>
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', minWidth: 70 }}>Draw</span>
+                <Bar pct={drawPct} color="#9ca3af" />
+                <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-display)', color: '#9ca3af', minWidth: 36, textAlign: 'right' }}>{drawPct}%</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', minWidth: 70 }}>{m.away_team.split(' ')[0]} win</span>
+                <Bar pct={awayPct} color="#f87171" />
+                <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-display)', color: '#f87171', minWidth: 36, textAlign: 'right' }}>{awayPct}%</span>
+              </div>
+              {popularScore && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
+                  Most tipped score: <span style={{ color: 'rgba(255,255,255,0.6)' }}>{popularScore[0].replace('-','–')}</span> ({popularScore[1]}x)
+                </div>
+              )}
+              {braveTippers.length > 0 && (
+                <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: '#fbbf24' }}>
+                  🦁 Brave {outcomePct}% pick — correct: {braveTippers.join(', ')}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Tournament predictions consensus ── */}
+      {allTournamentTips.length > 0 && (
+        <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
+            🏆 {ispt ? 'PREVISÕES DO TORNEIO' : 'TOURNAMENT PREDICTIONS'}
+          </h3>
+          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+            {ispt ? 'O que o grupo apostou' : 'What the group predicted'}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+            {[
+              { field: 'tip_winner',    label: ispt ? '🏆 Campeão' : '🏆 Winner' },
+              { field: 'tip_second',    label: ispt ? '🥈 Vice' : '🥈 Runner-up' },
+              { field: 'tip_third',     label: ispt ? '🥉 3º lugar' : '🥉 3rd place' },
+              { field: 'tip_top_scorer',label: ispt ? '⚽ Artilheiro' : '⚽ Top scorer' },
+            ].map(({ field, label }) => {
+              const counts = predictionCounts(field)
+              const total = allTournamentTips.filter((tt: any) => tt[field]).length || 1
+              return (
+                <div key={field}>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.5rem', fontWeight: 600, letterSpacing: '0.05em' }}>{label}</div>
+                  {counts.map(([val, cnt]: any) => (
+                    <div key={val} style={{ marginBottom: '0.35rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', marginBottom: '0.15rem' }}>
+                        <span style={{ color: '#e8f5ee' }}>{val}</span>
+                        <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-display)' }}>{Math.round(cnt/total*100)}%</span>
+                      </div>
+                      <Bar pct={Math.round(cnt/total*100)} color="#fbbf24" />
+                    </div>
+                  ))}
+                  {counts.length === 0 && <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.2)' }}>No picks yet</span>}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Most popular wrong picks ── */}
+      {wrongPicks.length > 0 && (
+        <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
+            😬 {ispt ? 'PALPITE MAIS POPULAR QUE ERROU' : 'MOST POPULAR WRONG PICK'}
+          </h3>
+          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+            {ispt ? 'O placar que mais gente apostou mas não aconteceu' : 'The score most people tipped that did not happen'}
+          </p>
+          {wrongPicks.slice(0, 5).map((wp, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.82rem' }}>
+              <div>
+                <span style={{ color: '#e8f5ee' }}>{wp.match}</span>
+                <span style={{ marginLeft: '0.5rem', color: '#f87171', fontFamily: 'var(--font-display)' }}>{wp.score.replace('-','–')}</span>
+              </div>
+              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>{wp.pct}% tipped ({wp.count})</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Group qualifier consensus ── */}
+      {allTournamentTips.length > 0 && Object.keys(GROUPS).length > 0 && (
+        <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
+            🗂️ {ispt ? 'CONSENSO DOS CLASSIFICADOS' : 'GROUP QUALIFIER CONSENSUS'}
+          </h3>
+          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+            {ispt ? 'Times mais apostados para avançar em cada grupo' : 'Most tipped teams to qualify in each group'}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+            {Object.keys(GROUPS).map(group => {
+              const g = group.toLowerCase()
+              const counts: Record<string, number> = {}
+              allTournamentTips.forEach((tt: any) => {
+                const p1 = tt[`tip_group_${g}_1`]
+                const p2 = tt[`tip_group_${g}_2`]
+                if (p1) counts[p1] = (counts[p1] || 0) + 1
+                if (p2) counts[p2] = (counts[p2] || 0) + 1
+              })
+              const sorted = Object.entries(counts).sort((a: any, b: any) => b[1] - a[1]).slice(0, 3)
+              if (sorted.length === 0) return null
+              const maxCount = sorted[0][1] as number
+              return (
+                <div key={group}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--gold)', marginBottom: '0.5rem', fontWeight: 700, letterSpacing: '0.08em' }}>GROUP {group}</div>
+                  {sorted.map(([team, cnt]: any) => (
+                    <div key={team} style={{ marginBottom: '0.3rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.1rem' }}>
+                        <span style={{ color: '#e8f5ee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{team}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'var(--font-display)', marginLeft: 4 }}>{cnt}</span>
+                      </div>
+                      <Bar pct={Math.round((cnt as number) / maxCount * 100)} color="#60a5fa" />
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+    </div>
+  )
+}
 
 
 function TournamentRules({ tournament: tn, approvedCount, t }: any) {
