@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -698,7 +698,8 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
 
       {activeMatchStats.length === 0 && statsView === 'upcoming' && (
         <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
-          {ispt ? 'Nenhuma partida bloqueada ainda. Volte quando o bloqueio de palpites estiver ativo.' : 'No matches locked yet. Check back once tipping has closed for upcoming games.'}
+          <p>{ispt ? 'Nenhuma partida bloqueada ainda.' : 'No matches locked yet.'}</p>
+          <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', color: 'rgba(255,255,255,0.2)' }}>{upcomingLocked.length} locked (time), {matches.filter((m:any)=>m.tip_lock_override).length} manually locked, {allTips.length} tips loaded</p>
         </div>
       )}
       {activeMatchStats.length === 0 && statsView === 'finished' && (
@@ -1932,16 +1933,22 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
   const lockMins = tournament?.tip_lock_minutes ?? 120
   const isLocked = match.tip_lock_override || match.status !== 'upcoming' || isPast(subMinutes(new Date(match.kickoff_at), lockMins))
-  const [home, setHome] = useState(tip?.id != null ? String(tip.tip_home ?? '') : '')
-  const [away, setAway] = useState(tip?.id != null ? String(tip.tip_away ?? '') : '')
+  const [home, setHome] = useState<string>(tip?.id != null ? String(tip.tip_home) : '')
+  const [away, setAway] = useState<string>(tip?.id != null ? String(tip.tip_away) : '')
+  const prevTipId = useRef<string | undefined>(tip?.id)
 
-  // Sync if tip loads after initial render (e.g. on first page load)
   useEffect(() => {
-    if (tip?.id != null) {
-      setHome(String(tip.tip_home ?? ''))
-      setAway(String(tip.tip_away ?? ''))
+    if (tip?.id !== prevTipId.current) {
+      prevTipId.current = tip?.id
+      if (tip?.id != null) {
+        setHome(String(tip.tip_home))
+        setAway(String(tip.tip_away))
+      } else {
+        setHome('')
+        setAway('')
+      }
     }
-  }, [tip?.id])
+  }, [tip?.id, tip?.tip_home, tip?.tip_away])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const supabase = createClient()
@@ -2010,11 +2017,17 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             ) : <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.25)' }}>No tip submitted</span>
           ) : (
             <>
-              <input type="number" className="score-input" min={0} max={15} value={home}
-                onChange={e => { const v = parseInt(e.target.value); setHome(isNaN(v) ? "" : String(Math.min(15, Math.max(0, v)))) }} placeholder="0" />
+              <input
+                type="text" inputMode="numeric" pattern="[0-9]*"
+                className="score-input" value={home} placeholder="–"
+                onChange={e => { const v = e.target.value.replace(/[^0-9]/g,''); setHome(v === '' ? '' : String(Math.min(15, parseInt(v)))) }}
+              />
               <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
-              <input type="number" className="score-input" min={0} max={15} value={away}
-                onChange={e => { const v = parseInt(e.target.value); setAway(isNaN(v) ? "" : String(Math.min(15, Math.max(0, v)))) }} placeholder="0" />
+              <input
+                type="text" inputMode="numeric" pattern="[0-9]*"
+                className="score-input" value={away} placeholder="–"
+                onChange={e => { const v = e.target.value.replace(/[^0-9]/g,''); setAway(v === '' ? '' : String(Math.min(15, parseInt(v)))) }}
+              />
               <button onClick={saveTip} disabled={saving} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
                 {saved ? '✔' : saving ? '...' : tip ? 'Update' : 'Tip'}
               </button>
