@@ -1111,17 +1111,20 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
     }).join('\n')
 
     try {
+      console.log('Fetching /api/banter...')
       const resp = await fetch('/api/banter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ players, matchContext, seed: Math.floor(Math.random() * 10000) })
       })
+      console.log('Response status:', resp.status)
       const data = await resp.json()
+      console.log('Response data:', data)
       const result = Array.isArray(data.banter) && data.banter.length > 0 ? data.banter : []
       setBanter(result)
       setLoaded(true)
     } catch (e) {
-      console.error('Banter error:', e)
+      console.error('Banter fetch error:', e)
       setError(true)
       setLoaded(true)
     }
