@@ -952,9 +952,7 @@ function HelpChat({ t, tournament }: { t: any, tournament?: any }) {
   }, [messages])
 
   async function send() {
-    console.log('send() called, input:', input.trim(), 'loading:', loading)
     if (!input.trim() || loading) return
-    console.log('Sending to /api/help...')
     const userMsg = { role: 'user', content: input.trim() }
     const newMsgs = [...messages, userMsg]
     setMessages(newMsgs)
@@ -1085,7 +1083,9 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
     if (leaderboard.length === 0) return
     if (fetchedRef.current) return
     fetchedRef.current = true
-    generateBanter()
+    // Delay 2s so other page calls complete first (avoid rate limiting)
+    const timer = setTimeout(generateBanter, 2000)
+    return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leaderboard.length, finishedCount])
 
