@@ -1157,7 +1157,7 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
           {EMOJIS[i]} {line}
         </div>
       ))}
-      <button onClick={() => { setBanter([]); lastFetchedCount.current = -1; setTimeout(generateBanter, 50) }}
+      <button onClick={() => { setBanter([]); setTimeout(generateBanter, 50) }}
         style={{ alignSelf: 'flex-end', background: 'none', border: 'none', fontSize: '0.68rem', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', padding: '0.1rem 0.25rem' }}>
         🔄 refresh
       </button>
