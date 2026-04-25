@@ -1146,7 +1146,7 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
   if (!loaded && !loading) return (
     <div style={{ margin: '0.5rem 0 0.75rem' }}>
       <button
-        onClick={generateBanter}
+        onClick={() => { console.log('Banter button clicked!'); generateBanter() }}
         style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '0.35rem 0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }}
       >
         🎤 Generate banter
