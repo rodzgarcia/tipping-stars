@@ -938,7 +938,6 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    console.log('LeaderboardBanter useEffect:', leaderboard.length, loaded, loading)
     if (leaderboard.length < 1 || loaded || loading) return
     generateBanter()
   }, [leaderboard.length])
@@ -946,7 +945,6 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
   async function generateBanter() {
     if (loading) return
     setLoading(true)
-    console.log('generateBanter called, leaderboard:', leaderboard.length)
 
     // Build rich context
     const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
@@ -988,15 +986,15 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
           max_tokens: 600,
           messages: [{
             role: 'user',
-            content: `You are a hilarious football banter bot for a World Cup tipping competition. Generate exactly 3 short banter lines (max 15 words each) for the leaderboard. Use real player names/nicknames. Be specific, playful, roast bad tips, praise good ones, joke about jersey teams or positions. Mix: mock the leader, sympathy for last place, call out wrong tips, celebrate exact scores. No emojis in the text itself.
+            content: `You are a hilarious football banter bot for a World Cup tipping competition. Generate exactly 3 SHORT banter lines (max 15 words each). Each refresh must feel completely different — pick a RANDOM angle from: [roast the leader, sympathise with last place, call out a specific wrong tip, celebrate an exact score, mock someone's jersey team choice, joke about a position, contrast two players, predict who will collapse, fake confidence about the bottom player, reference a famous football failure]. Today's seed: ${Math.floor(Math.random() * 10000)}. Use real names/nicknames. No emojis in text.
 
 Current standings:
 ${players}
 
-Recent match results and tips:
-${matchContext || 'No completed matches yet - banter about their predictions instead'}
+Recent results and tips:
+${matchContext || 'No completed matches yet — banter about predictions and jersey choices instead'}
 
-Return ONLY a JSON array of exactly 3 strings. Example: ["line1", "line2", "line3"]`
+Return ONLY a JSON array of exactly 3 strings. No other text.`
           }]
         })
       })
@@ -1005,11 +1003,9 @@ Return ONLY a JSON array of exactly 3 strings. Example: ["line1", "line2", "line
       const clean = text.replace(/```json|```/g, '').trim()
       const parsed = JSON.parse(clean)
       const result = Array.isArray(parsed) ? parsed.slice(0, 3) : []
-      console.log('Banter generated:', result)
       setBanter(result)
       setLoaded(true)
-    } catch (e) {
-      console.error('Banter generation failed:', e)
+    } catch {
       setBanter(['The ref disallowed the banter. Try refreshing.'])
       setLoaded(true)
     }
@@ -1042,7 +1038,7 @@ Return ONLY a JSON array of exactly 3 strings. Example: ["line1", "line2", "line
           {EMOJIS[i]} {line}
         </div>
       ))}
-      <button onClick={() => { setLoaded(false); setBanter([]); generateBanter() }}
+      <button onClick={() => { setLoaded(false); setBanter([]); setTimeout(generateBanter, 50) }}
         style={{ alignSelf: 'flex-end', background: 'none', border: 'none', fontSize: '0.68rem', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', padding: '0.1rem 0.25rem' }}>
         🔄 refresh
       </button>
