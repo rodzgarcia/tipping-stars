@@ -349,6 +349,13 @@ export default function TournamentPage() {
                 </div>
               ))}
             </div>
+            <LeaderboardBanter
+              leaderboard={leaderboard}
+              profilesMap={profilesMap}
+              allTips={allTips}
+              matches={matches}
+              tournament={tournament}
+            />
             <div style={{ marginTop: '0.75rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <span>🎯 {t.lang === 'pt' ? 'Placar exato' : 'Exact score'}</span>
               <span>⚖️ {t.lang === 'pt' ? 'Saldo de gols' : 'Goal difference'}</span>
@@ -858,17 +865,6 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
         </div>
       )}
 
-      {/* ── Banter generator (finished only) ── */}
-      {statsView === 'finished' && (
-        <BanterGenerator
-          matchStats={matchStats}
-          leaderboard={leaderboard}
-          profilesMap={profilesMap}
-          tournament={tournament}
-          allTips={allTips}
-        />
-      )}
-
       {/* ── Most popular wrong picks (finished only) ── */}
       {statsView === 'finished' && wrongPicks.length > 0 && (
         <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
@@ -931,6 +927,119 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
         </div>
       )}
 
+    </div>
+  )
+}
+
+
+function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournament }: any) {
+  const [banter, setBanter] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    if (leaderboard.length < 2 || loaded) return
+    generateBanter()
+  }, [leaderboard.length])
+
+  async function generateBanter() {
+    if (loading) return
+    setLoading(true)
+
+    // Build rich context
+    const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
+    const leader = sorted[0]
+    const last = sorted[sorted.length - 1]
+
+    const players = sorted.map((r: any, i: number) => {
+      const prof = profilesMap?.[r.user_id]
+      const name = prof?.nickname || prof?.display_name || r.display_name
+      const realName = prof?.display_name || r.display_name
+      const jersey = prof?.jersey_team || 'unknown team'
+      const position = prof?.tip_position || 'unknown position'
+      const acc = r.tips_submitted > 0 ? Math.round((r.correct_winners / r.tips_submitted) * 100) : 0
+      return `${i+1}. ${name}${name !== realName ? ` (${realName})` : ''} - ${r.total_points}pts, ${r.exact_scores} exact scores, ${r.correct_winners} correct winners, jersey: ${jersey}, position: ${position}, accuracy: ${acc}%`
+    }).join('\n')
+
+    const finishedMatches = matches.filter((m: any) => m.status === 'completed' && m.home_score !== null)
+    const matchContext = finishedMatches.slice(-5).map((m: any) => {
+      const tips = allTips.filter((tp: any) => tp.match_id === m.id)
+      const exact = tips.filter((tp: any) => tp.tip_home === m.home_score && tp.tip_away === m.away_score)
+        .map((tp: any) => profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name)
+      const wrong = tips.filter((tp: any) => {
+        const tipOut = tp.tip_home > tp.tip_away ? 'h' : tp.tip_home < tp.tip_away ? 'a' : 'd'
+        const actOut = m.home_score > m.away_score ? 'h' : m.home_score < m.away_score ? 'a' : 'd'
+        return tipOut !== actOut
+      }).map((tp: any) => ({
+        name: profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name || 'Someone',
+        tip: `${tp.tip_home}-${tp.tip_away}`
+      }))
+      return `${m.home_team} ${m.home_score}-${m.away_score} ${m.away_team}: exact: [${exact.join(', ')}], wrong: [${wrong.map((w: any) => `${w.name} tipped ${w.tip}`).join(', ')}]`
+    }).join('\n')
+
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 600,
+          messages: [{
+            role: 'user',
+            content: `You are a hilarious football banter bot for a World Cup tipping competition. Generate exactly 3 short banter lines (max 15 words each) for the leaderboard. Use real player names/nicknames. Be specific, playful, roast bad tips, praise good ones, joke about jersey teams or positions. Mix: mock the leader, sympathy for last place, call out wrong tips, celebrate exact scores. No emojis in the text itself.
+
+Current standings:
+${players}
+
+Recent match results and tips:
+${matchContext || 'No completed matches yet - banter about their predictions instead'}
+
+Return ONLY a JSON array of exactly 3 strings. Example: ["line1", "line2", "line3"]`
+          }]
+        })
+      })
+      const data = await resp.json()
+      const text = data.content?.[0]?.text || '[]'
+      const clean = text.replace(/```json|```/g, '').trim()
+      const parsed = JSON.parse(clean)
+      setBanter(Array.isArray(parsed) ? parsed.slice(0, 3) : [])
+      setLoaded(true)
+    } catch {
+      setBanter([])
+    }
+    setLoading(false)
+  }
+
+  if (loading) return (
+    <div style={{ margin: '0.75rem 0', padding: '0.75rem 1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: 10, fontSize: '0.8rem', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
+      🎤 Generating banter...
+    </div>
+  )
+
+  if (banter.length === 0) return null
+
+  const EMOJIS = ['🔥', '💀', '😂']
+
+  return (
+    <div style={{ margin: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      {banter.map((line, i) => (
+        <div key={i} style={{
+          padding: '0.6rem 1rem',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 10,
+          fontSize: '0.82rem',
+          color: 'rgba(255,255,255,0.65)',
+          lineHeight: 1.4,
+          fontStyle: 'italic',
+        }}>
+          {EMOJIS[i]} {line}
+        </div>
+      ))}
+      <button onClick={() => { setLoaded(false); setBanter([]); generateBanter() }}
+        style={{ alignSelf: 'flex-end', background: 'none', border: 'none', fontSize: '0.68rem', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', padding: '0.1rem 0.25rem' }}>
+        🔄 refresh
+      </button>
     </div>
   )
 }
