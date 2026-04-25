@@ -1137,7 +1137,7 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
   if (error) return (
     <div style={{ margin: '0.5rem 0', fontSize: '0.72rem', color: 'rgba(255,255,255,0.15)' }}>
       Banter unavailable — add GEMINI_API_KEY to Vercel to enable.
-      <button onClick={() => { setError(false); triggered.current = false; generateBanter() }} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: '0.72rem' }}>retry</button>
+      <button onClick={() => { setError(false); generateBanter() }} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: '0.72rem' }}>retry</button>
     </div>
   )
 
