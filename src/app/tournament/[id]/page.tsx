@@ -938,13 +938,15 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    if (leaderboard.length < 2 || loaded) return
+    console.log('LeaderboardBanter useEffect:', leaderboard.length, loaded, loading)
+    if (leaderboard.length < 1 || loaded || loading) return
     generateBanter()
   }, [leaderboard.length])
 
   async function generateBanter() {
     if (loading) return
     setLoading(true)
+    console.log('generateBanter called, leaderboard:', leaderboard.length)
 
     // Build rich context
     const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
@@ -1002,17 +1004,21 @@ Return ONLY a JSON array of exactly 3 strings. Example: ["line1", "line2", "line
       const text = data.content?.[0]?.text || '[]'
       const clean = text.replace(/```json|```/g, '').trim()
       const parsed = JSON.parse(clean)
-      setBanter(Array.isArray(parsed) ? parsed.slice(0, 3) : [])
+      const result = Array.isArray(parsed) ? parsed.slice(0, 3) : []
+      console.log('Banter generated:', result)
+      setBanter(result)
       setLoaded(true)
-    } catch {
-      setBanter([])
+    } catch (e) {
+      console.error('Banter generation failed:', e)
+      setBanter(['The ref disallowed the banter. Try refreshing.'])
+      setLoaded(true)
     }
     setLoading(false)
   }
 
   if (loading) return (
     <div style={{ margin: '0.75rem 0', padding: '0.75rem 1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: 10, fontSize: '0.8rem', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
-      🎤 Generating banter...
+      🎤 Loading banter...
     </div>
   )
 
