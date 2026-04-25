@@ -771,7 +771,7 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
           <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
             {statsView === 'upcoming' ? (ispt ? 'Como o grupo apostou — resultado ainda não conhecido' : 'How the group tipped — result not yet known') : (ispt ? 'Como o grupo apostou vs resultado final' : 'How the group tipped vs the final result')}
           </p>
-          {activeMatchStats.map(({ match: m, homePct, drawPct, awayPct, popularScore, braveTippers, hasResult, outcomePct }: any) => (
+          {activeMatchStats.map(({ match: m, tips, homePct, drawPct, awayPct, popularScore, braveTippers, hasResult, outcomePct }: any) => (
             <div key={m.id} style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{m.home_team} <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>vs</span> {m.away_team}</span>
