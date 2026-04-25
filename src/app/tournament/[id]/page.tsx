@@ -965,9 +965,13 @@ function HelpChat({ t }: { t: any }) {
         body: JSON.stringify({ messages: newMsgs.map(m => ({ role: m.role, content: m.content })) })
       })
       const data = await resp.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+      if (data.reply && data.reply !== 'Something went wrong. Try again!') {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+      } else {
+        setMessages(prev => [...prev, { role: 'assistant', content: 'Help chat needs GEMINI_API_KEY set in Vercel environment variables to work.' }])
+      }
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Try again!' }])
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Check that GEMINI_API_KEY is set in Vercel.' }])
     }
     setLoading(false)
   }
@@ -1069,11 +1073,7 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
   const [banter, setBanter] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [loaded, setLoaded] = useState(false)
-
-  useEffect(() => {
-    if (leaderboard.length < 1 || loaded || loading) return
-    generateBanter()
-  }, [leaderboard.length])
+  const [error, setError] = useState(false)
 
   async function generateBanter() {
     if (loading) return
@@ -1122,21 +1122,37 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
       setLoaded(true)
     } catch (e) {
       console.error('Banter error:', e)
-      setBanter([])
+      setError(true)
       setLoaded(true)
     }
     setLoading(false)
   }
 
   if (loading) return (
-    <div style={{ margin: '0.75rem 0', padding: '0.75rem 1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: 10, fontSize: '0.8rem', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
+    <div style={{ margin: '0.75rem 0', padding: '0.5rem 1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>
       🎤 Loading banter...
     </div>
   )
 
-  if (banter.length === 0) return null
+  if (error) return (
+    <div style={{ margin: '0.5rem 0', fontSize: '0.72rem', color: 'rgba(255,255,255,0.15)' }}>
+      Banter unavailable — add GEMINI_API_KEY to Vercel to enable.
+      <button onClick={() => { setError(false); triggered.current = false; generateBanter() }} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: '0.72rem' }}>retry</button>
+    </div>
+  )
 
   const EMOJIS = ['🔥', '💀', '😂']
+
+  if (!loaded && !loading) return (
+    <div style={{ margin: '0.5rem 0 0.75rem' }}>
+      <button
+        onClick={generateBanter}
+        style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '0.35rem 0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }}
+      >
+        🎤 Generate banter
+      </button>
+    </div>
+  )
 
   return (
     <div style={{ margin: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
