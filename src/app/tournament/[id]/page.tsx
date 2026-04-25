@@ -567,6 +567,17 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
     const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
     return new Date() >= lockTime
   })
+
+  console.log('StatsTab debug:', {
+    totalMatches: matches.length,
+    upcomingLocked: upcomingLocked.length,
+    manuallyLocked: matches.filter((m:any) => m.tip_lock_override).length,
+    finishedMatches: matches.filter((m:any) => m.status === 'completed').length,
+    allTipsCount: allTips.length,
+    leaderboardCount: leaderboard.length,
+    lockMins,
+    sampleMatch: matches[0] ? { id: matches[0].id, status: matches[0].status, tip_lock_override: matches[0].tip_lock_override } : null
+  })
   // Finished = completed with results
   const finishedMatches = matches.filter((m: any) => m.status === 'completed' && m.home_score !== null)
   const lockedMatches = [...upcomingLocked, ...finishedMatches]
