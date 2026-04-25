@@ -408,6 +408,7 @@ export default function TournamentPage() {
             onSave={loadAll}
           />
         )}
+      <HelpChat t={t} tournament={tournament} />
       </div>
     </div>
   )
@@ -570,7 +571,6 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
           </div>
         </div>
       )}
-      <HelpChat t={t} />
     </div>
   )
 }
@@ -933,7 +933,7 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
 }
 
 
-function HelpChat({ t }: { t: any }) {
+function HelpChat({ t, tournament }: { t: any, tournament?: any }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<{ role: string, content: string }[]>([])
   const [input, setInput] = useState('')
@@ -962,7 +962,7 @@ function HelpChat({ t }: { t: any }) {
       const resp = await fetch('/api/help', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMsgs.map(m => ({ role: m.role, content: m.content })) })
+        body: JSON.stringify({ messages: newMsgs.map(m => ({ role: m.role, content: m.content })), tournamentContext: { lockMins: tournament?.tip_lock_minutes ?? 120, groupLockMode: tournament?.group_lock_mode ?? 'per_match', pts_winner: tournament?.pts_winner, pts_exact_score: tournament?.pts_exact_score, name: tournament?.name } })
       })
       const data = await resp.json()
       if (data.reply && data.reply !== 'Something went wrong. Try again!') {
@@ -983,16 +983,17 @@ function HelpChat({ t }: { t: any }) {
         onClick={() => setOpen(o => !o)}
         style={{
           position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 1000,
-          width: 52, height: 52, borderRadius: '50%',
-          background: open ? 'rgba(255,255,255,0.15)' : 'var(--green)',
-          border: 'none', cursor: 'pointer', fontSize: '1.4rem',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          width: 44, height: 44, borderRadius: 12,
+          background: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          cursor: 'pointer', fontSize: '1rem',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'all 0.2s',
         }}
         title={ispt ? 'Ajuda' : 'Help'}
       >
-        {open ? '✕' : '❓'}
+        {open ? '✕' : '💬'}
       </button>
 
       {/* Chat window */}
