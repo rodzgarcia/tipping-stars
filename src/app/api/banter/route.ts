@@ -4,15 +4,18 @@ export async function POST(req: NextRequest) {
   try {
     const { players, matchContext, seed } = await req.json()
 
-    const prompt = `You are a hilarious football banter bot for a World Cup tipping competition. Generate exactly 3 SHORT banter lines (max 15 words each). Each refresh must feel completely different — pick a RANDOM angle from: [roast the leader, sympathise with last place, call out a specific wrong tip, celebrate an exact score, mock someone's jersey team choice, joke about a position, contrast two players, predict who will collapse, fake confidence about the bottom player, reference a famous football failure]. Today's seed: ${seed}. Use real names/nicknames. No emojis in text.
+    const prompt = `You are a hilarious football banter bot. Generate exactly 3 short funny banter lines (max 15 words each) about this World Cup tipping competition. Seed: ${seed}.
 
-Current standings:
+Use real player names. Be specific and funny. Mix roasting wrong tippers, praising lucky ones, mocking jersey choices.
+
+Standings:
 ${players}
 
-Recent results and tips:
-${matchContext || 'No completed matches yet — banter about predictions and jersey choices instead'}
+Recent results:
+${matchContext || 'No completed matches yet — joke about their pre-tournament predictions instead'}
 
-Return ONLY a JSON array of exactly 3 strings. No other text. Example: ["line1", "line2", "line3"]`
+IMPORTANT: Respond with ONLY a JSON array. No markdown, no explanation. Example:
+["Rodrigo leads but picks Brazil every game — original strategy", "Bruno called a 3-0, got a 0-3 — at least the goals were right", "Last place, but proud"]`
 
     const resp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -21,18 +24,42 @@ Return ONLY a JSON array of exactly 3 strings. No other text. Example: ["line1",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 1.0, maxOutputTokens: 400 },
+          generationConfig: { temperature: 1.2, maxOutputTokens: 300, responseMimeType: 'application/json' },
         })
       }
     )
 
     const data = await resp.json()
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
-    const clean = text.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(clean)
-    return NextResponse.json({ banter: Array.isArray(parsed) ? parsed.slice(0, 3) : [] })
+    console.log('Gemini raw response:', JSON.stringify(data).slice(0, 500))
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    console.log('Gemini text:', text)
+
+    if (!text) {
+      return NextResponse.json({ banter: ['Gemini had nothing to say. Shocking.', 'The banter engine is warming up.', 'Try again — the ref is reviewing it.'] })
+    }
+
+    // Try to parse JSON, handle various formats Gemini might return
+    let parsed: string[] = []
+    try {
+      // Remove markdown fences if present
+      const clean = text.replace(/```json\n?|\n?```/g, '').trim()
+      parsed = JSON.parse(clean)
+    } catch {
+      // If JSON parse fails, extract quoted strings
+      const matches = text.match(/"([^"]+)"/g)
+      if (matches) {
+        parsed = matches.map((s: string) => s.replace(/"/g, '')).filter((s: string) => s.length > 10)
+      }
+    }
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      parsed = ['The banter machine is still loading.', 'Ask again after a goal or two.', 'Even the AI is speechless at these tips.']
+    }
+
+    return NextResponse.json({ banter: parsed.slice(0, 3) })
   } catch (e) {
     console.error('Banter API error:', e)
-    return NextResponse.json({ banter: [] }, { status: 500 })
+    return NextResponse.json({ banter: ['Banter temporarily suspended by VAR.', 'Technical difficulties — blame the ref.', 'The banter will resume shortly.'] }, { status: 200 })
   }
 }
