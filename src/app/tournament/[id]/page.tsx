@@ -932,6 +932,138 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
 }
 
 
+function HelpChat({ t }: { t: any }) {
+  const [open, setOpen] = useState(false)
+  const [messages, setMessages] = useState<{ role: string, content: string }[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const ispt = t.lang === 'pt'
+
+  useEffect(() => {
+    if (open && messages.length === 0) {
+      setMessages([{ role: 'assistant', content: ispt ? 'Olá! Como posso ajudar? Pode me perguntar sobre pontuação, palpites, regras ou como navegar no app.' : 'Hey! Ask me anything about how to tip, how points work, or how to navigate the app.' }])
+    }
+  }, [open])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  async function send() {
+    if (!input.trim() || loading) return
+    const userMsg = { role: 'user', content: input.trim() }
+    const newMsgs = [...messages, userMsg]
+    setMessages(newMsgs)
+    setInput('')
+    setLoading(true)
+    try {
+      const resp = await fetch('/api/help', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMsgs.map(m => ({ role: m.role, content: m.content })) })
+      })
+      const data = await resp.json()
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Try again!' }])
+    }
+    setLoading(false)
+  }
+
+  return (
+    <>
+      {/* Floating button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 1000,
+          width: 52, height: 52, borderRadius: '50%',
+          background: open ? 'rgba(255,255,255,0.15)' : 'var(--green)',
+          border: 'none', cursor: 'pointer', fontSize: '1.4rem',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'all 0.2s',
+        }}
+        title={ispt ? 'Ajuda' : 'Help'}
+      >
+        {open ? '✕' : '❓'}
+      </button>
+
+      {/* Chat window */}
+      {open && (
+        <div style={{
+          position: 'fixed', bottom: '5.5rem', right: '1.5rem', zIndex: 999,
+          width: 320, maxHeight: 420,
+          background: '#0d1511', border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 16, display: 'flex', flexDirection: 'column',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+          overflow: 'hidden',
+        }}>
+          {/* Header */}
+          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.1rem' }}>⭐</span>
+            <div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#e8f5ee' }}>{ispt ? 'Ajuda Tipping Stars' : 'Tipping Stars Help'}</div>
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)' }}>{ispt ? 'Pergunte qualquer coisa' : 'Ask me anything'}</div>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', minHeight: 200 }}>
+            {messages.map((m, i) => (
+              <div key={i} style={{
+                maxWidth: '85%', padding: '0.5rem 0.75rem', borderRadius: 12,
+                fontSize: '0.82rem', lineHeight: 1.5,
+                alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                background: m.role === 'user' ? 'var(--green)' : 'rgba(255,255,255,0.07)',
+                color: m.role === 'user' ? '#fff' : '#e8f5ee',
+                borderBottomRightRadius: m.role === 'user' ? 4 : 12,
+                borderBottomLeftRadius: m.role === 'assistant' ? 4 : 12,
+              }}>
+                {m.content}
+              </div>
+            ))}
+            {loading && (
+              <div style={{ alignSelf: 'flex-start', padding: '0.5rem 0.75rem', borderRadius: 12, background: 'rgba(255,255,255,0.07)', fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)' }}>
+                ...
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div style={{ padding: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: '0.4rem' }}>
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && send()}
+              placeholder={ispt ? 'Escreva sua pergunta...' : 'Type your question...'}
+              style={{
+                flex: 1, padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10,
+                color: '#fff', fontSize: '0.82rem', outline: 'none',
+              }}
+            />
+            <button
+              onClick={send}
+              disabled={!input.trim() || loading}
+              style={{
+                padding: '0.5rem 0.75rem', background: 'var(--green)', border: 'none',
+                borderRadius: 10, color: '#fff', cursor: 'pointer', fontSize: '0.85rem',
+                opacity: !input.trim() || loading ? 0.5 : 1,
+              }}
+            >
+              ↑
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+
 function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournament }: any) {
   const [banter, setBanter] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -978,38 +1110,23 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
     }).join('\n')
 
     try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    try {
+      const resp = await fetch('/api/banter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 600,
-          messages: [{
-            role: 'user',
-            content: `You are a hilarious football banter bot for a World Cup tipping competition. Generate exactly 3 SHORT banter lines (max 15 words each). Each refresh must feel completely different — pick a RANDOM angle from: [roast the leader, sympathise with last place, call out a specific wrong tip, celebrate an exact score, mock someone's jersey team choice, joke about a position, contrast two players, predict who will collapse, fake confidence about the bottom player, reference a famous football failure]. Today's seed: ${Math.floor(Math.random() * 10000)}. Use real names/nicknames. No emojis in text.
-
-Current standings:
-${players}
-
-Recent results and tips:
-${matchContext || 'No completed matches yet — banter about predictions and jersey choices instead'}
-
-Return ONLY a JSON array of exactly 3 strings. No other text.`
-          }]
-        })
+        body: JSON.stringify({ players, matchContext, seed: Math.floor(Math.random() * 10000) })
       })
       const data = await resp.json()
-      const text = data.content?.[0]?.text || '[]'
-      const clean = text.replace(/```json|```/g, '').trim()
-      const parsed = JSON.parse(clean)
-      const result = Array.isArray(parsed) ? parsed.slice(0, 3) : []
+      const result = Array.isArray(data.banter) && data.banter.length > 0 ? data.banter : []
       setBanter(result)
       setLoaded(true)
-    } catch {
-      setBanter(['The ref disallowed the banter. Try refreshing.'])
+    } catch (e) {
+      console.error('Banter error:', e)
+      setBanter([])
       setLoaded(true)
     }
     setLoading(false)
+  }
   }
 
   if (loading) return (
@@ -1150,6 +1267,7 @@ Return ONLY a JSON array of 6 strings, no other text. Example format: ["comment 
           </button>
         </div>
       )}
+      <HelpChat t={t} />
     </div>
   )
 }
