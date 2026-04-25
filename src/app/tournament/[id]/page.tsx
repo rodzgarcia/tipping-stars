@@ -1123,11 +1123,9 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
       console.log('Response data:', data)
       const result = Array.isArray(data.banter) && data.banter.length > 0 ? data.banter : []
       setBanter(result)
-      setLoaded(true)
     } catch (e) {
       console.error('Banter fetch error:', e)
       setError(true)
-      setLoaded(true)
     }
     setLoading(false)
   }
@@ -1138,25 +1136,10 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
     </div>
   )
 
-  if (error) return (
-    <div style={{ margin: '0.5rem 0', fontSize: '0.72rem', color: 'rgba(255,255,255,0.15)' }}>
-      Banter unavailable — add GEMINI_API_KEY to Vercel to enable.
-      <button onClick={() => { setError(false); generateBanter() }} style={{ marginLeft: 8, background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', fontSize: '0.72rem' }}>retry</button>
-    </div>
-  )
+  if (error) return null
 
   const EMOJIS = ['🔥', '💀', '😂']
 
-  if (!loaded && !loading) return (
-    <div style={{ margin: '0.5rem 0 0.75rem' }}>
-      <button
-        onClick={() => { console.log('Banter button clicked!'); generateBanter() }}
-        style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '0.35rem 0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', cursor: 'pointer' }}
-      >
-        🎤 Generate banter
-      </button>
-    </div>
-  )
 
   return (
     <div style={{ margin: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -1174,7 +1157,7 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
           {EMOJIS[i]} {line}
         </div>
       ))}
-      <button onClick={() => { setLoaded(false); setBanter([]); setTimeout(generateBanter, 50) }}
+      <button onClick={() => { setBanter([]); lastFetchedCount.current = -1; setTimeout(generateBanter, 50) }}
         style={{ alignSelf: 'flex-end', background: 'none', border: 'none', fontSize: '0.68rem', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', padding: '0.1rem 0.25rem' }}>
         🔄 refresh
       </button>
