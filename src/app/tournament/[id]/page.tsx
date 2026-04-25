@@ -799,9 +799,22 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
               )}
               {braveTippers.length > 0 && (
                 <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: '#fbbf24' }}>
-                  🦁 Brave {outcomePct}% pick — correct: {braveTippers.join(', ')}
+                  🦁 Only {outcomePct}% tipped this — correct: <strong>{braveTippers.join(', ')}</strong>
                 </div>
               )}
+              {statsView === 'upcoming' && (() => {
+                const majorityWrong = homePct >= 60 ? `${Math.round(homePct)}% backed ${m.home_team}` : awayPct >= 60 ? `${Math.round(awayPct)}% backed ${m.away_team}` : drawPct >= 40 ? `${Math.round(drawPct)}% tipped a draw` : null
+                const underdogTippers = tips.filter((tp: any) => {
+                  if (homePct < awayPct && drawPct < awayPct) return tp.tip_away > tp.tip_home
+                  if (awayPct < homePct && drawPct < homePct) return tp.tip_home > tp.tip_away
+                  return false
+                }).map((tp: any) => profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name).filter(Boolean)
+                if (underdogTippers.length > 0 && underdogTippers.length <= 3) {
+                  const underdog = homePct < awayPct ? m.home_team : m.away_team
+                  return <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: '#60a5fa' }}>🔮 Backing the underdog ({underdog}): {underdogTippers.join(', ')}</div>
+                }
+                return null
+              })()}
             </div>
           ))}
         </div>
@@ -843,6 +856,17 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
             })}
           </div>
         </div>
+      )}
+
+      {/* ── Banter generator (finished only) ── */}
+      {statsView === 'finished' && (
+        <BanterGenerator
+          matchStats={matchStats}
+          leaderboard={leaderboard}
+          profilesMap={profilesMap}
+          tournament={tournament}
+          allTips={allTips}
+        />
       )}
 
       {/* ── Most popular wrong picks (finished only) ── */}
@@ -907,6 +931,114 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
         </div>
       )}
 
+    </div>
+  )
+}
+
+
+function BanterGenerator({ matchStats, leaderboard, profilesMap, tournament, allTips }: any) {
+  const [banter, setBanter] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [generated, setGenerated] = useState(false)
+
+  async function generateBanter() {
+    setLoading(true)
+
+    // Build context for the AI
+    const finishedWithTips = matchStats.filter((ms: any) => ms.hasResult && ms.tips.length > 0)
+    if (finishedWithTips.length === 0) { setLoading(false); return }
+
+    const context = finishedWithTips.slice(0, 8).map((ms: any) => {
+      const { match: m, tips, homePct, awayPct, drawPct } = ms
+      const result = `${m.home_score}–${m.away_score}`
+      const tippers = tips.map((tp: any) => ({
+        name: profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name || 'Someone',
+        tip: `${tp.tip_home}–${tp.tip_away}`,
+        correct: tp.tip_home === m.home_score && tp.tip_away === m.away_score,
+        correctWinner: (tp.tip_home > tp.tip_away && m.home_score > m.away_score) ||
+                       (tp.tip_home < tp.tip_away && m.home_score < m.away_score) ||
+                       (tp.tip_home === tp.tip_away && m.home_score === m.away_score),
+      }))
+      return `${m.home_team} vs ${m.away_team}: result ${result}. Tippers: ${tippers.map(t => `${t.name} tipped ${t.tip}${t.correct ? ' (exact!)' : t.correctWinner ? ' (got winner)' : ' (wrong)'}`).join(', ')}. Consensus: ${homePct}% backed ${m.home_team}, ${drawPct}% draw, ${awayPct}% ${m.away_team}.`
+    }).join('\n')
+
+    const playerNames = [...new Set(leaderboard.map((r: any) => profilesMap?.[r.user_id]?.nickname || r.display_name))].join(', ')
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `You are a hilarious football/soccer banter bot for a World Cup tipping competition. Generate 6 short, funny banter comments (1-2 sentences each) about these results and how people tipped. Be specific about names and scores. Mix: roasting wrong tippers, praising brave correct picks, teasing the majority who got it wrong, poking fun at anyone who always tips the favourite. Be playful, not mean. Use football culture references. Players: ${playerNames}.
+
+Match data:
+${context}
+
+Return ONLY a JSON array of 6 strings, no other text. Example format: ["comment 1", "comment 2", ...]`
+          }]
+        })
+      })
+      const data = await response.json()
+      const text = data.content?.[0]?.text || '[]'
+      const clean = text.replace(/\`\`\`json|\`\`\`/g, '').trim()
+      const parsed = JSON.parse(clean)
+      setBanter(Array.isArray(parsed) ? parsed : [])
+      setGenerated(true)
+    } catch (e) {
+      setBanter(['Could not generate banter — the ref must have disallowed it.'])
+      setGenerated(true)
+    }
+    setLoading(false)
+  }
+
+  const finishedCount = matchStats.filter((ms: any) => ms.hasResult).length
+  if (finishedCount === 0) return null
+
+  return (
+    <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
+        🎤 AUTO BANTER
+      </h3>
+      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+        AI-generated trash talk based on how everyone tipped
+      </p>
+      {!generated ? (
+        <button
+          onClick={generateBanter}
+          disabled={loading}
+          className="btn btn-primary"
+          style={{ padding: '0.6rem 1.5rem' }}
+        >
+          {loading ? '⏳ Generating banter...' : '🎤 Generate Banter'}
+        </button>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {banter.map((line, i) => (
+            <div key={i} style={{
+              padding: '0.75rem 1rem',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 10,
+              fontSize: '0.88rem',
+              lineHeight: 1.5,
+              color: '#e8f5ee',
+            }}>
+              {['🔥','😂','💀','🧢','👀','🏆'][i % 6]} {line}
+            </div>
+          ))}
+          <button
+            onClick={() => { setGenerated(false); setLoading(false) }}
+            className="btn btn-ghost"
+            style={{ fontSize: '0.78rem', marginTop: '0.25rem', alignSelf: 'flex-start' }}
+          >
+            🔄 Generate new banter
+          </button>
+        </div>
+      )}
     </div>
   )
 }
