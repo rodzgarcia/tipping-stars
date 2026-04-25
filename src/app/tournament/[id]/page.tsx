@@ -962,7 +962,7 @@ function BanterGenerator({ matchStats, leaderboard, profilesMap, tournament, all
       return `${m.home_team} vs ${m.away_team}: result ${result}. Tippers: ${tippers.map((t: any) => `${t.name} tipped ${t.tip}${t.correct ? ' (exact!)' : t.correctWinner ? ' (got winner)' : ' (wrong)'}`).join(', ')}. Consensus: ${homePct}% backed ${m.home_team}, ${drawPct}% draw, ${awayPct}% ${m.away_team}.`
     }).join('\n')
 
-    const playerNames = [...new Set(leaderboard.map((r: any) => profilesMap?.[r.user_id]?.nickname || r.display_name))].join(', ')
+    const playerNames = Array.from(new Set(leaderboard.map((r: any) => profilesMap?.[r.user_id]?.nickname || r.display_name))).join(', ')
 
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
