@@ -1083,8 +1083,7 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
     if (leaderboard.length === 0) return
     if (fetchedRef.current) return
     fetchedRef.current = true
-    // Delay 2s so other page calls complete first (avoid rate limiting)
-    const timer = setTimeout(generateBanter, 2000)
+    const timer = setTimeout(generateBanter, 3000)
     return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leaderboard.length, finishedCount])
@@ -1150,10 +1149,9 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
     </div>
   )
 
-  if (error) return null
-
   const EMOJIS = ['🔥', '💀', '😂']
 
+  if (banter.length === 0) return null
 
   return (
     <div style={{ margin: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
