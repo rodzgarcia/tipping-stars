@@ -2405,21 +2405,31 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             )}
             {isLocked && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />Locked</span>}
           </div>
-          {odds && !isLocked && (
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.04em' }}>WIN%</span>
-              <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: 4, background: 'rgba(74,222,128,0.08)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.15)' }}>
-                {match.home_team.split(' ').pop()} {odds.home}
-              </span>
-              {odds.draw && <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: 4, background: 'rgba(156,163,175,0.08)', color: '#9ca3af', border: '1px solid rgba(156,163,175,0.15)' }}>
-                Draw {odds.draw}
-              </span>}
-              <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: 4, background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.15)' }}>
-                {match.away_team.split(' ').pop()} {odds.away}
-              </span>
-              {odds.source && <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.15)', fontStyle: 'italic' }}>{odds.source}</span>}
-            </div>
-          )}
+          {odds && !isLocked && (() => {
+            const vals = [
+              { label: match.home_team.split(' ').pop(), pct: parseInt(odds.home) },
+              { label: 'Draw', pct: parseInt(odds.draw) },
+              { label: match.away_team.split(' ').pop(), pct: parseInt(odds.away) },
+            ]
+            const sorted = [...vals].sort((a, b) => b.pct - a.pct)
+            const getColor = (pct: number) => {
+              if (pct === sorted[0].pct) return { color: '#4ade80', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.2)' }
+              if (pct === sorted[sorted.length - 1].pct) return { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)' }
+              return { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)' }
+            }
+            return (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.04em' }}>WIN%</span>
+                {vals.map(v => {
+                  const c = getColor(v.pct)
+                  return <span key={v.label} style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: 4, background: c.bg, color: c.color, border: `1px solid ${c.border}` }}>
+                    {v.label} {v.pct}%
+                  </span>
+                })}
+                {odds.source && <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.15)', fontStyle: 'italic' }}>{odds.source}</span>}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Tip input or display */}
