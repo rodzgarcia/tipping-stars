@@ -2417,7 +2417,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
               <span style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: 4, background: 'rgba(248,113,113,0.08)', color: '#f87171', border: '1px solid rgba(248,113,113,0.15)' }}>
                 {match.away_team.split(' ').pop()} {odds.away ?? '–'}
               </span>
-              <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.15)' }}>{odds.bookmaker}</span>
+              <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.15)', fontStyle: 'italic' }}>AI estimate</span>
             </div>
           )}
         </div>
