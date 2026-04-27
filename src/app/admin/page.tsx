@@ -137,39 +137,58 @@ export default function AdminPage() {
     loadTournamentData()
   }
 
+  // Find all matches across all tournaments with same teams + date (±2h window)
+  async function getAllMatchingMatches(matchId: string) {
+    const { data: match } = await supabase.from('matches').select('home_team, away_team, kickoff_at').eq('id', matchId).single()
+    if (!match) return [matchId]
+    const kickoff = new Date(match.kickoff_at)
+    const from = new Date(kickoff.getTime() - 2 * 60 * 60 * 1000).toISOString()
+    const to = new Date(kickoff.getTime() + 2 * 60 * 60 * 1000).toISOString()
+    const { data: matches } = await supabase.from('matches').select('id')
+      .eq('home_team', match.home_team).eq('away_team', match.away_team)
+      .gte('kickoff_at', from).lte('kickoff_at', to)
+    return (matches || []).map((m: any) => m.id)
+  }
+
   async function saveResult(matchId: string, homeScore: number, awayScore: number) {
-    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore }).eq('id', matchId)
+    const ids = await getAllMatchingMatches(matchId)
+    await Promise.all(ids.map(id => supabase.from('matches').update({ home_score: homeScore, away_score: awayScore }).eq('id', id)))
+    setPropagatedCount(ids.length)
     loadTournamentData()
   }
 
   async function goLive(matchId: string) {
-    await supabase.from('matches').update({ status: 'live', home_score: 0, away_score: 0, result_locked: false }).eq('id', matchId)
+    const ids = await getAllMatchingMatches(matchId)
+    await Promise.all(ids.map(id => supabase.from('matches').update({ status: 'live', home_score: 0, away_score: 0, result_locked: false }).eq('id', id)))
     loadTournamentData()
   }
 
   async function updateLiveScore(matchId: string, homeScore: number, awayScore: number) {
-    // Update score, calculate points (keeps leaderboard live), stay in live status
-    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore }).eq('id', matchId)
-    await supabase.rpc('calculate_match_points', { p_match_id: matchId })
-    await supabase.from('matches').update({ status: 'live' }).eq('id', matchId)
+    const ids = await getAllMatchingMatches(matchId)
+    await Promise.all(ids.map(id => supabase.from('matches').update({ home_score: homeScore, away_score: awayScore }).eq('id', id)))
+    await Promise.all(ids.map(id => supabase.rpc('calculate_match_points', { p_match_id: id })))
+    await Promise.all(ids.map(id => supabase.from('matches').update({ status: 'live' }).eq('id', id)))
     loadTournamentData()
   }
 
   async function endLive(matchId: string, homeScore: number, awayScore: number) {
-    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed', result_locked: true }).eq('id', matchId)
-    await supabase.rpc('calculate_match_points', { p_match_id: matchId })
+    const ids = await getAllMatchingMatches(matchId)
+    await Promise.all(ids.map(id => supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed', result_locked: true }).eq('id', id)))
+    await Promise.all(ids.map(id => supabase.rpc('calculate_match_points', { p_match_id: id })))
     loadTournamentData()
   }
 
   async function lockResult(matchId: string, homeScore: number, awayScore: number) {
-    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed', result_locked: true }).eq('id', matchId)
-    await supabase.rpc('calculate_match_points', { p_match_id: matchId })
+    const ids = await getAllMatchingMatches(matchId)
+    await Promise.all(ids.map(id => supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed', result_locked: true }).eq('id', id)))
+    await Promise.all(ids.map(id => supabase.rpc('calculate_match_points', { p_match_id: id })))
     loadTournamentData()
   }
 
   async function enterResult(matchId: string, homeScore: number, awayScore: number) {
-    await supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed' }).eq('id', matchId)
-    await supabase.rpc('calculate_match_points', { p_match_id: matchId })
+    const ids = await getAllMatchingMatches(matchId)
+    await Promise.all(ids.map(id => supabase.from('matches').update({ home_score: homeScore, away_score: awayScore, status: 'completed' }).eq('id', id)))
+    await Promise.all(ids.map(id => supabase.rpc('calculate_match_points', { p_match_id: id })))
     loadTournamentData()
   }
 
@@ -313,6 +332,12 @@ export default function AdminPage() {
           <AdminLeaderboard tournamentId={selectedTournament} supabase={supabase} tournaments={tournaments} />
         )}
 
+        {tab === 'results' && (
+          <div style={{ marginBottom: '0.75rem', padding: '0.6rem 1rem', background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)', borderRadius: 10, fontSize: '0.78rem', color: 'rgba(96,165,250,0.7)' }}>
+            ℹ️ Results automatically propagate to <strong>all tournaments</strong> with the same match (same teams + kickoff time).
+            {propagatedCount > 1 && <span style={{ marginLeft: 8, color: '#4ade80' }}>✔ Last update applied to {propagatedCount} tournaments.</span>}
+          </div>
+        )}
         {tab === 'results' && (
           <ResultsEntry matches={matches} tournament={currentTournament} tournamentId={selectedTournament} supabase={supabase} onSave={saveResult} onLock={lockResult} onEdit={lockResult} onGoLive={goLive} onUpdateLive={updateLiveScore} onEndLive={endLive} onSaveTournamentResults={saveTournamentResults} />
         )}
@@ -725,6 +750,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   const [koForm, setKoForm] = useState(emptyKo)
   const [savingKo, setSavingKo] = useState(false)
   const [lockingMatch, setLockingMatch] = useState<string | null>(null)
+  const [propagatedCount, setPropagatedCount] = useState(0)
 
   async function importFIFA2026() {
     if (!confirm('This will add all 72 FIFA World Cup 2026 group stage matches. Continue?')) return
