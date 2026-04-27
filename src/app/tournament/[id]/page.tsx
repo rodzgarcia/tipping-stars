@@ -365,11 +365,6 @@ export default function TournamentPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-                <a href="/global" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.25)', borderRadius: 8, padding: '0.35rem 0.85rem', textDecoration: 'none', background: 'rgba(96,165,250,0.06)' }}>
-                  🌍 Global Leaderboard
-                </a>
-              </div>
               <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
               <RoundStandings leaderboard={leaderboard} allTips={allTips} profilesMap={profilesMap} t={t} />
             </div>
