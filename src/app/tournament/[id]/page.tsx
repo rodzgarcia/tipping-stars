@@ -962,7 +962,19 @@ function HelpChat({ t, tournament }: { t: any, tournament?: any }) {
       const resp = await fetch('/api/help', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMsgs.map(m => ({ role: m.role, content: m.content })), tournamentContext: { lockMins: tournament?.tip_lock_minutes ?? 120, groupLockMode: tournament?.group_lock_mode ?? 'per_match', pts_winner: tournament?.pts_winner, pts_exact_score: tournament?.pts_exact_score, name: tournament?.name } })
+        body: JSON.stringify({ messages: newMsgs.map(m => ({ role: m.role, content: m.content })), tournamentContext: {
+          lockMins: tournament?.tip_lock_minutes ?? 120,
+          groupLockMode: tournament?.group_lock_mode ?? 'per_match',
+          pts_winner: tournament?.pts_winner,
+          pts_goal_diff: tournament?.pts_goal_diff,
+          pts_exact_score: tournament?.pts_exact_score,
+          pts_big_margin_bonus: tournament?.pts_big_margin_bonus,
+          pts_qualify: tournament?.pts_qualify,
+          pts_second_place: tournament?.pts_second_place,
+          pts_third_place: tournament?.pts_third_place,
+          pts_top_scorer: tournament?.pts_top_scorer,
+          name: tournament?.name,
+        } })
       })
       const data = await resp.json()
       if (data.reply && data.reply !== 'Something went wrong. Try again!') {
