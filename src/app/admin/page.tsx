@@ -7,7 +7,7 @@ import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from '
 import { format } from 'date-fns'
 import { useLang } from '../LanguageContext'
 
-type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard'
+type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard' | 'knockout'
 
 function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
@@ -80,12 +80,181 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
 }
 
 
+function KnockoutTemplates({ supabase, tournaments }: any) {
+  const ROUNDS = [
+    { key: 'r32', label: 'Round of 32', games: 16, multiplier: '2x' },
+    { key: 'r16', label: 'Round of 16', games: 8, multiplier: '3x' },
+    { key: 'qf',  label: 'Quarter-finals', games: 4, multiplier: '4x' },
+    { key: 'sf',  label: 'Semi-finals', games: 2, multiplier: '5x' },
+    { key: 'third_place', label: '3rd Place', games: 1, multiplier: '5x' },
+    { key: 'final', label: 'Final', games: 1, multiplier: '6x' },
+  ]
+
+  const [templates, setTemplates] = useState<Record<string, any[]>>({})
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [activeRound, setActiveRound] = useState('r32')
+
+  useEffect(() => {
+    // Load existing knockout templates from all tournaments (use first tournament as reference)
+    if (!tournaments.length) return
+    const tid = tournaments[0].id
+    supabase.from('matches').select('*')
+      .eq('tournament_id', tid)
+      .in('round', ['r32','r16','qf','sf','third_place','final'])
+      .order('kickoff_at')
+      .then(({ data }: any) => {
+        const byRound: Record<string, any[]> = {}
+        data?.forEach((m: any) => {
+          if (!byRound[m.round]) byRound[m.round] = []
+          byRound[m.round].push({ home: m.home_team, away: m.away_team, kickoff: m.kickoff_at?.slice(0,16) || '', venue: m.venue || '' })
+        })
+        setTemplates(byRound)
+      })
+  }, [tournaments.length])
+
+  function setMatch(round: string, idx: number, field: string, val: string) {
+    setTemplates(prev => {
+      const arr = [...(prev[round] || [])]
+      if (!arr[idx]) arr[idx] = { home: '', away: '', kickoff: '', venue: '' }
+      arr[idx] = { ...arr[idx], [field]: val }
+      return { ...prev, [round]: arr }
+    })
+  }
+
+  function addMatch(round: string) {
+    setTemplates(prev => ({
+      ...prev,
+      [round]: [...(prev[round] || []), { home: 'TBD', away: 'TBD', kickoff: '', venue: '' }]
+    }))
+  }
+
+  function removeMatch(round: string, idx: number) {
+    setTemplates(prev => ({
+      ...prev,
+      [round]: (prev[round] || []).filter((_: any, i: number) => i !== idx)
+    }))
+  }
+
+  async function saveRound(round: string) {
+    setSaving(true)
+    const matches = templates[round] || []
+    if (!matches.length) { setSaving(false); return }
+
+    // Apply to ALL tournaments
+    for (const t of tournaments) {
+      // Delete existing knockout matches for this round in this tournament
+      await supabase.from('matches').delete()
+        .eq('tournament_id', t.id).eq('round', round)
+
+      // Insert new ones
+      const toInsert = matches
+        .filter((m: any) => m.kickoff)
+        .map((m: any) => ({
+          tournament_id: t.id,
+          round,
+          home_team: m.home || 'TBD',
+          away_team: m.away || 'TBD',
+          kickoff_at: new Date(m.kickoff).toISOString(),
+          venue: m.venue || null,
+          status: 'upcoming',
+        }))
+      if (toInsert.length) await supabase.from('matches').insert(toInsert)
+    }
+
+    setSaved(true); setTimeout(() => setSaved(false), 3000); setSaving(false)
+  }
+
+  const roundData = ROUNDS.find(r => r.key === activeRound)!
+  const roundMatches = templates[activeRound] || []
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.35rem', color: 'rgba(255,255,255,0.5)' }}>
+        ⚡ KNOCKOUT MATCH TEMPLATES
+      </h2>
+      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1.25rem' }}>
+        Set up knockout matches once — they auto-populate to <strong>all {tournaments.length} tournament{tournaments.length !== 1 ? 's' : ''}</strong>. Use TBD for teams not yet known.
+      </p>
+
+      {/* Round tabs */}
+      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        {ROUNDS.map(r => (
+          <button key={r.key} onClick={() => setActiveRound(r.key)} style={{
+            padding: '0.4rem 0.85rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
+            border: `1px solid ${activeRound === r.key ? 'var(--green)' : 'rgba(255,255,255,0.12)'}`,
+            background: activeRound === r.key ? 'rgba(74,222,128,0.1)' : 'transparent',
+            color: activeRound === r.key ? '#4ade80' : 'rgba(255,255,255,0.5)',
+          }}>
+            {r.label}
+            <span style={{ marginLeft: 5, fontSize: '0.65rem', opacity: 0.6 }}>{r.multiplier}</span>
+            {(templates[r.key]?.length || 0) > 0 && (
+              <span style={{ marginLeft: 5, fontSize: '0.65rem', background: 'rgba(74,222,128,0.2)', borderRadius: 8, padding: '0 4px' }}>
+                {templates[r.key].length}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Match list for active round */}
+      <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.06em', color: 'var(--green-light)' }}>
+            {roundData.label}
+          </h3>
+          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
+            {roundData.games} games expected · {roundData.multiplier} multiplier
+          </span>
+        </div>
+
+        {roundMatches.length === 0 && (
+          <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.3)', marginBottom: '1rem' }}>
+            No matches yet. Add them below — you can use TBD for teams not yet confirmed.
+          </p>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+          {roundMatches.map((m: any, idx: number) => (
+            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto auto', gap: '0.5rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>
+              <input className="input" placeholder="Home team (or TBD)" value={m.home} onChange={e => setMatch(activeRound, idx, 'home', e.target.value)} />
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)' }}>vs</span>
+              <input className="input" placeholder="Away team (or TBD)" value={m.away} onChange={e => setMatch(activeRound, idx, 'away', e.target.value)} />
+              <input type="datetime-local" className="input" value={m.kickoff} onChange={e => setMatch(activeRound, idx, 'kickoff', e.target.value)} style={{ width: 'auto' }} />
+              <button onClick={() => removeMatch(activeRound, idx)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <button onClick={() => addMatch(activeRound)} className="btn btn-ghost" style={{ fontSize: '0.82rem' }}>
+            + Add match
+          </button>
+          {roundMatches.length > 0 && (
+            <button onClick={() => saveRound(activeRound)} disabled={saving} className="btn btn-primary" style={{ fontSize: '0.82rem' }}>
+              {saved ? '✔ Saved to all tournaments!' : saving ? 'Saving...' : `⚡ Save ${roundData.label} to all ${tournaments.length} tournaments`}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: '0.85rem 1.25rem', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.15)' }}>
+        <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>
+          💡 <strong>Workflow:</strong> Add matches with TBD teams as soon as kickoff times are confirmed. Then come back and update team names once the group stage finishes. Saving a round <strong>replaces</strong> existing matches for that round across all tournaments.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+
 export default function AdminPage() {
   const { t } = useLang()
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [tab, setTab] = useState<AdminTab>('tournaments')
+  const [masterTab, setMasterTab] = useState<'setup'|'knockout'>('setup')
   const [tournaments, setTournaments] = useState<any[]>([])
   const [selectedTournament, setSelectedTournament] = useState<string>('')
   const [pendingMembers, setPendingMembers] = useState<any[]>([])
@@ -252,6 +421,7 @@ export default function AdminPage() {
           <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}><Calendar size={13} style={{display:'inline',marginRight:4}}/>Matches</button>
           <button className={`tab-btn ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}><Trophy size={13} style={{display:'inline',marginRight:4}}/>Results</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>🏆 Leaderboard</button>
+          <button className={`tab-btn ${tab === 'knockout' ? 'active' : ''}`} onClick={() => setTab('knockout')}>⚡ Knockout</button>
         </div>
 
         {/* Tournament Setup */}
@@ -331,6 +501,10 @@ export default function AdminPage() {
         {/* Results */}
         {tab === 'leaderboard' && selectedTournament && (
           <AdminLeaderboard tournamentId={selectedTournament} supabase={supabase} tournaments={tournaments} />
+        )}
+
+        {tab === 'knockout' && (
+          <KnockoutTemplates supabase={supabase} tournaments={tournaments} />
         )}
 
         {tab === 'results' && (
