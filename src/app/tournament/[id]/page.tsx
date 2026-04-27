@@ -1354,23 +1354,55 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
 
       <Section emoji="⚽" title={ispt ? 'COMO FUNCIONA' : 'HOW IT WORKS'}>
         <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-          {ispt ? 'Para cada jogo, você deve acertar o placar. Quanto mais preciso, mais pontos você ganha. As dicas ficam bloqueadas 2 horas antes do início de cada partida.' : 'For each match, tip the final score. The more accurate your prediction, the more points you earn. Tips lock 2 hours before each match kicks off.'}
+          {ispt
+            ? `Para cada jogo, você aposta o placar final aos 90 minutos. Os pontos são cumulativos — cada nível de acerto adiciona pontos ao anterior. As dicas bloqueiam ${tn.tip_lock_minutes || 120} minutos antes do apito inicial.`
+            : `For each match, tip the final score at 90 minutes. Points are cumulative — each level of accuracy adds on top of the previous. Tips lock ${tn.tip_lock_minutes || 120} minutes before kickoff.`}
         </p>
       </Section>
 
       <Section emoji="🎯" title={ispt ? 'PONTUAÇÃO' : 'POINTS SYSTEM'}>
+        <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)', marginBottom: '0.75rem' }}>
+          {ispt ? 'Os pontos se acumulam — acertar o placar exato também conta como vencedor correto e saldo de gols correto:' : 'Points stack on top of each other — getting the exact score also earns you the winner and goal difference points:'}
+        </p>
         <Row label={ispt ? '✅ Vencedor correto' : '✅ Correct winner'} value={`${pWinner} pts`} highlight="#4ade80"
-          example={ispt ? `Ex: Você tipou Brasil para vencer → Brasil vence 2–0 → +${pWinner} pts` : `e.g. You tip Brazil to win → Brazil wins 2–0 → +${pWinner} pts`} />
-        <Row label={ispt ? '⚖️ Saldo de gols correto' : '⚖️ Correct goal difference'} value={`${pDiff} pts`} highlight="#60a5fa"
-          example={ispt ? `Ex: Você tipou Brasil 2–0 → Resultado foi 3–1 (mesma diferença de 2) → +${pWinner + pDiff} pts total` : `e.g. You tip Brazil 2–0 → Result is 3–1 (same diff of 2) → +${pWinner + pDiff} pts total`} />
-        <Row label={ispt ? '🎯 Placar exato' : '🎯 Exact score'} value={`${pExact} pts`} highlight="#fbbf24"
-          example={ispt ? `Ex: Você tipou Brasil 1–0 Escócia → Resultado: Brasil 1–0 Escócia → +${pWinner + pDiff + pExact} pts total` : `e.g. You tip Brazil 1–0 Scotland → Result: Brazil 1–0 Scotland → +${pWinner + pDiff + pExact} pts total`} />
+          example={ispt ? `Ex: Você tipou Brasil para vencer → Brasil vence por qualquer placar → +${pWinner} pts` : `e.g. You tip Brazil to win → Brazil wins by any scoreline → +${pWinner} pts`} />
+        <Row label={ispt ? '⚖️ Saldo de gols correto (além do vencedor)' : '⚖️ Correct goal difference (on top of winner)'} value={`+${pDiff} pts`} highlight="#60a5fa"
+          example={ispt ? `Ex: Você tipou 2–0 → Resultado foi 3–1 (mesma diferença de 2) → +${pWinner} + ${pDiff} = ${pWinner + pDiff} pts total` : `e.g. You tip 2–0 → Result is 3–1 (same diff of 2) → +${pWinner} + ${pDiff} = ${pWinner + pDiff} pts total`} />
+        <Row label={ispt ? '🎯 Placar exato (além do vencedor + saldo)' : '🎯 Exact score (on top of winner + goal diff)'} value={`+${pExact} pts`} highlight="#fbbf24"
+          example={ispt ? `Ex: Você tipou 1–0 → Resultado: 1–0 → +${pWinner} + ${pDiff} + ${pExact} = ${pWinner + pDiff + pExact} pts total` : `e.g. You tip 1–0 → Result: 1–0 → +${pWinner} + ${pDiff} + ${pExact} = ${pWinner + pDiff + pExact} pts total`} />
         {pBonus > 0 && (
-          <Row label={ispt ? `🚀 Bônus goleada (${tn.big_margin_threshold}+ gols de diferença)` : `🚀 Big margin bonus (${tn.big_margin_threshold}+ goal difference)`} value={`+${pBonus} pts`} highlight="#f87171"
-            example={ispt ? `Ex: Você tipou Brasil 4–0 → Resultado: Brasil 4–0 → +${pWinner + pDiff + pExact + pBonus} pts total` : `e.g. You tip Brazil 4–0 → Result: Brazil 4–0 → +${pWinner + pDiff + pExact + pBonus} pts total`} />
+          <Row label={ispt ? `🚀 Bônus goleada (placar exato com ${tn.big_margin_threshold}+ gols de diferença)` : `🚀 Big margin bonus (exact score with ${tn.big_margin_threshold}+ goal difference)`} value={`+${pBonus} pts`} highlight="#f87171"
+            example={ispt ? `Ex: Você tipou 4–0 → Resultado: 4–0 → +${pWinner} + ${pDiff} + ${pExact} + ${pBonus} = ${pWinner + pDiff + pExact + pBonus} pts total` : `e.g. You tip 4–0 → Result: 4–0 → +${pWinner} + ${pDiff} + ${pExact} + ${pBonus} = ${pWinner + pDiff + pExact + pBonus} pts total`} />
         )}
-        <div style={{ marginTop: '0.75rem', padding: '0.6rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 8, fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>
-          {ispt ? '💡 Os pontos são cumulativos — acertar o placar exato também conta como vencedor correto e saldo de gols.' : '💡 Points are cumulative — an exact score also counts as correct winner and correct goal difference.'}
+        <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(96,165,250,0.05)', borderRadius: 8, border: '1px solid rgba(96,165,250,0.15)' }}>
+          <div style={{ fontSize: '0.78rem', color: '#60a5fa', fontWeight: 600, marginBottom: '0.4rem' }}>
+            🤝 {ispt ? 'EMPATES' : 'DRAWS'}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+            {ispt
+              ? `Empate é um resultado válido. Se você tipar empate e o jogo terminar empatado, você ganha o vencedor correto (${pWinner} pts). Se o saldo de gols for 0 (qualquer empate = diferença zero), você também ganha +${pDiff} pts. E se o placar for exatamente o que você tipou, ganha mais +${pExact} pts.`
+              : `A draw is a valid outcome. If you tip a draw and the match ends level, you earn the correct winner (${pWinner} pts). Since all draws have a goal difference of 0, you also earn +${pDiff} pts. And if the exact scoreline matches your tip, you earn the extra +${pExact} pts too.`}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.4rem', fontStyle: 'italic' }}>
+            {ispt
+              ? `Ex: Você tipou 1–1 → Resultado: 2–2 → +${pWinner} + ${pDiff} = ${pWinner + pDiff} pts (vencedor + saldo, mas não o placar exato)`
+              : `e.g. You tip 1–1 → Result: 2–2 → +${pWinner} + ${pDiff} = ${pWinner + pDiff} pts (winner + goal diff, but not exact score)`}
+          </div>
+        </div>
+        <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(251,191,36,0.04)', borderRadius: 8, border: '1px solid rgba(251,191,36,0.12)' }}>
+          <div style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 600, marginBottom: '0.4rem' }}>
+            ⏱️ {ispt ? 'PRORROGAÇÃO E PÊNALTIS (FASES ELIMINATÓRIAS)' : 'EXTRA TIME & PENALTIES (KNOCKOUT ROUNDS)'}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+            {ispt
+              ? 'O placar considerado é sempre o resultado aos 90 minutos (tempo normal). Prorrogação e pênaltis não afetam o placar para fins de pontuação. Para o vencedor correto nas fases eliminatórias, conta o time que efetivamente avança — seja por gols no tempo normal, prorrogação ou pênaltis.'
+              : 'The score used for points is always the 90-minute result (regular time). Extra time and penalties do not affect the score for tipping purposes. For the correct winner point in knockout rounds, the team that actually advances counts — whether through regular time, extra time, or penalties.'}
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.4rem', fontStyle: 'italic' }}>
+            {ispt
+              ? 'Ex: Brasil 1–1 França após 90 min → pênaltis → Brasil avança. Placar para pontuação = 1–1. Vencedor correto = Brasil.'
+              : 'e.g. Brazil 1–1 France after 90 min → penalties → Brazil advances. Score for tips = 1–1. Correct winner = Brazil.'}
+          </div>
         </div>
       </Section>
 
