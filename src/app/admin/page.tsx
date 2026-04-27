@@ -93,6 +93,7 @@ export default function AdminPage() {
   const [matches, setMatches] = useState<any[]>([])
   const [tournamentTips, setTournamentTips] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [propagatedCount, setPropagatedCount] = useState(0)
   const supabase = createClient()
 
   useEffect(() => { init() }, [])
@@ -750,7 +751,6 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   const [koForm, setKoForm] = useState(emptyKo)
   const [savingKo, setSavingKo] = useState(false)
   const [lockingMatch, setLockingMatch] = useState<string | null>(null)
-  const [propagatedCount, setPropagatedCount] = useState(0)
 
   async function importFIFA2026() {
     if (!confirm('This will add all 72 FIFA World Cup 2026 group stage matches. Continue?')) return
