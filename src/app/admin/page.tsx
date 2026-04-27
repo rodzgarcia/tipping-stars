@@ -80,6 +80,8 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
 }
 
 
+const WC_TEAMS = ["TBD","Albania","Argentina","Australia","Austria","Belgium","Bolivia","Brazil","Canada","Cape Verde","Chile","Colombia","Costa Rica","Croatia","Curacao","Czech Republic","DR Congo","Ecuador","Egypt","England","France","Germany","Ghana","Greece","Haiti","Honduras","Hungary","IR Iran","Iraq","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kenya","Mali","Mexico","Morocco","Netherlands","New Zealand","Nigeria","Panama","Paraguay","Peru","Poland","Portugal","Qatar","Saudi Arabia","Scotland","Senegal","Serbia","Slovakia","Slovenia","South Africa","South Korea","Spain","Switzerland","Trinidad and Tobago","Tunisia","Turkey","Ukraine","United States","Uruguay","Uzbekistan","Venezuela","Wales"]
+
 function KnockoutTemplates({ supabase, tournaments }: any) {
   const ROUNDS = [
     { key: 'r32', label: 'Round of 32', games: 16, multiplier: '2x' },
@@ -218,11 +220,11 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
           {roundMatches.map((m: any, idx: number) => (
             <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto auto', gap: '0.5rem', alignItems: 'center', padding: '0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 10 }}>
               <select className="input" style={{ background: '#1a1a2e', color: '#fff' }} value={m.home} onChange={e => setMatch(activeRound, idx, 'home', e.target.value)}>
-                {["TBD", "Albania", "Argentina", "Australia", "Austria", "Belgium", "Bolivia", "Brazil", "Canada", "Cape Verde", "Chile", "Colombia", "Costa Rica", "Croatia", "Curacao", "Czech Republic", "DR Congo", "Ecuador", "Egypt", "England", "France", "Germany", "Ghana", "Greece", "Haiti", "Honduras", "Hungary", "IR Iran", "Iraq", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kenya", "Mali", "Mexico", "Morocco", "Netherlands", "New Zealand", "Nigeria", "Panama", "Paraguay", "Peru", "Poland", "Portugal", "Qatar", "Saudi Arabia", "Scotland", "Senegal", "Serbia", "Slovakia", "Slovenia", "South Africa", "South Korea", "Spain", "Switzerland", "Trinidad & Tobago", "Tunisia", "Turkey", "Ukraine", "United States", "Uruguay", "Uzbekistan", "Venezuela", "Wales"]}.map((t: string) => <option key={t} value={t}>{t}</option>)
+                {WC_TEAMS.map((t: string) => <option key={t} value={t}>{t}</option>)}
               </select>
               <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)' }}>vs</span>
               <select className="input" style={{ background: '#1a1a2e', color: '#fff' }} value={m.away} onChange={e => setMatch(activeRound, idx, 'away', e.target.value)}>
-                {["TBD", "Albania", "Argentina", "Australia", "Austria", "Belgium", "Bolivia", "Brazil", "Canada", "Cape Verde", "Chile", "Colombia", "Costa Rica", "Croatia", "Curacao", "Czech Republic", "DR Congo", "Ecuador", "Egypt", "England", "France", "Germany", "Ghana", "Greece", "Haiti", "Honduras", "Hungary", "IR Iran", "Iraq", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kenya", "Mali", "Mexico", "Morocco", "Netherlands", "New Zealand", "Nigeria", "Panama", "Paraguay", "Peru", "Poland", "Portugal", "Qatar", "Saudi Arabia", "Scotland", "Senegal", "Serbia", "Slovakia", "Slovenia", "South Africa", "South Korea", "Spain", "Switzerland", "Trinidad & Tobago", "Tunisia", "Turkey", "Ukraine", "United States", "Uruguay", "Uzbekistan", "Venezuela", "Wales"]}.map((t: string) => <option key={t} value={t}>{t}</option>)
+                {WC_TEAMS.map((t: string) => <option key={t} value={t}>{t}</option>)}
               </select>
               <input type="datetime-local" className="input" value={m.kickoff} onChange={e => setMatch(activeRound, idx, 'kickoff', e.target.value)} style={{ width: 'auto' }} />
               <button onClick={() => removeMatch(activeRound, idx)} style={{ background: 'none', border: 'none', color: 'rgba(239,68,68,0.5)', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
@@ -670,7 +672,7 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
               <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.3rem' }}>{label}</label>
               <select className="input" style={{...selectStyle}} value={val} onChange={e => set(e.target.value)}>
                 <option value="">— Select team —</option>
-                {['Albania','Argentina','Australia','Austria','Belgium','Bolivia','Brazil','Canada','Chile','Colombia','Costa Rica','Croatia','Czech Republic','Ecuador','Egypt','England','France','Germany','Ghana','Greece','Honduras','Hungary','IR Iran','Italy','Jamaica','Japan','Kenya','Mali','Mexico','Morocco','Netherlands','New Zealand','Nigeria','Panama','Paraguay','Peru','Poland','Portugal','Qatar','Saudi Arabia','Senegal','Serbia','Slovakia','Slovenia','South Korea','Spain','Switzerland','Trinidad & Tobago','Tunisia','Turkey','Ukraine','United States','Uruguay','Venezuela','Wales'].map((tm: string) => <option key={tm} value={tm}>{tm}</option>)}
+                {WC_TEAMS.map((tm: string) => <option key={tm} value={tm}>{tm}</option>)}
               </select>
             </div>
           ))}
