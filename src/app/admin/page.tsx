@@ -167,6 +167,84 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
     setSaved(true); setTimeout(() => setSaved(false), 3000); setSaving(false)
   }
 
+  // WC 2026 official R32 bracket slots
+  const R32_BRACKET = [
+    { home: '1A', away: '2C', kickoff: '2026-06-29T20:00', venue: 'MetLife Stadium, New York' },
+    { home: '1C', away: 'Best 3rd (ABCD)', kickoff: '2026-06-29T20:00', venue: 'SoFi Stadium, Los Angeles' },
+    { home: '1B', away: 'Best 3rd (ABCD)', kickoff: '2026-06-30T16:00', venue: 'AT&T Stadium, Dallas' },
+    { home: '1D', away: '2B', kickoff: '2026-06-30T20:00', venue: 'Hard Rock Stadium, Miami' },
+    { home: '1E', away: 'Best 3rd (CDEF)', kickoff: '2026-07-01T16:00', venue: 'Arrowhead Stadium, Kansas City' },
+    { home: '1F', away: 'Best 3rd (EFGH)', kickoff: '2026-07-01T20:00', venue: "Levi's Stadium, San Francisco" },
+    { home: '1G', away: '2H', kickoff: '2026-07-02T16:00', venue: 'Gillette Stadium, Boston' },
+    { home: '1H', away: 'Best 3rd (GHIJ)', kickoff: '2026-07-02T20:00', venue: 'Lincoln Financial Field, Philadelphia' },
+    { home: '1I', away: '2K', kickoff: '2026-07-03T16:00', venue: 'Estadio Azteca, Mexico City' },
+    { home: '1J', away: 'Best 3rd (IJKL)', kickoff: '2026-07-03T20:00', venue: 'Estadio AKRON, Guadalajara' },
+    { home: '1K', away: '2L', kickoff: '2026-07-04T16:00', venue: 'Estadio Cuauhtémoc, Puebla' },
+    { home: '1L', away: '2J', kickoff: '2026-07-04T20:00', venue: 'BMO Field, Toronto' },
+    { home: '2A', away: '2D', kickoff: '2026-07-05T16:00', venue: 'BC Place, Vancouver' },
+    { home: '2E', away: '2F', kickoff: '2026-07-05T20:00', venue: 'NRG Stadium, Houston' },
+    { home: '2G', away: 'Best 3rd (ABFG)', kickoff: '2026-07-06T16:00', venue: 'State Farm Stadium, Phoenix' },
+    { home: '2I', away: 'Best 3rd (BCHI)', kickoff: '2026-07-06T20:00', venue: 'Mercedes-Benz Stadium, Atlanta' },
+  ]
+
+  // Map group positions to actual teams from standings data
+  async function autoPopulateR32() {
+    if (!tournaments.length) return
+    const tid = tournaments[0].id
+    // Load completed group stage matches
+    const { data: matches } = await supabase.from('matches')
+      .select('*').eq('tournament_id', tid).eq('round', 'group').eq('status', 'completed')
+    if (!matches?.length) {
+      alert('No completed group stage matches found. Enter some results first.')
+      return
+    }
+
+    // Calculate group standings
+    const groups: Record<string, Record<string, any>> = {}
+    for (const m of matches) {
+      if (!m.group_name) continue
+      const g = m.group_name
+      if (!groups[g]) groups[g] = {}
+      for (const [team, scored, conceded] of [
+        [m.home_team, m.home_score, m.away_score],
+        [m.away_team, m.away_score, m.home_score]
+      ] as [string, number, number][]) {
+        if (!groups[g][team]) groups[g][team] = { pts: 0, gd: 0, gf: 0, ga: 0 }
+        const s = groups[g][team]
+        s.gf += scored; s.ga += conceded; s.gd = s.gf - s.ga
+        if (scored > conceded) s.pts += 3
+        else if (scored === conceded) s.pts += 1
+      }
+    }
+
+    // Sort each group
+    const standings: Record<string, string[]> = {}
+    for (const [g, teams] of Object.entries(groups)) {
+      standings[g] = Object.entries(teams)
+        .sort(([,a]: any, [,b]: any) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf)
+        .map(([team]) => team)
+    }
+
+    // Map slot → actual team
+    function resolve(slot: string): string {
+      const m1 = slot.match(/^1([A-L])$/)
+      const m2 = slot.match(/^2([A-L])$/)
+      if (m1) return standings[m1[1]]?.[0] || slot
+      if (m2) return standings[m2[1]]?.[1] || slot
+      return 'TBD' // Best 3rd - too complex to auto-resolve
+    }
+
+    const populated = R32_BRACKET.map(m => ({
+      home: resolve(m.home),
+      away: resolve(m.away),
+      kickoff: m.kickoff,
+      venue: m.venue,
+    }))
+
+    setTemplates(prev => ({ ...prev, r32: populated }))
+    setActiveRound('r32')
+  }
+
   const roundData = ROUNDS.find(r => r.key === activeRound)!
   const roundMatches = templates[activeRound] || []
 
@@ -201,13 +279,20 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
 
       {/* Match list for active round */}
       <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.06em', color: 'var(--green-light)' }}>
             {roundData.label}
           </h3>
-          <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
-            {roundData.games} games expected · {roundData.multiplier} multiplier
-          </span>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
+              {roundData.games} games expected · {roundData.multiplier} multiplier
+            </span>
+            {activeRound === 'r32' && (
+              <button onClick={autoPopulateR32} className="btn btn-ghost" style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem', color: '#60a5fa', borderColor: 'rgba(96,165,250,0.3)' }}>
+                ⚡ Auto-populate from standings
+              </button>
+            )}
+          </div>
         </div>
 
         {roundMatches.length === 0 && (
