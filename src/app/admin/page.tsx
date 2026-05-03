@@ -7,7 +7,7 @@ import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from '
 import { format } from 'date-fns'
 import { useLang } from '../LanguageContext'
 
-type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard'
+type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard' | 'pending'
 
 function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
@@ -392,6 +392,162 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
 }
 
 
+function PendingTips({ tournamentId, supabase, tournaments }: any) {
+  const [members, setMembers] = useState<any[]>([])
+  const [matches, setMatches] = useState<any[]>([])
+  const [matchTips, setMatchTips] = useState<any[]>([])
+  const [tournamentTips, setTournamentTips] = useState<any[]>([])
+  const [profiles, setProfiles] = useState<Record<string, any>>({})
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<'matches' | 'predictions'>('matches')
+  const tournament = tournaments.find((t: any) => t.id === tournamentId)
+
+  useEffect(() => {
+    if (!tournamentId) return
+    setLoading(true)
+    Promise.all([
+      supabase.from('tournament_members').select('user_id').eq('tournament_id', tournamentId).eq('status', 'approved'),
+      supabase.from('matches').select('id, home_team, away_team, kickoff_at, round, status, tip_lock_override').eq('tournament_id', tournamentId).order('kickoff_at'),
+      supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId),
+      supabase.from('tournament_tips').select('user_id').eq('tournament_id', tournamentId),
+      supabase.from('profiles').select('id, display_name, nickname, avatar_url'),
+    ]).then(([membRes, matchRes, tipRes, ttRes, profRes]: any) => {
+      setMembers(membRes.data || [])
+      setMatches(matchRes.data || [])
+      setMatchTips(tipRes.data || [])
+      setTournamentTips(ttRes.data || [])
+      const map: Record<string, any> = {}
+      profRes.data?.forEach((p: any) => { map[p.id] = p })
+      setProfiles(map)
+      setLoading(false)
+    })
+  }, [tournamentId])
+
+  if (loading) return <div style={{ padding: '2rem', color: 'rgba(255,255,255,0.4)' }}>Loading...</div>
+
+  const lockMins = tournament?.tip_lock_minutes ?? 120
+  const memberIds = members.map((m: any) => m.user_id)
+
+  // Upcoming matches NOT yet locked — these are the ones people still need to tip
+  const upcomingMatches = matches.filter((m: any) => {
+    if (m.status !== 'upcoming') return false
+    if (m.tip_lock_override) return false
+    const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
+    return new Date() < lockTime
+  }).sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())
+
+  // For each upcoming match, find who hasn't tipped yet
+  const matchPending = upcomingMatches.map((m: any) => {
+    const tipped = new Set(matchTips.filter((t: any) => t.match_id === m.id).map((t: any) => t.user_id))
+    const missing = memberIds.filter(uid => !tipped.has(uid))
+    const kickoff = new Date(m.kickoff_at)
+    const lockTime = new Date(kickoff.getTime() - lockMins * 60 * 1000)
+    const minsUntilLock = Math.round((lockTime.getTime() - Date.now()) / 60000)
+    return { match: m, tipped: tipped.size, missing, total: memberIds.length, minsUntilLock }
+  }).filter((m: any) => m.missing.length > 0)
+
+  // For predictions — who hasn't submitted tournament tips
+  const predictedIds = new Set(tournamentTips.map((t: any) => t.user_id))
+  const missingPredictions = memberIds.filter(uid => !predictedIds.has(uid))
+
+  const roundLabel: Record<string, string> = {
+    group: 'Group', r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third_place: '3rd', final: 'Final'
+  }
+
+  const getName = (uid: string) => profiles[uid]?.nickname || profiles[uid]?.display_name || uid.slice(0,8)
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.5)' }}>
+        ⏳ PENDING TIPS — {tournament?.name}
+      </h2>
+
+      {/* Sub tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+        {([['matches', `⚽ Match Tips`], ['predictions', `🏆 Predictions`]] as const).map(([v, label]) => (
+          <button key={v} onClick={() => setView(v)} style={{
+            padding: '0.4rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
+            border: `1px solid ${view === v ? 'var(--green)' : 'rgba(255,255,255,0.15)'}`,
+            background: view === v ? 'rgba(74,222,128,0.1)' : 'transparent',
+            color: view === v ? '#4ade80' : 'rgba(255,255,255,0.5)',
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {view === 'matches' && (
+        <div>
+          {matchPending.length === 0 ? (
+            <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+              ✅ All members have tipped every upcoming match!
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', marginBottom: '0.25rem' }}>
+                Upcoming matches with missing tips — chase these players before the lock!
+              </p>
+              {matchPending.map(({ match: m, tipped, missing, total, minsUntilLock }: any) => (
+                <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', borderLeft: `3px solid ${minsUntilLock < 120 ? '#f87171' : minsUntilLock < 360 ? '#fbbf24' : 'rgba(255,255,255,0.1)'}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{m.home_team} vs {m.away_team}</span>
+                      <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.06)', padding: '0.1rem 0.4rem', borderRadius: 4 }}>
+                        {roundLabel[m.round] || m.round}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ fontSize: '0.72rem', color: minsUntilLock < 120 ? '#f87171' : minsUntilLock < 360 ? '#fbbf24' : 'rgba(255,255,255,0.4)' }}>
+                        🔒 {minsUntilLock > 60 ? `${Math.floor(minsUntilLock/60)}h ${minsUntilLock%60}m` : `${minsUntilLock}m`} until lock
+                      </span>
+                      <span style={{ fontSize: '0.78rem', color: '#4ade80' }}>{tipped}/{total} done</span>
+                      <span style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 600 }}>{missing.length} missing</span>
+                    </div>
+                  </div>
+                  <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, marginBottom: '0.6rem' }}>
+                    <div style={{ height: '100%', width: `${(tipped/total)*100}%`, background: '#4ade80', borderRadius: 2 }} />
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                    {missing.map((uid: string) => (
+                      <span key={uid} style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: 10, background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+                        {getName(uid)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {view === 'predictions' && (
+        <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '0.88rem', fontWeight: 600 }}>Tournament Predictions (Winner, 2nd, 3rd, Top Scorer)</h3>
+            <span style={{ fontSize: '0.78rem', color: missingPredictions.length > 0 ? '#f87171' : '#4ade80' }}>
+              {memberIds.length - missingPredictions.length}/{memberIds.length} submitted
+            </span>
+          </div>
+          {missingPredictions.length === 0 ? (
+            <p style={{ color: '#4ade80', fontSize: '0.85rem' }}>✅ All members have submitted predictions!</p>
+          ) : (
+            <>
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', marginBottom: '0.75rem' }}>Missing predictions from:</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {missingPredictions.map((uid: string) => (
+                  <span key={uid} style={{ fontSize: '0.78rem', padding: '0.25rem 0.75rem', borderRadius: 10, background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+                    {getName(uid)}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 export default function AdminPage() {
   const { t } = useLang()
   const router = useRouter()
@@ -565,6 +721,7 @@ export default function AdminPage() {
           <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}><Calendar size={13} style={{display:'inline',marginRight:4}}/>Matches</button>
           <button className={`tab-btn ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}><Trophy size={13} style={{display:'inline',marginRight:4}}/>Results</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>🏆 Leaderboard</button>
+          <button className={`tab-btn ${tab === 'pending' ? 'active' : ''}`} onClick={() => setTab('pending')}>⏳ Pending Tips</button>
         </div>
 
         {/* Tournament Setup */}
@@ -644,6 +801,10 @@ export default function AdminPage() {
         {/* Results */}
         {tab === 'leaderboard' && selectedTournament && (
           <AdminLeaderboard tournamentId={selectedTournament} supabase={supabase} tournaments={tournaments} />
+        )}
+
+        {tab === 'pending' && selectedTournament && (
+          <PendingTips tournamentId={selectedTournament} supabase={supabase} tournaments={tournaments} />
         )}
 
 
