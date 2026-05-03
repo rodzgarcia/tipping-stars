@@ -53,7 +53,24 @@ function calcStandings(teams: string[], matches: any[]): TeamStats[] {
     else if (hs === as_) { stats[home].drawn++; stats[home].points++; stats[away].drawn++; stats[away].points++ }
     else { stats[away].won++; stats[away].points += 3; stats[home].lost++ }
   })
-  return Object.values(stats).sort((a, b) => b.points !== a.points ? b.points - a.points : b.gd !== a.gd ? b.gd - a.gd : b.gf - a.gf)
+  return Object.values(stats).sort((a, b) =>
+    b.points !== a.points ? b.points - a.points :
+    b.gd !== a.gd ? b.gd - a.gd :
+    b.gf - a.gf
+  )
+}
+
+// Deduplicate matches across tournaments — keep one row per unique game
+// "Same game" = same home_team + away_team + kickoff date (ignoring time differences)
+function deduplicateMatches(matches: any[]): any[] {
+  const seen = new Set<string>()
+  return matches.filter(m => {
+    const date = m.kickoff_at ? m.kickoff_at.slice(0, 10) : 'unknown'
+    const key = `${m.home_team?.toLowerCase()}-${m.away_team?.toLowerCase()}-${date}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 export default function StandingsPage() {
@@ -64,8 +81,15 @@ export default function StandingsPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('matches').select('*')
-      setMatches(data || [])
+      // Load all group stage matches, then deduplicate so multiple tournaments
+      // with the same games don't double-count stats
+      const { data } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('round', 'group')
+        .order('kickoff_at')
+      const unique = deduplicateMatches(data || [])
+      setMatches(unique)
       setLoading(false)
     }
     load()
