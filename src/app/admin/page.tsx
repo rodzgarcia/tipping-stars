@@ -191,33 +191,69 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
   async function autoPopulateR32() {
     if (!tournaments.length) return
     const tid = tournaments[0].id
-    // Load completed group stage matches
+
+    // Load ALL completed matches — don't filter by round since column values may vary
     const { data: matches } = await supabase.from('matches')
-      .select('*').eq('tournament_id', tid).eq('round', 'group').eq('status', 'completed')
+      .select('*').eq('tournament_id', tid).eq('status', 'completed')
+
     if (!matches?.length) {
-      alert('No completed group stage matches found. Enter some results first.')
+      alert('No completed matches found in this tournament. Enter some results first.')
       return
     }
 
-    // Calculate group standings
+    // All WC 2026 group teams — use to identify group stage matches
+    const GROUP_TEAMS: Record<string, string[]> = {
+      A: ['Mexico', 'South Africa', 'South Korea', 'Czechia'],
+      B: ['Canada', 'Bosnia and Herzegovina', 'Qatar', 'Switzerland'],
+      C: ['Brazil', 'Morocco', 'Haiti', 'Scotland'],
+      D: ['USA', 'Paraguay', 'Australia', 'Turkey'],
+      E: ['Germany', 'Ivory Coast', 'Ecuador', 'Curacao'],
+      F: ['Netherlands', 'Sweden', 'Tunisia', 'Japan'],
+      G: ['Belgium', 'Egypt', 'Iran', 'New Zealand'],
+      H: ['Spain', 'Cape Verde', 'Saudi Arabia', 'Uruguay'],
+      I: ['France', 'Senegal', 'Iraq', 'Norway'],
+      J: ['Argentina', 'Algeria', 'Austria', 'Jordan'],
+      K: ['Portugal', 'DR Congo', 'Uzbekistan', 'Colombia'],
+      L: ['England', 'Croatia', 'Ghana', 'Panama'],
+    }
+
+    // Calculate group standings from completed matches
     const groups: Record<string, Record<string, any>> = {}
+    for (const [g, teams] of Object.entries(GROUP_TEAMS)) {
+      groups[g] = {}
+      teams.forEach(t => { groups[g][t] = { pts: 0, gd: 0, gf: 0, ga: 0 } })
+    }
+
+    let counted = 0
     for (const m of matches) {
-      if (!m.group_name) continue
-      const g = m.group_name
-      if (!groups[g]) groups[g] = {}
-      for (const [team, scored, conceded] of [
-        [m.home_team, m.home_score, m.away_score],
-        [m.away_team, m.away_score, m.home_score]
-      ] as [string, number, number][]) {
-        if (!groups[g][team]) groups[g][team] = { pts: 0, gd: 0, gf: 0, ga: 0 }
-        const s = groups[g][team]
-        s.gf += scored; s.ga += conceded; s.gd = s.gf - s.ga
-        if (scored > conceded) s.pts += 3
-        else if (scored === conceded) s.pts += 1
+      if (m.home_score === null || m.away_score === null) continue
+      // Find which group this match belongs to
+      for (const [g, teams] of Object.entries(GROUP_TEAMS)) {
+        const teamsLower = teams.map(t => t.toLowerCase())
+        if (teamsLower.includes(m.home_team?.toLowerCase()) && teamsLower.includes(m.away_team?.toLowerCase())) {
+          // Normalise team name to match our GROUP_TEAMS keys
+          const home = teams.find(t => t.toLowerCase() === m.home_team?.toLowerCase()) || m.home_team
+          const away = teams.find(t => t.toLowerCase() === m.away_team?.toLowerCase()) || m.away_team
+          const hs = Number(m.home_score), as_ = Number(m.away_score)
+          groups[g][home].gf += hs; groups[g][home].ga += as_
+          groups[g][away].gf += as_; groups[g][away].ga += hs
+          groups[g][home].gd = groups[g][home].gf - groups[g][home].ga
+          groups[g][away].gd = groups[g][away].gf - groups[g][away].ga
+          if (hs > as_) { groups[g][home].pts += 3 }
+          else if (hs === as_) { groups[g][home].pts += 1; groups[g][away].pts += 1 }
+          else { groups[g][away].pts += 3 }
+          counted++
+          break
+        }
       }
     }
 
-    // Sort each group
+    if (counted === 0) {
+      alert(`Found ${matches.length} completed matches but none matched the group stage teams. Check that team names in your matches match the groups exactly.`)
+      return
+    }
+
+    // Sort each group to get 1st and 2nd
     const standings: Record<string, string[]> = {}
     for (const [g, teams] of Object.entries(groups)) {
       standings[g] = Object.entries(teams)
@@ -225,13 +261,13 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
         .map(([team]) => team)
     }
 
-    // Map slot → actual team
+    // Map position slot to actual team name
     function resolve(slot: string): string {
       const m1 = slot.match(/^1([A-L])$/)
       const m2 = slot.match(/^2([A-L])$/)
       if (m1) return standings[m1[1]]?.[0] || slot
       if (m2) return standings[m2[1]]?.[1] || slot
-      return 'TBD' // Best 3rd - too complex to auto-resolve
+      return 'TBD'
     }
 
     const populated = R32_BRACKET.map(m => ({
@@ -243,6 +279,7 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
 
     setTemplates(prev => ({ ...prev, r32: populated }))
     setActiveRound('r32')
+    alert(`✅ R32 populated from ${counted} group stage results. Best 3rd place slots are set to TBD — update manually once all groups finish.`)
   }
 
   const roundData = ROUNDS.find(r => r.key === activeRound)!
