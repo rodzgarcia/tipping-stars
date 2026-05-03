@@ -190,16 +190,26 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
   // Map group positions to actual teams from standings data
   async function autoPopulateR32() {
     if (!tournaments.length) return
+    // Use the first tournament but also try without tournament filter
     const tid = tournaments[0].id
 
-    // Load ALL completed matches — don't filter by round since column values may vary
-    const { data: matches } = await supabase.from('matches')
-      .select('*').eq('tournament_id', tid).eq('status', 'completed')
+    // Load ALL completed matches across ALL tournaments — deduplicate by teams+date
+    const { data: allMatches } = await supabase.from('matches')
+      .select('*').eq('status', 'completed')
 
-    if (!matches?.length) {
-      alert('No completed matches found in this tournament. Enter some results first.')
+    if (!allMatches?.length) {
+      alert('No completed matches found anywhere. Enter some results first.')
       return
     }
+
+    // Deduplicate by home+away+date so multiple tournaments don't double-count
+    const seen = new Set<string>()
+    const matches = allMatches.filter((m: any) => {
+      const key = `${m.home_team?.toLowerCase()}-${m.away_team?.toLowerCase()}-${m.kickoff_at?.slice(0,10)}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
 
     // All WC 2026 group teams — use to identify group stage matches
     const GROUP_TEAMS: Record<string, string[]> = {
