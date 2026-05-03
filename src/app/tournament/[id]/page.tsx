@@ -117,6 +117,7 @@ export default function TournamentPage() {
   const router = useRouter()
   const tournamentId = params.id as string
   const [tab, setTab] = useState<Tab>('leaderboard')
+  const [tipsView, setTipsView] = useState<'open' | 'locked'>('open')
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [tournament, setTournament] = useState<any>(null)
@@ -234,29 +235,67 @@ export default function TournamentPage() {
 
         {/* Match Tips */}
         {tab === 'tips' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '3rem' }}>
-            {Object.entries(grouped).map(([round, roundMatches]) => (
-              <div key={round}>
-                <div className="flex items-center gap-3" style={{ marginBottom: '0.75rem' }}>
-                  <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)' }}>
-                    {roundLabel[round]}
-                  </h2>
-                  <span className="badge badge-gold">{multiplierLabel[round]}x multiplier</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  {roundMatches.map((match: any) => (
-                    <MatchTipCard
-                      key={match.id}
-                      match={match}
-                      tip={myTips[match.id]}
-                      tournament={tournament}
-                      userId={user.id}
-                      onSave={loadAll}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
+            {/* Sub-tabs: Open vs Locked */}
+            {(() => {
+              const lockMins = tournament?.tip_lock_minutes ?? 120
+              const isMatchLocked = (m: any) => m.tip_lock_override || m.status !== 'upcoming' || new Date() >= new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
+              const openMatches = matches.filter((m: any) => !isMatchLocked(m))
+              const lockedMatches = matches.filter((m: any) => isMatchLocked(m))
+              return (
+                <>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {([['open', `⚽ Open (${openMatches.length})`], ['locked', `🔒 Locked / Past (${lockedMatches.length})`]] as const).map(([v, label]) => (
+                      <button key={v} onClick={() => setTipsView(v)} style={{
+                        padding: '0.4rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
+                        border: `1px solid ${tipsView === v ? 'var(--green)' : 'rgba(255,255,255,0.15)'}`,
+                        background: tipsView === v ? 'rgba(74,222,128,0.1)' : 'transparent',
+                        color: tipsView === v ? '#4ade80' : 'rgba(255,255,255,0.5)',
+                      }}>{label}</button>
+                    ))}
+                  </div>
+                  {(() => {
+                    const viewMatches = tipsView === 'open' ? openMatches : lockedMatches
+                    const viewGrouped = roundOrder.reduce((acc, r) => {
+                      const ms = viewMatches.filter((m: any) => m.round === r)
+                      if (ms.length) acc[r] = ms
+                      return acc
+                    }, {} as Record<string, any[]>)
+                    if (viewMatches.length === 0) return (
+                      <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+                        {tipsView === 'open' ? 'No open matches right now — all tips are locked.' : 'No locked or past matches yet.'}
+                      </div>
+                    )
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {Object.entries(viewGrouped).map(([round, roundMatches]) => (
+                          <div key={round}>
+                            <div className="flex items-center gap-3" style={{ marginBottom: '0.75rem' }}>
+                              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)' }}>
+                                {roundLabel[round]}
+                              </h2>
+                              <span className="badge badge-gold">{multiplierLabel[round]}x multiplier</span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                              {(roundMatches as any[]).map((match: any) => (
+                                <MatchTipCard
+                                  key={match.id}
+                                  match={match}
+                                  tip={myTips[match.id]}
+                                  tournament={tournament}
+                                  userId={user.id}
+                                  onSave={loadAll}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </>
+              )
+            })()}
             {matches.length === 0 && (
               <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
                 Matches haven't been added yet. Check back soon!
