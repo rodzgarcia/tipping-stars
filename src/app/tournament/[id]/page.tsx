@@ -491,6 +491,16 @@ export default function TournamentPage() {
             <div style={{ fontSize: '4rem', marginBottom: '0.5rem' }}>
               {POSITION_EMOJI[myProfile.tip_position] || '⚽'}
             </div>
+            {(() => {
+              const code = TEAM_FLAGS[myProfile.jersey_team]
+              return code ? (
+                <img
+                  src={`https://flagcdn.com/w80/${code}.png`}
+                  alt={myProfile.jersey_team}
+                  style={{ width: 60, height: 45, borderRadius: 6, objectFit: 'cover', margin: '0 auto 0.75rem', display: 'block', boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}
+                />
+              ) : null
+            })()}
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.75rem', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.4)', marginBottom: '0.5rem' }}>
               YOUR TIPPING IDENTITY
             </div>
