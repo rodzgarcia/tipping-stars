@@ -169,22 +169,22 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
 
   // WC 2026 official R32 bracket slots
   const R32_BRACKET = [
-    { home: '1A', away: '2C', kickoff: '2026-06-29T20:00', venue: 'MetLife Stadium, New York' },
-    { home: '1C', away: 'Best 3rd (ABCD)', kickoff: '2026-06-29T20:00', venue: 'SoFi Stadium, Los Angeles' },
-    { home: '1B', away: 'Best 3rd (ABCD)', kickoff: '2026-06-30T16:00', venue: 'AT&T Stadium, Dallas' },
-    { home: '1D', away: '2B', kickoff: '2026-06-30T20:00', venue: 'Hard Rock Stadium, Miami' },
-    { home: '1E', away: 'Best 3rd (CDEF)', kickoff: '2026-07-01T16:00', venue: 'Arrowhead Stadium, Kansas City' },
-    { home: '1F', away: 'Best 3rd (EFGH)', kickoff: '2026-07-01T20:00', venue: "Levi's Stadium, San Francisco" },
-    { home: '1G', away: '2H', kickoff: '2026-07-02T16:00', venue: 'Gillette Stadium, Boston' },
-    { home: '1H', away: 'Best 3rd (GHIJ)', kickoff: '2026-07-02T20:00', venue: 'Lincoln Financial Field, Philadelphia' },
-    { home: '1I', away: '2K', kickoff: '2026-07-03T16:00', venue: 'Estadio Azteca, Mexico City' },
-    { home: '1J', away: 'Best 3rd (IJKL)', kickoff: '2026-07-03T20:00', venue: 'Estadio AKRON, Guadalajara' },
-    { home: '1K', away: '2L', kickoff: '2026-07-04T16:00', venue: 'Estadio Cuauhtémoc, Puebla' },
-    { home: '1L', away: '2J', kickoff: '2026-07-04T20:00', venue: 'BMO Field, Toronto' },
-    { home: '2A', away: '2D', kickoff: '2026-07-05T16:00', venue: 'BC Place, Vancouver' },
-    { home: '2E', away: '2F', kickoff: '2026-07-05T20:00', venue: 'NRG Stadium, Houston' },
-    { home: '2G', away: 'Best 3rd (ABFG)', kickoff: '2026-07-06T16:00', venue: 'State Farm Stadium, Phoenix' },
-    { home: '2I', away: 'Best 3rd (BCHI)', kickoff: '2026-07-06T20:00', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { home: '1A', away: '3CEFHI',  kickoff: '2026-06-29T20:00', venue: 'TBD' },
+    { home: '1B', away: '3EFGIJ',  kickoff: '2026-06-29T20:00', venue: 'TBD' },
+    { home: '1C', away: '2F',      kickoff: '2026-06-30T16:00', venue: 'TBD' },
+    { home: '1D', away: '3BEFIJ',  kickoff: '2026-06-30T20:00', venue: 'TBD' },
+    { home: '1E', away: '3ABCDF',  kickoff: '2026-07-01T16:00', venue: 'TBD' },
+    { home: '1F', away: '2C',      kickoff: '2026-07-01T20:00', venue: 'TBD' },
+    { home: '1G', away: '3AEHIJ',  kickoff: '2026-07-02T16:00', venue: 'TBD' },
+    { home: '1H', away: '2J',      kickoff: '2026-07-02T20:00', venue: 'TBD' },
+    { home: '1I', away: '3CDFGH',  kickoff: '2026-07-03T16:00', venue: 'TBD' },
+    { home: '1J', away: '2H',      kickoff: '2026-07-03T20:00', venue: 'TBD' },
+    { home: '1K', away: '3DEIJL',  kickoff: '2026-07-04T16:00', venue: 'TBD' },
+    { home: '1L', away: '3EHIJK',  kickoff: '2026-07-04T20:00', venue: 'TBD' },
+    { home: '2A', away: '2B',      kickoff: '2026-07-05T16:00', venue: 'TBD' },
+    { home: '2D', away: '2G',      kickoff: '2026-07-05T20:00', venue: 'TBD' },
+    { home: '2E', away: '2I',      kickoff: '2026-07-06T16:00', venue: 'TBD' },
+    { home: '2K', away: '2L',      kickoff: '2026-07-06T20:00', venue: 'TBD' },
   ]
 
   // Map group positions to actual teams from standings data
