@@ -117,6 +117,8 @@ export default function TournamentPage() {
   const router = useRouter()
   const tournamentId = params.id as string
   const [tab, setTab] = useState<Tab>('leaderboard')
+  const [showWelcome, setShowWelcome] = useState(false)
+  const [myProfile, setMyProfile] = useState<any>(null)
   const [tipsView, setTipsView] = useState<'open' | 'locked'>('open')
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -451,6 +453,59 @@ export default function TournamentPage() {
           />
         )}
       <HelpChat t={t} tournament={tournament} />
+
+      {showWelcome && myProfile && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
+        }} onClick={() => { setShowWelcome(false); localStorage.setItem(`welcome_seen_${user.id}`, '1') }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#0d1511', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 20, padding: '2.5rem 2rem', maxWidth: 380, width: '100%',
+            textAlign: 'center', position: 'relative',
+          }}>
+            {/* Flag + jersey */}
+            <div style={{ fontSize: '4rem', marginBottom: '0.5rem' }}>
+              {POSITION_EMOJI[myProfile.tip_position] || '⚽'}
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.75rem', letterSpacing: '0.15em', color: 'rgba(255,255,255,0.4)', marginBottom: '0.5rem' }}>
+              YOUR TIPPING IDENTITY
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', letterSpacing: '0.05em', marginBottom: '0.25rem', color: '#fbbf24' }}>
+              {POSITION_NAMES[myProfile.tip_position] || myProfile.tip_position}
+            </h2>
+            <div style={{ fontSize: '1.1rem', color: '#e8f5ee', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <span>from</span>
+              <strong style={{ color: '#4ade80' }}>{myProfile.jersey_team}</strong>
+            </div>
+            <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', marginBottom: '1.5rem', lineHeight: 1.6, fontStyle: 'italic' }}>
+              {(() => {
+                const pos = myProfile.tip_position
+                const team = myProfile.jersey_team
+                if (pos === 'GK') return `The last line of defence. ${team} is counting on you to save the day — and tip some clean sheets.`
+                if (pos === 'CB') return `Solid as a rock. ${team} built their defence around you. Now build your leaderboard position.`
+                if (['LB','RB'].includes(pos)) return `Always overlapping, always active. A ${team} full-back who never stops — just like your tipping.`
+                if (pos === 'CDM') return `The destroyer. ${team}'s engine room. You break up play and break opponents' hearts.`
+                if (['CM','CAM'].includes(pos)) return `The maestro. ${team} runs through you. So does the tipping competition.`
+                if (['LW','RW'].includes(pos)) return `Pace, flair, and unpredictability — just like your tips. ${team}'s flank is yours.`
+                if (['ST','CF','SS'].includes(pos)) return `Goals. That's all that matters. ${team} signed you to score — now score big on the leaderboard.`
+                return `Welcome to the ${team} squad. Time to show what you've got.`
+              })()}
+            </div>
+            <button
+              onClick={() => { setShowWelcome(false); localStorage.setItem(`welcome_seen_${user.id}`, '1') }}
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem' }}
+            >
+              Let's go! 🚀
+            </button>
+            <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.75rem' }}>
+              Tap anywhere to close
+            </p>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   )
@@ -1671,6 +1726,15 @@ const JERSEY_COLORS: Record<string, { primary: string, secondary: string, accent
 }
 
 const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','SS']
+const POSITION_NAMES: Record<string, string> = {
+  ST: 'Striker', CF: 'Centre Forward', LW: 'Left Winger', RW: 'Right Winger',
+  CAM: 'Attacking Mid', CM: 'Central Mid', CDM: 'Defensive Mid',
+  LB: 'Left Back', RB: 'Right Back', CB: 'Centre Back', GK: 'Goalkeeper', SS: 'Second Striker'
+}
+const POSITION_EMOJI: Record<string, string> = {
+  ST: '⚽', CF: '🎯', LW: '💨', RW: '💨', CAM: '🪄',
+  CM: '🔄', CDM: '🛡️', LB: '🏃', RB: '🏃', CB: '🧱', GK: '🧤', SS: '⚡'
+}
 const FLAGS: Record<string, string> = {
   Brazil:'🇧🇷',Argentina:'🇦🇷',France:'🇫🇷',England:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',Germany:'🇩🇪',Spain:'🇪🇸',
   Portugal:'🇵🇹',Netherlands:'🇳🇱',USA:'🇺🇸',Mexico:'🇲🇽',Australia:'🇦🇺',Japan:'🇯🇵',
