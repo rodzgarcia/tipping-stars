@@ -30,6 +30,17 @@ const TEAM_FLAGS: Record<string, string> = {
   'Uzbekistan':'uz',  'Ivory Coast':'ci',  'Cameroon':'cm',
 }
 
+const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','SS']
+const POSITION_NAMES: Record<string, string> = {
+  ST: 'Striker', CF: 'Centre Forward', LW: 'Left Winger', RW: 'Right Winger',
+  CAM: 'Attacking Mid', CM: 'Central Mid', CDM: 'Defensive Mid',
+  LB: 'Left Back', RB: 'Right Back', CB: 'Centre Back', GK: 'Goalkeeper', SS: 'Second Striker'
+}
+const POSITION_EMOJI: Record<string, string> = {
+  ST: '⚽', CF: '🎯', LW: '💨', RW: '💨', CAM: '🪄',
+  CM: '🔄', CDM: '🛡️', LB: '🏃', RB: '🏃', CB: '🧱', GK: '🧤', SS: '⚡'
+}
+
 function FlagImg({ team, size = 20 }: { team: string, size?: number }) {
   const code = TEAM_FLAGS[team]
   if (!code) return null
@@ -179,6 +190,17 @@ export default function TournamentPage() {
     if (ttRes.error) console.warn('tournament_tips load:', ttRes.error.message)
     setMyTournamentTip(ttRes.data || null)
     setAllTournamentTips(allTtRes.data || [])
+
+    // Welcome popup — show once when jersey_team is assigned
+    const myProf = profRes.data
+    if (myProf?.jersey_team) {
+      setMyProfile(myProf)
+      const key = `welcome_seen_${myProf.id}_${myProf.jersey_team}`
+      if (!localStorage.getItem(key)) {
+        setShowWelcome(true)
+      }
+    }
+
     setLoading(false)
   }
 
@@ -459,7 +481,7 @@ export default function TournamentPage() {
           position: 'fixed', inset: 0, zIndex: 2000,
           background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
-        }} onClick={() => { setShowWelcome(false); localStorage.setItem(`welcome_seen_${user.id}`, '1') }}>
+        }} onClick={() => { setShowWelcome(false); localStorage.setItem(`welcome_seen_${user.id}_${myProfile?.jersey_team}`, '1') }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: '#0d1511', border: '1px solid rgba(255,255,255,0.12)',
             borderRadius: 20, padding: '2.5rem 2rem', maxWidth: 380, width: '100%',
@@ -494,7 +516,7 @@ export default function TournamentPage() {
               })()}
             </div>
             <button
-              onClick={() => { setShowWelcome(false); localStorage.setItem(`welcome_seen_${user.id}`, '1') }}
+              onClick={() => { setShowWelcome(false); localStorage.setItem(`welcome_seen_${user.id}_${myProfile?.jersey_team}`, '1') }}
               className="btn btn-primary"
               style={{ width: '100%', padding: '0.75rem', fontSize: '0.95rem' }}
             >
@@ -1725,16 +1747,7 @@ const JERSEY_COLORS: Record<string, { primary: string, secondary: string, accent
   default:     { primary: '#1a4a3a', secondary: '#4ade80', accent: '#ffffff' },
 }
 
-const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','SS']
-const POSITION_NAMES: Record<string, string> = {
-  ST: 'Striker', CF: 'Centre Forward', LW: 'Left Winger', RW: 'Right Winger',
-  CAM: 'Attacking Mid', CM: 'Central Mid', CDM: 'Defensive Mid',
-  LB: 'Left Back', RB: 'Right Back', CB: 'Centre Back', GK: 'Goalkeeper', SS: 'Second Striker'
-}
-const POSITION_EMOJI: Record<string, string> = {
-  ST: '⚽', CF: '🎯', LW: '💨', RW: '💨', CAM: '🪄',
-  CM: '🔄', CDM: '🛡️', LB: '🏃', RB: '🏃', CB: '🧱', GK: '🧤', SS: '⚡'
-}
+
 const FLAGS: Record<string, string> = {
   Brazil:'🇧🇷',Argentina:'🇦🇷',France:'🇫🇷',England:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',Germany:'🇩🇪',Spain:'🇪🇸',
   Portugal:'🇵🇹',Netherlands:'🇳🇱',USA:'🇺🇸',Mexico:'🇲🇽',Australia:'🇦🇺',Japan:'🇯🇵',
@@ -1836,7 +1849,7 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) 
           {/* Rating + position + flag */}
           <div style={{ padding: isGold || isGrey ? '2px 12px 0' : '7px 12px 0' }}>
             <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 0.88, letterSpacing: -2, color: textColor }}>{rating}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: subColor, marginTop: 2 }}>{position}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: subColor, marginTop: 2 }}>{POSITION_NAMES[position] || position}</div>
             <div style={{ width: 28, height: 20, borderRadius: 3, overflow: 'hidden', marginTop: 4, border: `1px solid ${borderColor}` }}>
               {flagUrl
                 ? <img src={flagUrl} alt={team} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
