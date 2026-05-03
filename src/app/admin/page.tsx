@@ -7,7 +7,7 @@ import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from '
 import { format } from 'date-fns'
 import { useLang } from '../LanguageContext'
 
-type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard' | 'knockout'
+type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard'
 
 function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
@@ -565,7 +565,6 @@ export default function AdminPage() {
           <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}><Calendar size={13} style={{display:'inline',marginRight:4}}/>Matches</button>
           <button className={`tab-btn ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}><Trophy size={13} style={{display:'inline',marginRight:4}}/>Results</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>🏆 Leaderboard</button>
-          <button className={`tab-btn ${tab === 'knockout' ? 'active' : ''}`} onClick={() => setTab('knockout')}>⚡ Knockout</button>
         </div>
 
         {/* Tournament Setup */}
@@ -647,9 +646,6 @@ export default function AdminPage() {
           <AdminLeaderboard tournamentId={selectedTournament} supabase={supabase} tournaments={tournaments} />
         )}
 
-        {tab === 'knockout' && (
-          <KnockoutTemplates supabase={supabase} tournaments={tournaments} />
-        )}
 
         {tab === 'results' && (
           <div style={{ marginBottom: '0.75rem', padding: '0.6rem 1rem', background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.15)', borderRadius: 10, fontSize: '0.78rem', color: 'rgba(96,165,250,0.7)' }}>
