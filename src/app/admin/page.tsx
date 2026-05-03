@@ -1154,30 +1154,23 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
 
       <div className="card" style={{ padding: '1.5rem', background: 'rgba(96,165,250,0.04)', border: '1px solid rgba(96,165,250,0.15)', marginBottom: '0' }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.5rem', color: '#60a5fa' }}>⚡ ADD KNOCKOUT MATCH</h3>
-        <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.35rem' }}>
-          Add knockout matches early — use TBD placeholders if teams aren't confirmed yet. Edit the match later to fill in the real team names once known.
-        </p>
-        <p style={{ fontSize: '0.78rem', color: 'rgba(96,165,250,0.5)', marginBottom: '1rem' }}>
-          💡 Tip: Add the match with TBD teams &amp; correct kickoff time right away so tippers can see it's coming. Edit teams when they're confirmed.
+        <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>
+          Add knockout matches to all tournaments at once. Use TBD if teams aren't confirmed yet.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
           <div>
             <label className="label">Home team</label>
-            <input type="text" className="input" placeholder="e.g. Brazil or TBD" value={koForm.home_team} onChange={e => setKoForm({...koForm,home_team:e.target.value})} />
-            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
-              {['TBD','Winner Group A','Runner-up Group B'].map(s => (
-                <button key={s} onClick={() => setKoForm({...koForm,home_team:s})} style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', borderRadius: 10, border: '1px solid rgba(96,165,250,0.3)', background: 'transparent', color: '#60a5fa', cursor: 'pointer' }}>{s}</button>
-              ))}
-            </div>
+            <select className="input" style={{ background: '#1a1a2e', color: koForm.home_team ? '#fff' : 'rgba(255,255,255,0.4)' }} value={koForm.home_team} onChange={e => setKoForm({...koForm, home_team: e.target.value})}>
+              <option value="">Select team...</option>
+              {WC_TEAMS.map((t: string) => <option key={t} value={t}>{t}</option>)}
+            </select>
           </div>
           <div>
             <label className="label">Away team</label>
-            <input type="text" className="input" placeholder="e.g. Argentina or TBD" value={koForm.away_team} onChange={e => setKoForm({...koForm,away_team:e.target.value})} />
-            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
-              {['TBD','Winner Group C','Runner-up Group D'].map(s => (
-                <button key={s} onClick={() => setKoForm({...koForm,away_team:s})} style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', borderRadius: 10, border: '1px solid rgba(96,165,250,0.3)', background: 'transparent', color: '#60a5fa', cursor: 'pointer' }}>{s}</button>
-              ))}
-            </div>
+            <select className="input" style={{ background: '#1a1a2e', color: koForm.away_team ? '#fff' : 'rgba(255,255,255,0.4)' }} value={koForm.away_team} onChange={e => setKoForm({...koForm, away_team: e.target.value})}>
+              <option value="">Select team...</option>
+              {WC_TEAMS.map((t: string) => <option key={t} value={t}>{t}</option>)}
+            </select>
           </div>
           <div><label className="label">Kickoff (local time)</label><input type="datetime-local" className="input" value={koForm.kickoff_at} onChange={e => setKoForm({...koForm,kickoff_at:e.target.value})} /></div>
           <div>
