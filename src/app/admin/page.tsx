@@ -1197,7 +1197,35 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
               {WC_TEAMS.map((t: string) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <div><label className="label">Kickoff (local time)</label><input type="datetime-local" className="input" value={koForm.kickoff_at} onChange={e => setKoForm({...koForm,kickoff_at:e.target.value})} /></div>
+          <div>
+            <label className="label">Kickoff time</label>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              <input type="datetime-local" className="input" value={koForm.kickoff_at} onChange={e => setKoForm({...koForm,kickoff_at:e.target.value})} style={{ flex: 1 }} />
+              <select className="input" style={{ width: 'auto', background: '#1a1a2e', color: '#fff', fontSize: '0.75rem' }}
+                onChange={e => {
+                  if (!koForm.kickoff_at || !e.target.value) return
+                  const offsetHours = Number(e.target.value)
+                  const local = new Date(koForm.kickoff_at)
+                  const utc = new Date(local.getTime() - offsetHours * 60 * 60 * 1000)
+                  const pad = (n: number) => String(n).padStart(2,'0')
+                  const utcStr = `${utc.getFullYear()}-${pad(utc.getMonth()+1)}-${pad(utc.getDate())}T${pad(utc.getHours())}:${pad(utc.getMinutes())}`
+                  setKoForm({...koForm, kickoff_at: utcStr})
+                  e.target.value = ''
+                }}>
+                <option value="">Convert TZ→UTC</option>
+                <option value="-4">ET (UTC-4) e.g. New York/Miami</option>
+                <option value="-5">CT (UTC-5) e.g. Dallas/KC</option>
+                <option value="-6">MT (UTC-6) e.g. Denver/Phoenix</option>
+                <option value="-7">PT (UTC-7) e.g. LA/Seattle</option>
+                <option value="-6">Mexico City (UTC-6)</option>
+                <option value="-7">Vancouver/BC (UTC-7)</option>
+                <option value="10">Sydney AEST (UTC+10)</option>
+              </select>
+            </div>
+            <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
+              Enter local kickoff time, then select the venue timezone to auto-convert to UTC
+            </p>
+          </div>
           <div>
             <label className="label">Round</label>
             <select className="input" value={koForm.round} onChange={e => setKoForm({...koForm,round:e.target.value})}>
