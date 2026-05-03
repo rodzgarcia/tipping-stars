@@ -1182,26 +1182,45 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
         <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1rem' }}>
           Add knockout matches to all tournaments at once. Use TBD if teams aren't confirmed yet.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
-          <div>
-            <label className="label">Home team</label>
-            <select className="input" style={{ background: '#1a1a2e', color: koForm.home_team ? '#fff' : 'rgba(255,255,255,0.4)' }} value={koForm.home_team} onChange={e => setKoForm({...koForm, home_team: e.target.value})}>
-              <option value="">Select team...</option>
-              {WC_TEAMS.map((t: string) => <option key={t} value={t}>{t}</option>)}
-            </select>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label className="label">Home team</label>
+              <select className="input" style={{ background: '#1a1a2e', color: koForm.home_team ? '#fff' : 'rgba(255,255,255,0.4)' }} value={koForm.home_team} onChange={e => setKoForm({...koForm, home_team: e.target.value})}>
+                <option value="">Select team...</option>
+                {WC_TEAMS.map((t: string) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Away team</label>
+              <select className="input" style={{ background: '#1a1a2e', color: koForm.away_team ? '#fff' : 'rgba(255,255,255,0.4)' }} value={koForm.away_team} onChange={e => setKoForm({...koForm, away_team: e.target.value})}>
+                <option value="">Select team...</option>
+                {WC_TEAMS.map((t: string) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label className="label">Round</label>
+              <select className="input" value={koForm.round} onChange={e => setKoForm({...koForm,round:e.target.value})}>
+                <option value="r32">Round of 32</option>
+                <option value="r16">Round of 16</option>
+                <option value="qf">Quarter-finals</option>
+                <option value="sf">Semi-finals</option>
+                <option value="third_place">3rd Place</option>
+                <option value="final">Final</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Venue (optional)</label>
+              <input type="text" className="input" placeholder="e.g. SoFi Stadium" value={koForm.venue} onChange={e => setKoForm({...koForm,venue:e.target.value})} />
+            </div>
           </div>
           <div>
-            <label className="label">Away team</label>
-            <select className="input" style={{ background: '#1a1a2e', color: koForm.away_team ? '#fff' : 'rgba(255,255,255,0.4)' }} value={koForm.away_team} onChange={e => setKoForm({...koForm, away_team: e.target.value})}>
-              <option value="">Select team...</option>
-              {WC_TEAMS.map((t: string) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">Kickoff time</label>
-            <div style={{ display: 'flex', gap: '0.4rem' }}>
-              <input type="datetime-local" className="input" value={koForm.kickoff_at} onChange={e => setKoForm({...koForm,kickoff_at:e.target.value})} style={{ flex: 1 }} />
-              <select className="input" style={{ width: 'auto', background: '#1a1a2e', color: '#fff', fontSize: '0.75rem' }}
+            <label className="label">Kickoff time (enter local time, then convert to UTC)</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <input type="datetime-local" className="input" value={koForm.kickoff_at} onChange={e => setKoForm({...koForm,kickoff_at:e.target.value})} />
+              <select className="input" style={{ background: '#1a1a2e', color: '#fff' }}
                 onChange={e => {
                   if (!koForm.kickoff_at || !e.target.value) return
                   const offsetHours = Number(e.target.value)
@@ -1212,33 +1231,20 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
                   setKoForm({...koForm, kickoff_at: utcStr})
                   e.target.value = ''
                 }}>
-                <option value="">Convert TZ→UTC</option>
-                <option value="-4">ET (UTC-4) e.g. New York/Miami</option>
-                <option value="-5">CT (UTC-5) e.g. Dallas/KC</option>
-                <option value="-6">MT (UTC-6) e.g. Denver/Phoenix</option>
-                <option value="-7">PT (UTC-7) e.g. LA/Seattle</option>
+                <option value="">→ Convert to UTC</option>
+                <option value="-4">ET (UTC-4) — New York / Miami</option>
+                <option value="-5">CT (UTC-5) — Dallas / Kansas City</option>
+                <option value="-6">MT (UTC-6) — Denver / Phoenix</option>
+                <option value="-7">PT (UTC-7) — LA / Seattle</option>
                 <option value="-6">Mexico City (UTC-6)</option>
-                <option value="-7">Vancouver/BC (UTC-7)</option>
+                <option value="-7">Vancouver / BC (UTC-7)</option>
                 <option value="10">Sydney AEST (UTC+10)</option>
               </select>
             </div>
             <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
-              Enter local kickoff time, then select the venue timezone to auto-convert to UTC
+              Enter local kickoff time → select venue timezone → field auto-converts to UTC
             </p>
           </div>
-          <div>
-            <label className="label">Round</label>
-            <select className="input" value={koForm.round} onChange={e => setKoForm({...koForm,round:e.target.value})}>
-              <option value="r32">Round of 32</option>
-              <option value="r16">Round of 16</option>
-              <option value="qf">Quarter-finals</option>
-              <option value="sf">Semi-finals</option>
-              <option value="third_place">3rd Place</option>
-              <option value="final">Final</option>
-            </select>
-          </div>
-          <div><label className="label">Venue (optional)</label><input type="text" className="input" placeholder="e.g. SoFi Stadium" value={koForm.venue} onChange={e => setKoForm({...koForm,venue:e.target.value})} /></div>
-        </div>
         <button onClick={addKoMatch} disabled={savingKo || !koForm.home_team || !koForm.away_team || !koForm.kickoff_at} className="btn btn-primary" style={{ marginTop: '1rem', background: 'rgba(96,165,250,0.2)', borderColor: '#60a5fa', color: '#60a5fa' }}>
           <Plus size={14} />{savingKo ? 'Adding...' : 'Add knockout match'}
         </button>
