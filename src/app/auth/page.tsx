@@ -33,25 +33,28 @@ function AuthForm() {
       })
       if (signUpError) {
         setError(signUpError.message)
-      } else if (data.user && nickname.trim()) {
-        // Save nickname to profile — profile row is created by Supabase trigger on auth.users insert
-        // We retry a couple of times since the trigger may take a moment
+      } else if (data.user) {
+        // Random jersey team + position assignment
+        const WC_TEAMS = ['Argentina','France','England','Spain','Brazil','Portugal','Netherlands','Germany','Italy','Morocco','Croatia','United States','Mexico','Japan','Uruguay','Colombia','Senegal','Switzerland','South Korea','Ecuador','Canada','Australia','Turkey','Poland','Serbia','Scotland','Belgium','Egypt','Iran','New Zealand']
+        const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK']
+        const randomTeam = WC_TEAMS[Math.floor(Math.random() * WC_TEAMS.length)]
+        const randomPosition = POSITIONS[Math.floor(Math.random() * POSITIONS.length)]
+
+        // Retry saving profile since Supabase trigger takes a moment
         let attempts = 0
-        const saveNickname = async () => {
+        const saveProfile = async () => {
           attempts++
+          const updateData: any = { jersey_team: randomTeam, tip_position: randomPosition }
+          if (nickname.trim()) updateData.nickname = nickname.trim()
           const { error: updateError } = await supabase
             .from('profiles')
-            .update({ nickname: nickname.trim() })
+            .update(updateData)
             .eq('id', data.user!.id)
-          if (updateError && attempts < 3) {
-            setTimeout(saveNickname, 800)
+          if (updateError && attempts < 5) {
+            setTimeout(saveProfile, 800)
           }
         }
-        setTimeout(saveNickname, 600)
-        setSuccess(t.lang === 'pt'
-          ? 'Conta criada! Verifique seu e-mail para confirmar, depois entre.'
-          : 'Account created! Check your email to confirm, then sign in.')
-      } else {
+        setTimeout(saveProfile, 600)
         setSuccess(t.lang === 'pt'
           ? 'Conta criada! Verifique seu e-mail para confirmar, depois entre.'
           : 'Account created! Check your email to confirm, then sign in.')
