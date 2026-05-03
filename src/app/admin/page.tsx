@@ -1107,20 +1107,37 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   async function addKoMatch() {
     if (!koForm.home_team || !koForm.away_team || !koForm.kickoff_at) return
     setSavingKo(true)
-    // Insert into ALL tournaments so everyone sees the knockout match
-    const { data: allTours } = await supabase.from('tournaments').select('id')
-    const inserts = (allTours || []).map((t: any) => ({
-      home_team: koForm.home_team,
-      away_team: koForm.away_team,
-      kickoff_at: new Date(koForm.kickoff_at).toISOString(),
-      round: koForm.round,
-      venue: koForm.venue || null,
-      group_name: null,
-      status: 'upcoming',
-      tournament_id: t.id,
-    }))
-    if (inserts.length) await supabase.from('matches').insert(inserts)
-    setKoForm(emptyKo); onUpdate(); setSavingKo(false)
+    try {
+      // Insert into ALL tournaments so everyone sees the knockout match
+      const { data: allTours, error: tourErr } = await supabase.from('tournaments').select('id')
+      if (tourErr) { alert('Error fetching tournaments: ' + tourErr.message); setSavingKo(false); return }
+      
+      const kickoffISO = new Date(koForm.kickoff_at).toISOString()
+      const inserts = (allTours || []).map((t: any) => ({
+        home_team: koForm.home_team,
+        away_team: koForm.away_team,
+        kickoff_at: kickoffISO,
+        round: koForm.round,
+        venue: koForm.venue || null,
+        group_name: null,
+        status: 'upcoming',
+        tournament_id: t.id,
+      }))
+      
+      console.log('Inserting knockout matches:', inserts)
+      const { error } = await supabase.from('matches').insert(inserts)
+      if (error) {
+        alert('Error adding match: ' + error.message)
+        console.error('Insert error:', error)
+      } else {
+        alert(`✅ Match added to ${inserts.length} tournament(s)!`)
+        setKoForm(emptyKo)
+        onUpdate()
+      }
+    } catch (e: any) {
+      alert('Error: ' + e.message)
+    }
+    setSavingKo(false)
   }
 
   async function deleteMatch(id: string) {
