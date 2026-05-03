@@ -1063,6 +1063,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   const [importDone, setImportDone] = useState(false)
   const emptyKo = { home_team: '', away_team: '', kickoff_at: '', round: 'r32', venue: '', tournament_id: tournamentId }
   const [koForm, setKoForm] = useState(emptyKo)
+  const [koTimezone, setKoTimezone] = useState('')
   const [savingKo, setSavingKo] = useState(false)
   const [lockingMatch, setLockingMatch] = useState<string | null>(null)
 
@@ -1221,23 +1222,23 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <input type="datetime-local" className="input" value={koForm.kickoff_at} onChange={e => setKoForm({...koForm,kickoff_at:e.target.value})} />
               <select className="input" style={{ background: '#1a1a2e', color: '#fff' }}
+                value={koTimezone}
                 onChange={e => {
-                  if (!koForm.kickoff_at || !e.target.value) return
-                  const offsetHours = Number(e.target.value)
+                  const tz = e.target.value
+                  setKoTimezone(tz)
+                  if (!koForm.kickoff_at || !tz) return
+                  const offsetHours = Number(tz)
                   const local = new Date(koForm.kickoff_at)
                   const utc = new Date(local.getTime() - offsetHours * 60 * 60 * 1000)
                   const pad = (n: number) => String(n).padStart(2,'0')
                   const utcStr = `${utc.getFullYear()}-${pad(utc.getMonth()+1)}-${pad(utc.getDate())}T${pad(utc.getHours())}:${pad(utc.getMinutes())}`
-                  setKoForm({...koForm, kickoff_at: utcStr})
-                  e.target.value = ''
+                  setKoForm(prev => ({...prev, kickoff_at: utcStr}))
                 }}>
-                <option value="">→ Convert to UTC</option>
+                <option value="">Select timezone</option>
                 <option value="-4">ET (UTC-4) — New York / Miami</option>
                 <option value="-5">CT (UTC-5) — Dallas / Kansas City</option>
-                <option value="-6">MT (UTC-6) — Denver / Phoenix</option>
-                <option value="-7">PT (UTC-7) — LA / Seattle</option>
-                <option value="-6">Mexico City (UTC-6)</option>
-                <option value="-7">Vancouver / BC (UTC-7)</option>
+                <option value="-6">MT (UTC-6) — Denver / Phoenix / Mexico City</option>
+                <option value="-7">PT (UTC-7) — LA / Seattle / Vancouver</option>
                 <option value="10">Sydney AEST (UTC+10)</option>
               </select>
             </div>
