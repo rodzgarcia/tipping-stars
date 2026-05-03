@@ -80,7 +80,7 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
 }
 
 
-const WC_TEAMS = ["TBD","Albania","Argentina","Australia","Austria","Belgium","Bolivia","Brazil","Canada","Cape Verde","Chile","Colombia","Costa Rica","Croatia","Curacao","Czech Republic","DR Congo","Ecuador","Egypt","England","France","Germany","Ghana","Greece","Haiti","Honduras","Hungary","IR Iran","Iraq","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kenya","Mali","Mexico","Morocco","Netherlands","New Zealand","Nigeria","Panama","Paraguay","Peru","Poland","Portugal","Qatar","Saudi Arabia","Scotland","Senegal","Serbia","Slovakia","Slovenia","South Africa","South Korea","Spain","Switzerland","Trinidad and Tobago","Tunisia","Turkey","Ukraine","United States","Uruguay","Uzbekistan","Venezuela","Wales"]
+const WC_TEAMS = ["TBD","Albania","Algeria","Argentina","Australia","Austria","Belgium","Bolivia","Bosnia and Herzegovina","Brazil","Canada","Cape Verde","Chile","Colombia","Costa Rica","Croatia","Curacao","Czech Republic","DR Congo","Ecuador","Egypt","England","France","Germany","Ghana","Greece","Haiti","Honduras","Hungary","IR Iran","Iraq","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kenya","Mali","Mexico","Morocco","Netherlands","New Zealand","Nigeria","Norway","Panama","Paraguay","Peru","Poland","Portugal","Qatar","Saudi Arabia","Scotland","Senegal","Serbia","Slovakia","Slovenia","South Africa","South Korea","Spain","Sweden","Switzerland","Trinidad and Tobago","Tunisia","Turkey","Ukraine","United States","Uruguay","Uzbekistan","Venezuela","Wales"]
 
 function KnockoutTemplates({ supabase, tournaments }: any) {
   const ROUNDS = [
@@ -1107,7 +1107,19 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   async function addKoMatch() {
     if (!koForm.home_team || !koForm.away_team || !koForm.kickoff_at) return
     setSavingKo(true)
-    await supabase.from('matches').insert({ ...koForm, group_name: null })
+    // Insert into ALL tournaments so everyone sees the knockout match
+    const { data: allTours } = await supabase.from('tournaments').select('id')
+    const inserts = (allTours || []).map((t: any) => ({
+      home_team: koForm.home_team,
+      away_team: koForm.away_team,
+      kickoff_at: new Date(koForm.kickoff_at).toISOString(),
+      round: koForm.round,
+      venue: koForm.venue || null,
+      group_name: null,
+      status: 'upcoming',
+      tournament_id: t.id,
+    }))
+    if (inserts.length) await supabase.from('matches').insert(inserts)
     setKoForm(emptyKo); onUpdate(); setSavingKo(false)
   }
 
