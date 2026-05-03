@@ -1245,6 +1245,7 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
               Enter local kickoff time → select venue timezone → field auto-converts to UTC
             </p>
           </div>
+        </div>
         <button onClick={addKoMatch} disabled={savingKo || !koForm.home_team || !koForm.away_team || !koForm.kickoff_at} className="btn btn-primary" style={{ marginTop: '1rem', background: 'rgba(96,165,250,0.2)', borderColor: '#60a5fa', color: '#60a5fa' }}>
           <Plus size={14} />{savingKo ? 'Adding...' : 'Add knockout match'}
         </button>
