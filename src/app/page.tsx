@@ -21,13 +21,25 @@ export default function HomePage() {
     if (user) {
       const [profRes, membRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('tournament_members')
-          .select('*, tournament:tournaments(*)')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false }),
+        supabase.from('tournament_members').select('*').eq('user_id', user.id),
       ])
       setProfile(profRes.data)
-      setMyMemberships(membRes.data || [])
+
+      // Fetch tournament details separately for each membership
+      const members = membRes.data || []
+      const tourIds = members.map((m: any) => m.tournament_id)
+      if (tourIds.length > 0) {
+        const { data: tours } = await supabase
+          .from('tournaments')
+          .select('*')
+          .in('id', tourIds)
+        // Merge tournament data into memberships
+        const toursMap: Record<string, any> = {}
+        tours?.forEach((t: any) => { toursMap[t.id] = t })
+        setMyMemberships(members.map((m: any) => ({ ...m, tournament: toursMap[m.tournament_id] })))
+      } else {
+        setMyMemberships([])
+      }
     }
     setLoading(false)
   }
