@@ -9,29 +9,26 @@ export default function HomePage() {
   const { t } = useLang()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [tournaments, setTournaments] = useState<any[]>([])
   const [myMemberships, setMyMemberships] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  useEffect(() => { loadData() }, [])
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser()
     setUser(user)
     if (user) {
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      setProfile(prof)
-      const { data: memberships } = await supabase
-        .from('tournament_members')
-        .select('*, tournament:tournaments(*)')
-        .eq('user_id', user.id)
-      setMyMemberships(memberships || [])
+      const [profRes, membRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('tournament_members')
+          .select('*, tournament:tournaments(*)')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false }),
+      ])
+      setProfile(profRes.data)
+      setMyMemberships(membRes.data || [])
     }
-    const { data: tours } = await supabase.from('tournaments').select('*').order('created_at', { ascending: false })
-    setTournaments(tours || [])
     setLoading(false)
   }
 
@@ -96,79 +93,56 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Tournaments — only visible when logged in */}
+      {/* My Tournaments — only tournaments the user belongs to */}
       {user && (
-      <div className="max-w-5xl mx-auto px-4 pb-16">
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.6)' }}>
-          TOURNAMENTS
-        </h2>
-        {tournaments.length === 0 ? (
-          <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-            No tournaments yet. Admin will set them up soon.
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            {tournaments.map((t, i) => {
-              const membership = myMemberships.find(m => m.tournament_id === t.id)
-              return (
-                <div key={t.id} className="card card-hover fade-up" style={{ padding: '1.5rem', animationDelay: `${i * 0.05}s` }}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div style={{ flex: 1 }}>
-                      <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: '0.5rem' }}>
-                        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', letterSpacing: '0.05em', color: '#e8f5ee' }}>{t.name}</h3>
-                        <span className={`badge ${t.status === 'active' ? 'badge-green' : t.status === 'completed' ? 'badge-grey' : 'badge-gold'}`}>
-                          {t.status}
-                        </span>
-                      </div>
-                      {t.description && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{t.description}</p>}
-                      <div className="flex items-center gap-4 flex-wrap" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>
-                        {t.entry_fee > 0 && <span>Entry: {t.currency} ${t.entry_fee}</span>}
-                        {membership && (
-                          <span className={`badge ${membership.status === 'approved' ? 'badge-green' : membership.status === 'rejected' ? 'badge-red' : 'badge-grey'}`}>
-                            {membership.status === 'approved' ? 'Joined' : membership.status === 'pending' ? 'Awaiting approval' : 'Rejected'}
+        <div className="max-w-5xl mx-auto px-4 pb-16">
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', letterSpacing: '0.08em', marginBottom: '1rem', color: 'rgba(255,255,255,0.6)' }}>
+            MY TOURNAMENTS
+          </h2>
+          {myMemberships.length === 0 ? (
+            <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+              You haven't joined any tournaments yet. Use your invite link to join one.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {myMemberships.map((m, i) => {
+                const t = m.tournament
+                if (!t) return null
+                return (
+                  <div key={t.id} className="card card-hover fade-up" style={{ padding: '1.5rem', animationDelay: `${i * 0.05}s` }}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div style={{ flex: 1 }}>
+                        <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: '0.5rem' }}>
+                          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', letterSpacing: '0.05em', color: '#e8f5ee' }}>{t.name}</h3>
+                          <span className={`badge ${t.status === 'active' ? 'badge-green' : t.status === 'completed' ? 'badge-grey' : 'badge-gold'}`}>
+                            {t.status}
                           </span>
-                        )}
+                        </div>
+                        {t.description && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{t.description}</p>}
+                        <div className="flex items-center gap-4 flex-wrap" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>
+                          {t.entry_fee > 0 && <span>Entry: {t.currency} ${t.entry_fee}</span>}
+                          <span className={`badge ${m.status === 'approved' ? 'badge-green' : m.status === 'rejected' ? 'badge-red' : 'badge-grey'}`}>
+                            {m.status === 'approved' ? 'Joined' : m.status === 'pending' ? 'Awaiting approval' : 'Rejected'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {membership?.status === 'approved' ? (
-                        <Link href={`/tournament/${t.id}`} className="btn btn-primary">
-                          Open <ChevronRight size={14} />
-                        </Link>
-                      ) : membership?.status === 'pending' ? (
-                        <span className="btn btn-ghost" style={{ cursor: 'default' }}>Pending</span>
-                      ) : !membership && user ? (
-                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>Invite only</span>
-                      ) : !user ? (
-                        <Link href="/auth" className="btn btn-ghost">Sign in to join</Link>
-                      ) : null}
+                      <div className="flex items-center gap-2">
+                        {m.status === 'approved' ? (
+                          <Link href={`/tournament/${t.id}`} className="btn btn-primary">
+                            Open <ChevronRight size={14} />
+                          </Link>
+                        ) : m.status === 'pending' ? (
+                          <span className="btn btn-ghost" style={{ cursor: 'default', fontSize: '0.8rem' }}>Pending approval</span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       )}
     </div>
-  )
-}
-
-function JoinButton({ tournamentId, userId, onJoin }: { tournamentId: string, userId: string, onJoin: () => void }) {
-  const [loading, setLoading] = useState(false)
-  const supabase = createClient()
-
-  async function join() {
-    setLoading(true)
-    await supabase.from('tournament_members').insert({ tournament_id: tournamentId, user_id: userId })
-    onJoin()
-    setLoading(false)
-  }
-
-  return (
-    <button onClick={join} disabled={loading} className="btn btn-primary">
-      {loading ? '...' : 'Request to join'}
-    </button>
   )
 }
