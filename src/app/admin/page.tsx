@@ -7,7 +7,7 @@ import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from '
 import { format } from 'date-fns'
 import { useLang } from '../LanguageContext'
 
-type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard' | 'pending'
+type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard' | 'pending' | 'backup'
 
 function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
@@ -548,6 +548,158 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
 }
 
 
+function BackupPanel({ supabase, tournaments }: any) {
+  const [status, setStatus] = useState<Record<string, 'idle' | 'loading' | 'done'>>({})
+  const [lastBackup, setLastBackup] = useState<string | null>(
+    typeof window !== 'undefined' ? localStorage.getItem('last_backup') : null
+  )
+
+  async function fetchAll(table: string, filters?: Record<string, string>) {
+    let query = supabase.from(table).select('*')
+    if (filters) Object.entries(filters).forEach(([k, v]) => { query = query.eq(k, v) })
+    const { data, error } = await query
+    if (error) throw new Error(`${table}: ${error.message}`)
+    return data || []
+  }
+
+  function download(filename: string, data: any) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function backupAll() {
+    setStatus(s => ({ ...s, all: 'loading' }))
+    try {
+      const [matchTips, tournamentTips, leaderboard, profiles, matches, members] = await Promise.all([
+        fetchAll('match_tips'),
+        fetchAll('tournament_tips'),
+        fetchAll('leaderboard'),
+        fetchAll('profiles'),
+        fetchAll('matches'),
+        fetchAll('tournament_members'),
+      ])
+
+      const backup = {
+        exported_at: new Date().toISOString(),
+        tournaments,
+        match_tips: matchTips,
+        tournament_tips: tournamentTips,
+        leaderboard,
+        profiles,
+        matches,
+        tournament_members: members,
+      }
+
+      const date = new Date().toISOString().slice(0, 10)
+      download(`tipping-stars-backup-${date}.json`, backup)
+      const now = new Date().toLocaleString('en-AU')
+      setLastBackup(now)
+      localStorage.setItem('last_backup', now)
+      setStatus(s => ({ ...s, all: 'done' }))
+      setTimeout(() => setStatus(s => ({ ...s, all: 'idle' })), 3000)
+    } catch (e: any) {
+      alert('Backup failed: ' + e.message)
+      setStatus(s => ({ ...s, all: 'idle' }))
+    }
+  }
+
+  async function backupTable(key: string, table: string, label: string) {
+    setStatus(s => ({ ...s, [key]: 'loading' }))
+    try {
+      const data = await fetchAll(table)
+      const date = new Date().toISOString().slice(0, 10)
+      download(`tipping-stars-${key}-${date}.json`, { exported_at: new Date().toISOString(), [table]: data })
+      setStatus(s => ({ ...s, [key]: 'done' }))
+      setTimeout(() => setStatus(s => ({ ...s, [key]: 'idle' })), 3000)
+    } catch (e: any) {
+      alert(`Backup of ${label} failed: ` + e.message)
+      setStatus(s => ({ ...s, [key]: 'idle' }))
+    }
+  }
+
+  const tables = [
+    { key: 'match_tips', table: 'match_tips', label: 'Match Tips', desc: 'All score predictions for every match', icon: '⚽' },
+    { key: 'tournament_tips', table: 'tournament_tips', label: 'Tournament Predictions', desc: 'Winner, top scorer, group qualifier picks', icon: '🏆' },
+    { key: 'leaderboard', table: 'leaderboard', label: 'Leaderboard', desc: 'Current points and stats for all players', icon: '📊' },
+    { key: 'profiles', table: 'profiles', label: 'Profiles', desc: 'Player names, nicknames, avatars', icon: '👤' },
+    { key: 'matches', table: 'matches', label: 'Matches', desc: 'All match data and results', icon: '📅' },
+    { key: 'members', table: 'tournament_members', label: 'Members', desc: 'Tournament membership records', icon: '👥' },
+  ]
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.35rem', color: 'rgba(255,255,255,0.5)' }}>
+        💾 DATA BACKUP
+      </h2>
+      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}>
+        Download a JSON snapshot of your data. Store it somewhere safe — Google Drive, email, etc.
+      </p>
+
+      {/* Full backup */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem', background: 'rgba(74,222,128,0.04)', border: '1px solid rgba(74,222,128,0.15)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: '#4ade80', marginBottom: '0.25rem' }}>
+              📦 Full Backup — All Data
+            </h3>
+            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>
+              Downloads everything in one file — tips, predictions, leaderboard, matches, profiles, members.
+            </p>
+            {lastBackup && (
+              <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.35rem' }}>
+                Last backup: {lastBackup}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={backupAll}
+            disabled={status.all === 'loading'}
+            className="btn btn-primary"
+            style={{ flexShrink: 0, minWidth: 160 }}
+          >
+            {status.all === 'loading' ? '⏳ Exporting...' : status.all === 'done' ? '✅ Downloaded!' : '💾 Download Full Backup'}
+          </button>
+        </div>
+      </div>
+
+      {/* Individual tables */}
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.35)', marginBottom: '0.75rem' }}>
+        OR EXPORT INDIVIDUAL TABLES
+      </h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        {tables.map(({ key, table, label, desc, icon }) => (
+          <div key={key} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.15rem' }}>{icon} {label}</div>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)' }}>{desc}</div>
+            </div>
+            <button
+              onClick={() => backupTable(key, table, label)}
+              disabled={status[key] === 'loading'}
+              className="btn btn-ghost"
+              style={{ fontSize: '0.78rem', flexShrink: 0 }}
+            >
+              {status[key] === 'loading' ? '⏳ Exporting...' : status[key] === 'done' ? '✅ Done!' : '⬇️ Export'}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="card" style={{ padding: '1rem 1.25rem', marginTop: '1.5rem', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)' }}>
+        <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+          💡 <strong>Tip:</strong> Run a Full Backup before and after major match days. Supabase also keeps automatic daily backups for 7 days on the free tier — this is an extra safety net you control.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+
 export default function AdminPage() {
   const { t } = useLang()
   const router = useRouter()
@@ -722,6 +874,7 @@ export default function AdminPage() {
           <button className={`tab-btn ${tab === 'results' ? 'active' : ''}`} onClick={() => setTab('results')}><Trophy size={13} style={{display:'inline',marginRight:4}}/>Results</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>🏆 Leaderboard</button>
           <button className={`tab-btn ${tab === 'pending' ? 'active' : ''}`} onClick={() => setTab('pending')}>⏳ Pending Tips</button>
+          <button className={`tab-btn ${tab === 'backup' ? 'active' : ''}`} onClick={() => setTab('backup')}>💾 Backup</button>
         </div>
 
         {/* Tournament Setup */}
@@ -805,6 +958,10 @@ export default function AdminPage() {
 
         {tab === 'pending' && selectedTournament && (
           <PendingTips tournamentId={selectedTournament} supabase={supabase} tournaments={tournaments} />
+        )}
+
+        {tab === 'backup' && (
+          <BackupPanel supabase={supabase} tournaments={tournaments} />
         )}
 
 
