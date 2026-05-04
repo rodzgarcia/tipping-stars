@@ -41,6 +41,143 @@ const POSITION_EMOJI: Record<string, string> = {
   CM: '🔄', CDM: '🛡️', LB: '🏃', RB: '🏃', CB: '🧱', GK: '🧤', SS: '⚡'
 }
 
+// ── Achievements ─────────────────────────────────────────────────────────────
+function calcAchievements(row: any, allTips: any[], leaderboard: any[]): { icon: string, label: string, desc: string, earned: boolean }[] {
+  const userTips = allTips.filter((tp: any) => tp.user_id === row.user_id)
+  const completed = userTips.filter((tp: any) => tp.match?.status === 'completed')
+  const exactScores = completed.filter((tp: any) => Number(tp.pts_exact_score) > 0).length
+  const correctWinners = completed.filter((tp: any) => Number(tp.pts_winner) > 0).length
+  const wrongTips = completed.filter((tp: any) => Number(tp.pts_with_multiplier) === 0).length
+  const total = completed.length
+
+  // Streak calculation
+  const sorted = [...completed].sort((a: any, b: any) => new Date(b.match?.kickoff_at || 0).getTime() - new Date(a.match?.kickoff_at || 0).getTime())
+  let currentStreak = 0
+  for (const tp of sorted) {
+    if (Number(tp.pts_winner) > 0) currentStreak++
+    else break
+  }
+
+  // Rank
+  const rank = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points).findIndex((r: any) => r.user_id === row.user_id) + 1
+
+  return [
+    { icon: '🎯', label: 'Sniper',       desc: 'First exact score',           earned: exactScores >= 1 },
+    { icon: '🔫', label: 'Sharp Shooter', desc: '5 exact scores',              earned: exactScores >= 5 },
+    { icon: '💎', label: 'Diamond Eye',  desc: '10 exact scores',             earned: exactScores >= 10 },
+    { icon: '🔥', label: 'On Fire',      desc: '3 correct picks in a row',    earned: currentStreak >= 3 },
+    { icon: '⚡', label: 'Unstoppable',  desc: '5 correct picks in a row',    earned: currentStreak >= 5 },
+    { icon: '🦁', label: 'Brave Heart',  desc: 'Tipped an upset (< 30% consensus correct)', earned: false }, // set below
+    { icon: '📊', label: 'Consistent',   desc: '80%+ correct winner rate (min 10 tips)', earned: total >= 10 && correctWinners / total >= 0.8 },
+    { icon: '🏆', label: 'Top Dog',      desc: 'Sitting in 1st place',        earned: rank === 1 },
+    { icon: '🥈', label: 'Silver Fox',   desc: 'Sitting in 2nd place',        earned: rank === 2 },
+    { icon: '💪', label: 'Comeback Kid', desc: 'Moved up 3+ spots this week', earned: false }, // complex, skip for now
+    { icon: '😬', label: 'Unlucky',      desc: '5 wrong tips in a row',       earned: (() => { let s = 0; for (const tp of sorted) { if (Number(tp.pts_with_multiplier) === 0) s++; else break }; return s >= 5 })() },
+    { icon: '🌟', label: 'All In',       desc: 'Tipped every single match',   earned: row.tips_submitted > 0 && row.tips_submitted >= (leaderboard[0]?.tips_submitted || 0) },
+  ]
+}
+
+function AchievementBadges({ row, allTips, leaderboard, compact = false }: any) {
+  const achievements = calcAchievements(row, allTips, leaderboard)
+  const earned = achievements.filter(a => a.earned)
+  if (earned.length === 0) return null
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: compact ? '0.25rem' : '0.5rem' }}>
+      {earned.map(a => (
+        <span key={a.label} title={`${a.label}: ${a.desc}`} style={{
+          fontSize: compact ? '0.68rem' : '0.72rem',
+          padding: compact ? '0.1rem 0.35rem' : '0.15rem 0.5rem',
+          borderRadius: 10,
+          background: 'rgba(251,191,36,0.1)',
+          border: '1px solid rgba(251,191,36,0.2)',
+          color: '#fbbf24',
+          cursor: 'default',
+          whiteSpace: 'nowrap',
+        }}>
+          {a.icon} {a.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+
+function ReminderBanner({ matches, myTips, tournament, t }: any) {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30000) // update every 30s
+    return () => clearInterval(interval)
+  }, [])
+
+  const lockMins = tournament?.tip_lock_minutes ?? 120
+
+  // Find upcoming matches not yet tipped, closing in next 24h
+  const urgent = matches.filter((m: any) => {
+    if (m.status !== 'upcoming') return false
+    if (m.tip_lock_override) return false
+    if (myTips[m.id]) return false // already tipped
+    const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
+    const minsLeft = (lockTime.getTime() - now.getTime()) / 60000
+    return minsLeft > 0 && minsLeft <= 24 * 60 // closing within 24h
+  }).sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())
+
+  if (urgent.length === 0) return null
+
+  const next = urgent[0]
+  const lockTime = new Date(new Date(next.kickoff_at).getTime() - lockMins * 60 * 1000)
+  const minsLeft = Math.round((lockTime.getTime() - now.getTime()) / 60000)
+  const hoursLeft = Math.floor(minsLeft / 60)
+  const minsRem = minsLeft % 60
+  const isRed = minsLeft < 120
+  const isYellow = minsLeft < 360 && !isRed
+
+  const countdownStr = hoursLeft > 0
+    ? `${hoursLeft}h ${minsRem}m`
+    : `${minsLeft}m`
+
+  return (
+    <div style={{
+      margin: '0 0 1rem',
+      padding: '0.75rem 1rem',
+      borderRadius: 10,
+      background: isRed ? 'rgba(239,68,68,0.08)' : isYellow ? 'rgba(251,191,36,0.08)' : 'rgba(74,222,128,0.06)',
+      border: `1px solid ${isRed ? 'rgba(239,68,68,0.25)' : isYellow ? 'rgba(251,191,36,0.25)' : 'rgba(74,222,128,0.15)'}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
+        <span style={{ fontSize: '1.1rem' }}>{isRed ? '🚨' : isYellow ? '⚠️' : '⏰'}</span>
+        <div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: isRed ? '#f87171' : isYellow ? '#fbbf24' : '#4ade80' }}>
+            {urgent.length === 1
+              ? `${next.home_team} vs ${next.away_team} — tip lock in ${countdownStr}`
+              : `${urgent.length} matches closing soon — next: ${next.home_team} vs ${next.away_team} in ${countdownStr}`}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+            {urgent.length > 1
+              ? urgent.slice(1, 3).map((m: any) => `${m.home_team} vs ${m.away_team}`).join(' · ') + (urgent.length > 3 ? ` +${urgent.length - 3} more` : '')
+              : t.lang === 'pt' ? 'Você ainda não apostou neste jogo' : "You haven't tipped this match yet"}
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={() => {
+          // Scroll to tips tab and switch to open view
+          document.querySelector('[data-tab="tips"]')?.scrollIntoView({ behavior: 'smooth' })
+        }}
+        style={{
+          padding: '0.35rem 0.85rem', borderRadius: 8, fontSize: '0.78rem', cursor: 'pointer', flexShrink: 0,
+          background: isRed ? 'rgba(239,68,68,0.15)' : isYellow ? 'rgba(251,191,36,0.15)' : 'rgba(74,222,128,0.15)',
+          border: `1px solid ${isRed ? 'rgba(239,68,68,0.3)' : isYellow ? 'rgba(251,191,36,0.3)' : 'rgba(74,222,128,0.3)'}`,
+          color: isRed ? '#f87171' : isYellow ? '#fbbf24' : '#4ade80',
+        }}
+      >
+        {t.lang === 'pt' ? 'Apostar agora →' : 'Tip now →'}
+      </button>
+    </div>
+  )
+}
+
+
 function FlagImg({ team, size = 20 }: { team: string, size?: number }) {
   const code = TEAM_FLAGS[team]
   if (!code) return null
@@ -248,7 +385,7 @@ export default function TournamentPage() {
 
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none', display: 'flex', flexWrap: 'nowrap' }}>
-          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>⚽ Tips</button>
+          <button data-tab="tips" className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>⚽ Tips</button>
           <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🗂️ Groups</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🏆 Predict</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📊 Board</button>
@@ -256,6 +393,8 @@ export default function TournamentPage() {
           <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📈 Stats</button>
           <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📋 Rules</button>
         </div>
+
+        <ReminderBanner matches={matches} myTips={myTips} tournament={tournament} t={t} />
 
         {/* Match Tips */}
         {tab === 'tips' && (
@@ -372,8 +511,28 @@ export default function TournamentPage() {
                         {row.display_name}
                       </div>
                     )}
-                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.2)', marginTop: profilesMap[row.user_id]?.nickname ? '0' : '0.1rem' }}>
-                      {t.lang === 'pt' ? `${row.tips_submitted} palpites` : `${row.tips_submitted} tips`}
+                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.2)', marginTop: profilesMap[row.user_id]?.nickname ? '0' : '0.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      <span>{t.lang === 'pt' ? `${row.tips_submitted} palpites` : `${row.tips_submitted} tips`}</span>
+                      {(() => {
+                        const userTips = allTips
+                          .filter((tp: any) => tp.user_id === row.user_id && tp.match?.status === 'completed')
+                          .sort((a: any, b: any) => new Date(b.match?.kickoff_at || 0).getTime() - new Date(a.match?.kickoff_at || 0).getTime())
+                          .slice(0, 5)
+                        if (userTips.length === 0) return null
+                        const form = userTips.map((tp: any) => {
+                          if (Number(tp.pts_exact_score) > 0) return { icon: '🎯', title: 'Exact score' }
+                          if (Number(tp.pts_goal_diff) > 0) return { icon: '⚖️', title: 'Goal diff' }
+                          if (Number(tp.pts_winner) > 0) return { icon: '✅', title: 'Correct winner' }
+                          return { icon: '❌', title: 'Wrong' }
+                        }).reverse()
+                        return (
+                          <span style={{ display: 'flex', gap: 2 }} title="Last 5 results">
+                            {form.map((f: any, i: number) => (
+                              <span key={i} title={f.title} style={{ fontSize: '0.75rem' }}>{f.icon}</span>
+                            ))}
+                          </span>
+                        )
+                      })()}
                     </div>
                   </div>
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: row.exact_scores > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>
