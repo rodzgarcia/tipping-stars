@@ -249,7 +249,7 @@ export default function TournamentPage() {
 
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none', display: 'flex', flexWrap: 'nowrap' }}>
-          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>⚽ Tips</button>
+          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => { console.log('Tips clicked, matches:', matches.length); setTab('tips') }} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>⚽ Tips</button>
           <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🗂️ Groups</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🏆 Predict</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📊 Board</button>
