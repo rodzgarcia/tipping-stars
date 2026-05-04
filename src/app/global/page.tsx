@@ -20,15 +20,40 @@ export default function GlobalLeaderboard() {
     if (!user) { router.push('/auth'); return }
     setUser(user)
 
-    const [lbRes, toursRes, profilesRes, matchesRes] = await Promise.all([
+    const [lbRes, toursRes, profilesRes, matchesRes, ttRes] = await Promise.all([
       supabase.from('leaderboard').select('*'),
-      supabase.from('tournaments').select('*'),
+      supabase.from('tournaments').select('id, name, pts_winner, pts_goal_diff, pts_exact_score, pts_big_margin_bonus, pts_qualify, result_groups'),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url'),
       supabase.from('matches').select('id, tournament_id, status, round'),
+      supabase.from('tournament_tips').select('user_id, tournament_id, tip_group_a_1, tip_group_a_2, tip_group_b_1, tip_group_b_2, tip_group_c_1, tip_group_c_2, tip_group_d_1, tip_group_d_2, tip_group_e_1, tip_group_e_2, tip_group_f_1, tip_group_f_2, tip_group_g_1, tip_group_g_2, tip_group_h_1, tip_group_h_2, tip_group_i_1, tip_group_i_2, tip_group_j_1, tip_group_j_2, tip_group_k_1, tip_group_k_2, tip_group_l_1, tip_group_l_2'),
     ])
 
     const tours: Record<string, any> = {}
     toursRes.data?.forEach((t: any) => { tours[t.id] = t })
+    // Map: tournamentId -> userId -> tipRow
+    const ttMap: Record<string, Record<string, any>> = {}
+    ttRes.data?.forEach((tt: any) => {
+      if (!ttMap[tt.tournament_id]) ttMap[tt.tournament_id] = {}
+      ttMap[tt.tournament_id][tt.user_id] = tt
+    })
+
+    // Helper: calculate qualifier team count from picks vs result_groups
+    function calcQualifierCount(userId: string, tournamentId: string): number {
+      const tt = ttMap[tournamentId]?.[userId]
+      const tour = tours[tournamentId]
+      const groups = tour?.result_groups
+      if (!tt || !groups) return 0
+      let count = 0
+      Object.entries(groups).forEach(([g, res]: any) => {
+        const pick1 = tt[`tip_group_${g.toLowerCase()}_1`]
+        const pick2 = tt[`tip_group_${g.toLowerCase()}_2`]
+        if (pick1 === res.first) count += 1
+        else if (pick1 === res.second) count += 0.5
+        if (pick2 === res.second) count += 1
+        else if (pick2 === res.first) count += 0.5
+      })
+      return count
+    }
 
     const profiles: Record<string, any> = {}
     profilesRes.data?.forEach((p: any) => { profiles[p.id] = p })
@@ -66,7 +91,8 @@ export default function GlobalLeaderboard() {
           ...row,
           profile: profiles[row.user_id],
           tournament_name: tours[row.tournament_id]?.name || 'Tournament',
-          pct: Math.min(100, pct), // cap at 100%
+          pct: Math.min(100, pct),
+          qualifier_count: calcQualifierCount(row.user_id, row.tournament_id),
         }
       })
       .sort((a: any, b: any) => b.pct - a.pct || b.total_points - a.total_points)
@@ -165,8 +191,8 @@ export default function GlobalLeaderboard() {
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: (row.correct_winners - row.correct_goal_diff) > 0 ? '#4ade80' : 'rgba(255,255,255,0.2)' }}>
                     {Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))}
                   </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: (row.qualifier_points ?? 0) > 0 ? '#60a5fa' : 'rgba(255,255,255,0.2)' }}>
-                    {row.qualifier_points ?? 0}
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: row.qualifier_count > 0 ? '#60a5fa' : 'rgba(255,255,255,0.2)' }}>
+                    {row.qualifier_count > 0 ? (row.qualifier_count % 1 === 0 ? row.qualifier_count : row.qualifier_count.toFixed(1)) : 0}
                   </div>
                 </div>
               )
