@@ -467,6 +467,7 @@ export default function TournamentPage() {
   const [showWelcome, setShowWelcome] = useState(false)
   const [myProfile, setMyProfile] = useState<any>(null)
   const [tipsView, setTipsView] = useState<'open' | 'locked'>('open')
+  const [lbSubTab, setLbSubTab] = useState<'cards'|'h2h'|'share'>('cards')
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [tournament, setTournament] = useState<any>(null)
@@ -786,26 +787,19 @@ export default function TournamentPage() {
 
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               {/* H2H + Share sub-tabs */}
-              {(() => {
-                const [lbSubTab, setLbSubTab] = React.useState<'cards'|'h2h'|'share'>('cards')
-                return (
-                  <>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.75rem' }}>
-                      {([['cards','🃏 Cards'],['h2h','⚔️ Head to Head'],['share','📤 Share']] as const).map(([v,label]) => (
-                        <button key={v} onClick={() => setLbSubTab(v)} style={{
-                          padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.74rem', cursor: 'pointer',
-                          border: `1px solid ${lbSubTab===v ? '#fbbf24' : 'rgba(255,255,255,0.12)'}`,
-                          background: lbSubTab===v ? 'rgba(251,191,36,0.1)' : 'transparent',
-                          color: lbSubTab===v ? '#fbbf24' : 'rgba(255,255,255,0.4)',
-                        }}>{label}</button>
-                      ))}
-                    </div>
-                    {lbSubTab === 'cards' && <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />}
-                    {lbSubTab === 'h2h' && <HeadToHead leaderboard={leaderboard} allTips={allTips} profilesMap={profilesMap} userId={user.id} matches={matches} />}
-                    {lbSubTab === 'share' && <ShareCard row={leaderboard.find((r:any) => r.user_id === user.id)} leaderboard={leaderboard} profilesMap={profilesMap} tournament={tournament} />}
-                  </>
-                )
-              })()}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.75rem' }}>
+                {([['cards','🃏 Cards'],['h2h','⚔️ Head to Head'],['share','📤 Share']] as const).map(([v,label]) => (
+                  <button key={v} onClick={() => setLbSubTab(v)} style={{
+                    padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.74rem', cursor: 'pointer',
+                    border: `1px solid ${lbSubTab===v ? '#fbbf24' : 'rgba(255,255,255,0.12)'}`,
+                    background: lbSubTab===v ? 'rgba(251,191,36,0.1)' : 'transparent',
+                    color: lbSubTab===v ? '#fbbf24' : 'rgba(255,255,255,0.4)',
+                  }}>{label}</button>
+                ))}
+              </div>
+              {lbSubTab === 'cards' && <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />}
+              {lbSubTab === 'h2h' && <HeadToHead leaderboard={leaderboard} allTips={allTips} profilesMap={profilesMap} userId={user.id} matches={matches} />}
+              {lbSubTab === 'share' && <ShareCard row={leaderboard.find((r:any) => r.user_id === user.id)} leaderboard={leaderboard} profilesMap={profilesMap} tournament={tournament} />}
               <RoundStandings leaderboard={leaderboard} allTips={allTips} profilesMap={profilesMap} t={t} />
             </div>
             <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} profilesMap={profilesMap} userId={user.id} />
