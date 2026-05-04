@@ -562,14 +562,27 @@ function BackupPanel({ supabase, tournaments }: any) {
     return data || []
   }
 
-  function download(filename: string, data: any) {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
+  async function downloadXLSX(filename: string, sheets: Record<string, any[]>) {
+    // Load SheetJS from CDN if not already loaded
+    if (!(window as any).XLSX) {
+      await new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+        script.onload = () => resolve()
+        script.onerror = () => reject(new Error('Failed to load SheetJS'))
+        document.head.appendChild(script)
+      })
+    }
+    const XLSX = (window as any).XLSX
+    const wb = XLSX.utils.book_new()
+    Object.entries(sheets).forEach(([name, data]) => {
+      if (!(data as any[])?.length) return
+      const ws = XLSX.utils.json_to_sheet(data)
+      const cols = Object.keys((data as any[])[0]).map((k: string) => ({ wch: Math.max(k.length, 14) }))
+      ws['!cols'] = cols
+      XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31))
+    })
+    XLSX.writeFile(wb, filename)
   }
 
   async function backupAll() {
@@ -584,19 +597,16 @@ function BackupPanel({ supabase, tournaments }: any) {
         fetchAll('tournament_members'),
       ])
 
-      const backup = {
-        exported_at: new Date().toISOString(),
-        tournaments,
-        match_tips: matchTips,
-        tournament_tips: tournamentTips,
-        leaderboard,
-        profiles,
-        matches,
-        tournament_members: members,
-      }
-
       const date = new Date().toISOString().slice(0, 10)
-      download(`tipping-stars-backup-${date}.json`, backup)
+      downloadXLSX(`tipping-stars-backup-${date}.xlsx`, {
+        'Match Tips': matchTips,
+        'Tournament Predictions': tournamentTips,
+        'Leaderboard': leaderboard,
+        'Profiles': profiles,
+        'Matches': matches,
+        'Members': members,
+        'Tournaments': tournaments,
+      })
       const now = new Date().toLocaleString('en-AU')
       setLastBackup(now)
       localStorage.setItem('last_backup', now)
@@ -613,7 +623,7 @@ function BackupPanel({ supabase, tournaments }: any) {
     try {
       const data = await fetchAll(table)
       const date = new Date().toISOString().slice(0, 10)
-      download(`tipping-stars-${key}-${date}.json`, { exported_at: new Date().toISOString(), [table]: data })
+      downloadXLSX(`tipping-stars-${key}-${date}.xlsx`, { [label]: data })
       setStatus(s => ({ ...s, [key]: 'done' }))
       setTimeout(() => setStatus(s => ({ ...s, [key]: 'idle' })), 3000)
     } catch (e: any) {
@@ -662,7 +672,7 @@ function BackupPanel({ supabase, tournaments }: any) {
             className="btn btn-primary"
             style={{ flexShrink: 0, minWidth: 160 }}
           >
-            {status.all === 'loading' ? '⏳ Exporting...' : status.all === 'done' ? '✅ Downloaded!' : '💾 Download Full Backup'}
+            {status.all === 'loading' ? '⏳ Exporting...' : status.all === 'done' ? '✅ Downloaded!' : '💾 Download Full Backup (.xlsx)'}
           </button>
         </div>
       </div>
