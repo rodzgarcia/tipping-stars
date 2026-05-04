@@ -247,11 +247,11 @@ function HeadToHead({ leaderboard, allTips, profilesMap, userId, matches }: any)
       winner: myPts > oppPts ? 'me' : oppPts > myPts ? 'opp' : myTip && oppTip ? 'draw' : null }
   }).filter((r: any) => r.myTip || r.oppTip)
 
-  const myWins = results.filter(r => r.winner === 'me').length
-  const oppWins = results.filter(r => r.winner === 'opp').length
-  const draws = results.filter(r => r.winner === 'draw').length
-  const myTotal = results.reduce((s, r) => s + r.myPts, 0)
-  const oppTotal = results.reduce((s, r) => s + r.oppPts, 0)
+  const myWins = results.filter((r: any) => r.winner === 'me').length
+  const oppWins = results.filter((r: any) => r.winner === 'opp').length
+  const draws = results.filter((r: any) => r.winner === 'draw').length
+  const myTotal = results.reduce((s: number, r: any) => s + r.myPts, 0)
+  const oppTotal = results.reduce((s: number, r: any) => s + r.oppPts, 0)
 
   const myName = profilesMap?.[userId]?.nickname || me?.display_name || 'You'
   const oppName = opp ? (profilesMap?.[opponent]?.nickname || opp?.display_name) : '...'
