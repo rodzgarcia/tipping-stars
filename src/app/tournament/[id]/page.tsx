@@ -268,6 +268,7 @@ export default function TournamentPage() {
 
               const groupMatches = matches.filter((m: any) => !m.round || m.round === 'group')
               const knockoutMatches = matches.filter((m: any) => m.round && m.round !== 'group')
+              console.log('Tips debug - total:', matches.length, 'group:', groupMatches.length, 'knockout:', knockoutMatches.length, 'sample round:', matches[0]?.round)
 
               const openGroup = groupMatches.filter((m: any) => !isMatchLocked(m))
               const lockedGroup = groupMatches.filter((m: any) => isMatchLocked(m))
