@@ -744,12 +744,16 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
   const matchStats = lockedMatches.map((m: any) => {
     const tips = allTips.filter((tp: any) => tp.match_id === m.id)
     const total = tips.length || 1
-    const homeWin = tips.filter((tp: any) => tp.tip_home > tp.tip_away).length
-    const draw    = tips.filter((tp: any) => tp.tip_home === tp.tip_away).length
-    const awayWin = tips.filter((tp: any) => tp.tip_home < tp.tip_away).length
-    const homePct = Math.round(homeWin / total * 100)
-    const drawPct = Math.round(draw / total * 100)
-    const awayPct = Math.round(awayWin / total * 100)
+    const homeWin = tips.filter((tp: any) => tp.tip_home > tp.tip_away)
+    const draw    = tips.filter((tp: any) => tp.tip_home === tp.tip_away)
+    const awayWin = tips.filter((tp: any) => tp.tip_home < tp.tip_away)
+    const homePct = Math.round(homeWin.length / total * 100)
+    const drawPct = Math.round(draw.length / total * 100)
+    const awayPct = Math.round(awayWin.length / total * 100)
+    const getName = (uid: string) => profilesMap?.[uid]?.nickname || profilesMap?.[uid]?.display_name || '?'
+    const homeNames = homeWin.map((tp: any) => ({ name: getName(tp.user_id), score: `${tp.tip_home}–${tp.tip_away}` }))
+    const drawNames = draw.map((tp: any) => ({ name: getName(tp.user_id), score: `${tp.tip_home}–${tp.tip_away}` }))
+    const awayNames = awayWin.map((tp: any) => ({ name: getName(tp.user_id), score: `${tp.tip_home}–${tp.tip_away}` }))
     // Most popular exact score
     const scoreCounts: Record<string, number> = {}
     tips.forEach((tp: any) => {
@@ -757,7 +761,6 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
       scoreCounts[key] = (scoreCounts[key] || 0) + 1
     })
     const popularScore = Object.entries(scoreCounts).sort((a: any, b: any) => b[1] - a[1])[0]
-    // Brave tippers — tipped the least popular outcome that proved correct
     const hasResult = m.status === 'completed' && m.home_score !== null
     const actualOutcome = hasResult ? (m.home_score > m.away_score ? 'home' : m.home_score < m.away_score ? 'away' : 'draw') : null
     const outcomePct = actualOutcome === 'home' ? homePct : actualOutcome === 'away' ? awayPct : drawPct
@@ -765,9 +768,9 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
       ? tips.filter((tp: any) => {
           const o = tp.tip_home > tp.tip_away ? 'home' : tp.tip_home < tp.tip_away ? 'away' : 'draw'
           return o === actualOutcome
-        }).map((tp: any) => profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name)
+        }).map((tp: any) => getName(tp.user_id))
       : []
-    return { match: m, tips, total, homePct, drawPct, awayPct, popularScore, braveTippers, hasResult, outcomePct }
+    return { match: m, tips, total, homePct, drawPct, awayPct, homeNames, drawNames, awayNames, popularScore, braveTippers, hasResult, outcomePct }
   })
 
   // ── Tournament predictions consensus ─────────────────────────────────────
@@ -905,50 +908,52 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
           <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
             {statsView === 'upcoming' ? (ispt ? 'Como o grupo apostou — resultado ainda não conhecido' : 'How the group tipped — result not yet known') : (ispt ? 'Como o grupo apostou vs resultado final' : 'How the group tipped vs the final result')}
           </p>
-          {activeMatchStats.map(({ match: m, tips, homePct, drawPct, awayPct, popularScore, braveTippers, hasResult, outcomePct }: any) => (
-            <div key={m.id} style={{ marginBottom: '1.25rem', paddingBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{m.home_team} <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400 }}>vs</span> {m.away_team}</span>
-                {hasResult && <span style={{ fontSize: '0.75rem', color: '#4ade80' }}>{m.home_score}–{m.away_score}</span>}
+          {activeMatchStats.map(({ match: m, tips, homePct, drawPct, awayPct, homeNames, drawNames, awayNames, popularScore, braveTippers, hasResult, outcomePct }: any) => (
+            <div key={m.id} style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              {/* Match header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                  <FlagImg team={m.home_team} size={16} />{m.home_team}
+                  <span style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 400, margin: '0 0.4rem' }}>vs</span>
+                  <FlagImg team={m.away_team} size={16} />{m.away_team}
+                </span>
+                {hasResult && <span style={{ fontSize: '0.85rem', color: '#4ade80', fontFamily: 'var(--font-display)', fontWeight: 700 }}>{m.home_score}–{m.away_score}</span>}
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.3rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', minWidth: 70 }}>{m.home_team.split(' ')[0]} win</span>
-                <Bar pct={homePct} color="#4ade80" />
-                <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-display)', color: '#4ade80', minWidth: 36, textAlign: 'right' }}>{homePct}%</span>
+
+              {/* Bar chart */}
+              <div style={{ display: 'flex', gap: '0', height: 28, borderRadius: 6, overflow: 'hidden', marginBottom: '0.75rem' }}>
+                {homePct > 0 && <div style={{ width: `${homePct}%`, background: '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#0a0f0d' }}>{homePct}%</div>}
+                {drawPct > 0 && <div style={{ width: `${drawPct}%`, background: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#fff' }}>{drawPct}%</div>}
+                {awayPct > 0 && <div style={{ width: `${awayPct}%`, background: '#f87171', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#fff' }}>{awayPct}%</div>}
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.3rem' }}>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', minWidth: 70 }}>Draw</span>
-                <Bar pct={drawPct} color="#9ca3af" />
-                <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-display)', color: '#9ca3af', minWidth: 36, textAlign: 'right' }}>{drawPct}%</span>
+
+              {/* Player breakdown by outcome */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {[
+                  { names: homeNames, label: `${m.home_team} win`, color: '#4ade80', bg: 'rgba(74,222,128,0.06)', border: 'rgba(74,222,128,0.15)' },
+                  { names: drawNames, label: 'Draw', color: '#9ca3af', bg: 'rgba(156,163,175,0.06)', border: 'rgba(156,163,175,0.15)' },
+                  { names: awayNames, label: `${m.away_team} win`, color: '#f87171', bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.15)' },
+                ].filter((g: any) => g.names.length > 0).map((g: any) => (
+                  <div key={g.label} style={{ padding: '0.5rem 0.75rem', background: g.bg, border: `1px solid ${g.border}`, borderRadius: 8 }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: g.color, marginBottom: '0.35rem', letterSpacing: '0.04em' }}>
+                      {g.label} ({g.names.length})
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      {g.names.map((p: any, i: number) => (
+                        <span key={i} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>
+                          {p.name} <span style={{ color: 'rgba(255,255,255,0.35)', fontFamily: 'var(--font-display)', fontSize: '0.7rem' }}>({p.score})</span>{i < g.names.length - 1 ? '' : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', minWidth: 70 }}>{m.away_team.split(' ')[0]} win</span>
-                <Bar pct={awayPct} color="#f87171" />
-                <span style={{ fontSize: '0.78rem', fontFamily: 'var(--font-display)', color: '#f87171', minWidth: 36, textAlign: 'right' }}>{awayPct}%</span>
-              </div>
-              {popularScore && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
-                  Most tipped score: <span style={{ color: 'rgba(255,255,255,0.6)' }}>{popularScore[0].replace('-','–')}</span> ({popularScore[1]}x)
-                </div>
-              )}
+
               {braveTippers.length > 0 && (
-                <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: '#fbbf24' }}>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: '#fbbf24' }}>
                   🦁 Only {outcomePct}% tipped this — correct: <strong>{braveTippers.join(', ')}</strong>
                 </div>
               )}
-              {statsView === 'upcoming' && (() => {
-                const majorityWrong = homePct >= 60 ? `${Math.round(homePct)}% backed ${m.home_team}` : awayPct >= 60 ? `${Math.round(awayPct)}% backed ${m.away_team}` : drawPct >= 40 ? `${Math.round(drawPct)}% tipped a draw` : null
-                const underdogTippers = tips.filter((tp: any) => {
-                  if (homePct < awayPct && drawPct < awayPct) return tp.tip_away > tp.tip_home
-                  if (awayPct < homePct && drawPct < homePct) return tp.tip_home > tp.tip_away
-                  return false
-                }).map((tp: any) => profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name).filter(Boolean)
-                if (underdogTippers.length > 0 && underdogTippers.length <= 3) {
-                  const underdog = homePct < awayPct ? m.home_team : m.away_team
-                  return <div style={{ marginTop: '0.35rem', fontSize: '0.72rem', color: '#60a5fa' }}>🔮 Backing the underdog ({underdog}): {underdogTippers.join(', ')}</div>
-                }
-                return null
-              })()}
             </div>
           ))}
         </div>
