@@ -1764,14 +1764,37 @@ const FLAGS: Record<string, string> = {
   Morocco:'🇲🇦',Senegal:'🇸🇳',Colombia:'🇨🇴',Croatia:'🇭🇷'
 }
 
-function calcRating(row: any): number {
-  const pts = Number(row.total_points) || 0
+function calcRating(row: any, leaderboard?: any[]): number {
   const exact = Number(row.exact_scores) || 0
   const winners = Number(row.correct_winners) || 0
-  const tips = Number(row.tips_submitted) || 1
-  const acc = Math.round((winners / tips) * 100)
-  const raw = Math.min(99, Math.max(10, Math.round(pts * 1.5 + exact * 3 + acc * 0.3)))
-  return raw
+  const tips = Number(row.tips_submitted) || 0
+
+  if (tips === 0) return 60 // no tips yet — base card
+
+  // Accuracy rates (0–1)
+  const winnerRate = winners / tips        // % of matches where picked correct winner
+  const exactRate = exact / tips           // % of matches where picked exact score
+
+  // Base: 60
+  // Winner accuracy → up to +20 (linear: 0%=0, 100%=20)
+  const winnerPts = winnerRate * 20
+
+  // Exact score rate → up to +12 (harder, so rewarded more per %)
+  const exactPts = exactRate * 12
+
+  // Qualifier bonus → up to +4
+  const qualPts = Math.min(4, (Number(row.qualifier_points) || 0) / 5)
+
+  // Leaderboard position bonus → up to +3 (leader gets 3, last gets 0)
+  let rankBonus = 0
+  if (leaderboard && leaderboard.length > 1) {
+    const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
+    const rank = sorted.findIndex((r: any) => r.user_id === row.user_id)
+    rankBonus = rank === 0 ? 3 : rank === 1 ? 2 : rank === 2 ? 1 : 0
+  }
+
+  const raw = 60 + winnerPts + exactPts + qualPts + rankBonus
+  return Math.min(99, Math.max(35, Math.round(raw)))
 }
 
 const FLAG_URLS: Record<string, string> = {
@@ -1806,12 +1829,12 @@ function JerseySVG({ colors, isGrey }: { colors: any, isGrey: boolean }) {
   )
 }
 
-function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t }: any) {
+function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t, leaderboard }: any) {
   const team = profile?.jersey_team || 'default'
   const position = profile?.tip_position || 'CAM'
   const colors = JERSEY_COLORS[team] || JERSEY_COLORS.default
   const flagUrl = FLAG_URLS[team]
-  const rating = calcRating(row)
+  const rating = calcRating(row, leaderboard)
   const userTips = allTips.filter((tip: any) => tip.user_id === row.user_id)
   const pts = Number(row.total_points) || 0
   const exact = Number(row.exact_scores) || 0
@@ -1981,6 +2004,7 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
             profile={profilesMap[myRow.user_id]}
             variant="default"
             label={t.lang === 'pt' ? '👤 SEU CARTÃO' : '👤 YOUR CARD'}
+            leaderboard={leaderboard}
             t={t}
           />
         )}
@@ -1992,6 +2016,7 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
             profile={profilesMap[tipperRow.user_id]}
             variant="gold"
             label={t.lang === 'pt' ? '⭐ TIPPER DO DIA' : '⭐ TIPPER OF THE DAY'}
+            leaderboard={leaderboard}
             t={t}
           />
         )}
@@ -2003,6 +2028,7 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
             profile={profilesMap[deflatedRow.user_id]}
             variant="grey"
             label={t.lang === 'pt' ? '😩 BOLA MURCHA' : '😩 DEFLATED BALL'}
+            leaderboard={leaderboard}
             t={t}
           />
         )}
