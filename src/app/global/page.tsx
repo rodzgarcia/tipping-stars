@@ -108,12 +108,14 @@ export default function GlobalLeaderboard() {
           <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No results yet.</div>
         ) : (
           <div className="card" style={{ overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2.5rem 1fr 4rem 3.5rem 3.5rem', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2.5rem 1fr 4rem 3rem 3rem 3rem 3rem', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
               <div>#</div>
               <div>PLAYER · TOURNAMENT</div>
               <div style={{ textAlign: 'center' }}>SCORE%</div>
               <div style={{ textAlign: 'center' }}>🎯</div>
+              <div style={{ textAlign: 'center' }}>⚖️</div>
               <div style={{ textAlign: 'center' }}>✅</div>
+              <div style={{ textAlign: 'center' }}>🏟️</div>
             </div>
 
             {rows.map((row: any, i: number) => {
@@ -122,7 +124,7 @@ export default function GlobalLeaderboard() {
               const isMe = row.user_id === user?.id
               return (
                 <div key={`${row.user_id}-${row.tournament_id}`} style={{
-                  display: 'grid', gridTemplateColumns: '2.5rem 1fr 4rem 3.5rem 3.5rem',
+                  display: 'grid', gridTemplateColumns: '2.5rem 1fr 4rem 3rem 3rem 3rem 3rem',
                   gap: '0.5rem', alignItems: 'center', padding: '0.85rem 1.25rem',
                   borderBottom: i < rows.length - 1 ? '1px solid var(--dark-border)' : 'none',
                   background: isMe ? 'rgba(34,197,94,0.05)' : undefined,
@@ -157,8 +159,14 @@ export default function GlobalLeaderboard() {
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: row.exact_scores > 0 ? '#fbbf24' : 'rgba(255,255,255,0.2)' }}>
                     {row.exact_scores}
                   </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: row.correct_winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.2)' }}>
-                    {row.correct_winners}
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: (row.correct_goal_diff - row.exact_scores) > 0 ? '#60a5fa' : 'rgba(255,255,255,0.2)' }}>
+                    {Math.max(0, (row.correct_goal_diff ?? 0) - (row.exact_scores ?? 0))}
+                  </div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: (row.correct_winners - row.correct_goal_diff) > 0 ? '#4ade80' : 'rgba(255,255,255,0.2)' }}>
+                    {Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))}
+                  </div>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: (row.qualifier_points ?? 0) > 0 ? '#60a5fa' : 'rgba(255,255,255,0.2)' }}>
+                    {row.qualifier_points ?? 0}
                   </div>
                 </div>
               )
@@ -167,7 +175,7 @@ export default function GlobalLeaderboard() {
         )}
 
         <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.15)', marginTop: '1rem', textAlign: 'center' }}>
-          Each player appears once per tournament · raw points shown in grey · 🎯 exact scores · ✅ correct winners
+          Each player appears once per tournament · 🎯 exact · ⚖️ goal diff only · ✅ winner only · 🏟️ qualifier pts
         </p>
       </div>
     </div>
