@@ -130,8 +130,7 @@ export default function TournamentPage() {
   const [tab, setTab] = useState<Tab>('leaderboard')
   const [showWelcome, setShowWelcome] = useState(false)
   const [myProfile, setMyProfile] = useState<any>(null)
-  const [tipsView, setTipsView] = useState<'group' | 'knockout'>('group')
-  const [tipsSubView, setTipsSubView] = useState<'open' | 'locked'>('open')
+  const [tipsView, setTipsView] = useState<'open' | 'locked'>('open')
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [tournament, setTournament] = useState<any>(null)
@@ -249,7 +248,7 @@ export default function TournamentPage() {
 
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none', display: 'flex', flexWrap: 'nowrap' }}>
-          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => { console.log('Tips clicked, matches:', matches.length); setTab('tips') }} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>⚽ Tips</button>
+          <button className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>⚽ Tips</button>
           <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🗂️ Groups</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🏆 Predict</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📊 Board</button>
@@ -261,153 +260,61 @@ export default function TournamentPage() {
         {/* Match Tips */}
         {tab === 'tips' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
-            {/* Open / Locked + Group / Knockout sub-tabs */}
             {(() => {
               const lockMins = tournament?.tip_lock_minutes ?? 120
               const isMatchLocked = (m: any) => m.tip_lock_override || m.status !== 'upcoming' || new Date() >= new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
-
-              const groupMatches = matches.filter((m: any) => !m.round || m.round === 'group')
-              const knockoutMatches = matches.filter((m: any) => m.round && m.round !== 'group')
-              console.log('Tips debug - total:', matches.length, 'group:', groupMatches.length, 'knockout:', knockoutMatches.length, 'sample round:', matches[0]?.round)
-
-              const openGroup = groupMatches.filter((m: any) => !isMatchLocked(m))
-              const lockedGroup = groupMatches.filter((m: any) => isMatchLocked(m))
-              const openKnockout = knockoutMatches.filter((m: any) => !isMatchLocked(m))
-              const lockedKnockout = knockoutMatches.filter((m: any) => isMatchLocked(m))
-
+              const openMatches = matches.filter((m: any) => !isMatchLocked(m))
+              const lockedMatches = matches.filter((m: any) => isMatchLocked(m))
               return (
                 <>
-                  {/* Stage selector: Group Stage | Knockout */}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {([['group', `⚽ Group Stage (${groupMatches.length})`], ['knockout', `⚡ Knockout (${knockoutMatches.length})`]] as const).map(([v, label]) => (
+                    {([['open', `⚽ Open (${openMatches.length})`], ['locked', `🔒 Locked / Past (${lockedMatches.length})`]] as const).map(([v, label]) => (
                       <button key={v} onClick={() => setTipsView(v as any)} style={{
                         padding: '0.4rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
-                        border: `1px solid ${tipsView === v ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`,
-                        background: tipsView === v ? 'rgba(251,191,36,0.1)' : 'transparent',
-                        color: tipsView === v ? '#fbbf24' : 'rgba(255,255,255,0.5)',
+                        border: `1px solid ${tipsView === v ? 'var(--green)' : 'rgba(255,255,255,0.15)'}`,
+                        background: tipsView === v ? 'rgba(74,222,128,0.1)' : 'transparent',
+                        color: tipsView === v ? '#4ade80' : 'rgba(255,255,255,0.5)',
                       }}>{label}</button>
                     ))}
                   </div>
-
-                  {/* Group Stage — grouped by date */}
-                  {(tipsView === 'group' || !tipsView) && (() => {
-                    const openMatches = openGroup
-                    const lockedMatches = lockedGroup
-                    const allGroup = [...openMatches, ...lockedMatches]
-
+                  {(() => {
+                    const viewMatches = tipsView === 'locked' ? lockedMatches : openMatches
+                    if (viewMatches.length === 0) return (
+                      <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+                        {tipsView === 'open' ? 'No open matches right now — all tips are locked.' : 'No locked or past matches yet.'}
+                      </div>
+                    )
                     // Group by date
                     const byDate: Record<string, any[]> = {}
-                    allGroup.forEach((m: any) => {
+                    viewMatches.forEach((m: any) => {
                       const date = new Date(m.kickoff_at).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
                       if (!byDate[date]) byDate[date] = []
                       byDate[date].push(m)
                     })
-
-                    // Open/Locked toggle within group stage
                     return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          {([['open', `Open (${openMatches.length})`], ['locked', `Locked / Past (${lockedMatches.length})`]] as const).map(([v, label]) => (
-                            <button key={v} onClick={() => setTipsSubView(v)} style={{
-                              padding: '0.35rem 0.85rem', borderRadius: 20, fontSize: '0.74rem', cursor: 'pointer',
-                              border: `1px solid ${tipsSubView === v ? 'var(--green)' : 'rgba(255,255,255,0.12)'}`,
-                              background: tipsSubView === v ? 'rgba(74,222,128,0.1)' : 'transparent',
-                              color: tipsSubView === v ? '#4ade80' : 'rgba(255,255,255,0.4)',
-                            }}>{tipsSubView === v ? (v === 'open' ? '⚽ ' : '🔒 ') : ''}{label}</button>
-                          ))}
-                        </div>
-
-                        {(() => {
-                          const viewMatches = tipsSubView === 'locked' ? lockedMatches : openMatches
-                          const viewByDate: Record<string, any[]> = {}
-                          viewMatches.forEach((m: any) => {
-                            const date = new Date(m.kickoff_at).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
-                            if (!viewByDate[date]) viewByDate[date] = []
-                            viewByDate[date].push(m)
-                          })
-
-                          if (viewMatches.length === 0) return (
-                            <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-                              {tipsSubView === 'open' ? 'No open group stage matches right now.' : 'No locked group matches yet.'}
-                            </div>
-                          )
-
-                          return Object.entries(viewByDate).map(([date, dateMatches]) => (
-                            <div key={date}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                                <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'var(--gold)' }}>
-                                  {date.toUpperCase()}
-                                </div>
-                                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
-                                <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)' }}>{(dateMatches as any[]).length} matches</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        {Object.entries(byDate).map(([date, dateMatches]) => (
+                          <div key={date}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                              <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.82rem', letterSpacing: '0.08em', color: 'var(--gold)' }}>
+                                {date.toUpperCase()}
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                {(dateMatches as any[]).map((match: any) => (
-                                  <MatchTipCard key={match.id} match={match} tip={myTips[match.id]} tournament={tournament} userId={user.id} onSave={loadAll} />
-                                ))}
-                              </div>
+                              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+                              <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)' }}>{(dateMatches as any[]).length} matches</span>
                             </div>
-                          ))
-                        })()}
-                      </div>
-                    )
-                  })()}
-
-                  {/* Knockout — grouped by round */}
-                  {tipsView === 'knockout' && (() => {
-                    const openMatches = openKnockout
-                    const lockedMatches = lockedKnockout
-
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          {([['open', `Open (${openMatches.length})`], ['locked', `Locked / Past (${lockedMatches.length})`]] as const).map(([v, label]) => (
-                            <button key={v} onClick={() => setTipsSubView(v)} style={{
-                              padding: '0.35rem 0.85rem', borderRadius: 20, fontSize: '0.74rem', cursor: 'pointer',
-                              border: `1px solid ${tipsSubView === v ? 'var(--green)' : 'rgba(255,255,255,0.12)'}`,
-                              background: tipsSubView === v ? 'rgba(74,222,128,0.1)' : 'transparent',
-                              color: tipsSubView === v ? '#4ade80' : 'rgba(255,255,255,0.4)',
-                            }}>{tipsSubView === v ? (v === 'open' ? '⚽ ' : '🔒 ') : ''}{label}</button>
-                          ))}
-                        </div>
-
-                        {(() => {
-                          const viewMatches = tipsSubView === 'locked' ? lockedMatches : openMatches
-                          if (viewMatches.length === 0) return (
-                            <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-                              {knockoutMatches.length === 0 ? 'No knockout matches added yet.' : tipsSubView === 'open' ? 'No open knockout matches right now.' : 'No locked knockout matches yet.'}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                              {(dateMatches as any[]).map((match: any) => (
+                                <MatchTipCard key={match.id} match={match} tip={myTips[match.id]} tournament={tournament} userId={user.id} onSave={loadAll} />
+                              ))}
                             </div>
-                          )
-
-                          const byRound: Record<string, any[]> = {}
-                          roundOrder.filter(r => r !== 'group').forEach(r => {
-                            const ms = viewMatches.filter((m: any) => m.round === r)
-                            if (ms.length) byRound[r] = ms
-                          })
-
-                          return Object.entries(byRound).map(([round, roundMatches]) => (
-                            <div key={round}>
-                              <div className="flex items-center gap-3" style={{ marginBottom: '0.75rem' }}>
-                                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)' }}>
-                                  {roundLabel[round]}
-                                </h2>
-                                <span className="badge badge-gold">{multiplierLabel[round]}x multiplier</span>
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                {(roundMatches as any[]).map((match: any) => (
-                                  <MatchTipCard key={match.id} match={match} tip={myTips[match.id]} tournament={tournament} userId={user.id} onSave={loadAll} />
-                                ))}
-                              </div>
-                            </div>
-                          ))
-                        })()}
+                          </div>
+                        ))}
                       </div>
                     )
                   })()}
                 </>
               )
             })()}
-
             {matches.length === 0 && (
               <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
                 Matches haven't been added yet. Check back soon!
@@ -2366,18 +2273,22 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
 
 
 function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars, profilesMap, userId, tournament, t }: any) {
-  const [view, setView] = useState<'matches' | 'qualifiers' | 'predictions'>('matches')
+  const [view, setView] = useState<'group' | 'knockout' | 'qualifiers' | 'predictions'>('group')
   const roundLabel: Record<string, string> = {
     group: 'Group', r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third_place: '3rd', final: 'Final'
   }
 
-  const lockedMatches = matches.filter((m: any) => {
+  const lockMins = tournament?.tip_lock_minutes ?? 120
+  const isLocked = (m: any) => {
     if (m.status === 'live' || m.status === 'completed') return true
     if (m.tip_lock_override) return true
-    const lockMins = tournament?.tip_lock_minutes ?? 120
     const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
     return new Date() >= lockTime
-  })
+  }
+
+  const lockedMatches = matches.filter((m: any) => isLocked(m))
+  const lockedGroup = lockedMatches.filter((m: any) => !m.round || m.round === 'group')
+  const lockedKnockout = lockedMatches.filter((m: any) => m.round && m.round !== 'group')
 
   const players = leaderboard.map((r: any) => ({
     id: r.user_id,
@@ -2385,6 +2296,9 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
     isMe: r.user_id === userId,
     avatar: avatars[r.user_id],
   }))
+
+  const groupCount = lockedGroup.length
+  const knockoutCount = lockedKnockout.length
 
   return (
     <div style={{ paddingBottom: '3rem' }}>
@@ -2397,7 +2311,12 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
 
       {/* View toggle */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        {([['matches', '⚽ Match Tips', '⚽ Partidas'], ['qualifiers', '🗂️ Group Qualifiers', '🗂️ Classificados'], ['predictions', '🏆 Predictions', '🏆 Previsões']] as const).map(([v, en, pt]) => (
+        {([
+          ['group', `⚽ Group Stage (${groupCount})`, `⚽ Grupo (${groupCount})`],
+          ['knockout', `⚡ Knockout (${knockoutCount})`, `⚡ Eliminatórias (${knockoutCount})`],
+          ['qualifiers', '🗂️ Group Qualifiers', '🗂️ Classificados'],
+          ['predictions', '🏆 Predictions', '🏆 Previsões'],
+        ] as const).map(([v, en, pt]) => (
           <button key={v} onClick={() => setView(v as any)} style={{
             padding: '0.4rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
             border: `1px solid ${view === v ? 'var(--green)' : 'rgba(255,255,255,0.15)'}`,
@@ -2409,9 +2328,9 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
         ))}
       </div>
 
-      {/* ── MATCH TIPS TABLE ── */}
-      {view === 'matches' && (
-        lockedMatches.length === 0 ? (
+      {/* ── GROUP STAGE MATCH TIPS ── */}
+      {(view === 'group') && (
+        lockedGroup.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
             <p>{t.lang === 'pt' ? 'Palpites visíveis após o início das partidas.' : 'Tips visible once matches kick off.'}</p>
@@ -2485,6 +2404,63 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                     </tr>
                   )
                 })}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {/* ── KNOCKOUT MATCH TIPS TABLE ── */}
+      {view === 'knockout' && (
+        lockedKnockout.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⚡</div>
+            <p>{t.lang === 'pt' ? 'Nenhuma partida eliminatória bloqueada ainda.' : 'No locked knockout matches yet.'}</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: Math.max(500, lockedKnockout.length * 80 + 120) }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--dark-border)' }}>
+                  <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.3)', fontWeight: 500, minWidth: 160, position: 'sticky', left: 0, background: 'var(--dark-card)' }}>
+                    {t.lang === 'pt' ? 'Jogador' : 'Player'}
+                  </th>
+                  {lockedKnockout.map((m: any) => (
+                    <th key={m.id} style={{ padding: '0.5rem 0.4rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontWeight: 500, minWidth: 80 }}>
+                      <div style={{ fontSize: '0.7rem', whiteSpace: 'nowrap' }}>{m.home_team?.split(' ').pop()} v {m.away_team?.split(' ').pop()}</div>
+                      <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>{roundLabel[m.round] || m.round}</div>
+                      {m.status === 'completed' && <div style={{ fontSize: '0.65rem', color: '#4ade80' }}>{m.home_score}–{m.away_score}</div>}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((player: any) => (
+                  <tr key={player.id} style={{ borderBottom: '1px solid var(--dark-border)', background: player.isMe ? 'rgba(34,197,94,0.04)' : undefined }}>
+                    <td style={{ padding: '0.6rem 1rem', position: 'sticky', left: 0, background: player.isMe ? 'rgba(34,197,94,0.06)' : 'var(--dark-card)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: 22, height: 22, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: 'rgba(255,255,255,0.08)' }}>
+                          {avatars[player.id] ? <img src={avatars[player.id]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <span style={{ fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>👤</span>}
+                        </div>
+                        <span style={{ fontWeight: player.isMe ? 600 : 400, color: player.isMe ? '#4ade80' : '#e8f5ee', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>{player.name}</span>
+                      </div>
+                    </td>
+                    {lockedKnockout.map((m: any) => {
+                      const tip = allTips.find((tp: any) => tp.match_id === m.id && tp.user_id === player.id)
+                      const isExact = tip && m.status === 'completed' && tip.tip_home === m.home_score && tip.tip_away === m.away_score
+                      const isWinner = tip && m.status === 'completed' && !isExact && Number(tip.pts_winner) > 0
+                      return (
+                        <td key={m.id} style={{ padding: '0.5rem 0.4rem', textAlign: 'center', background: isExact ? 'rgba(251,191,36,0.08)' : isWinner ? 'rgba(74,222,128,0.06)' : undefined }}>
+                          {tip ? (
+                            <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: isExact ? '#fbbf24' : isWinner ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>
+                              {tip.tip_home}–{tip.tip_away}
+                            </span>
+                          ) : <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.75rem' }}>–</span>}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
