@@ -266,8 +266,8 @@ export default function TournamentPage() {
               const lockMins = tournament?.tip_lock_minutes ?? 120
               const isMatchLocked = (m: any) => m.tip_lock_override || m.status !== 'upcoming' || new Date() >= new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
 
-              const groupMatches = matches.filter((m: any) => m.round === 'group')
-              const knockoutMatches = matches.filter((m: any) => m.round !== 'group')
+              const groupMatches = matches.filter((m: any) => !m.round || m.round === 'group')
+              const knockoutMatches = matches.filter((m: any) => m.round && m.round !== 'group')
 
               const openGroup = groupMatches.filter((m: any) => !isMatchLocked(m))
               const lockedGroup = groupMatches.filter((m: any) => isMatchLocked(m))
