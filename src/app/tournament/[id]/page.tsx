@@ -938,12 +938,23 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
                     <div style={{ fontSize: '0.72rem', fontWeight: 700, color: g.color, marginBottom: '0.35rem', letterSpacing: '0.04em' }}>
                       {g.label} ({g.names.length})
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                      {g.names.map((p: any, i: number) => (
-                        <span key={i} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>
-                          {p.name} <span style={{ color: 'rgba(255,255,255,0.35)', fontFamily: 'var(--font-display)', fontSize: '0.7rem' }}>({p.score})</span>{i < g.names.length - 1 ? '' : ''}
-                        </span>
-                      ))}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {(() => {
+                        const byScore: Record<string, string[]> = {}
+                        g.names.forEach((p: any) => {
+                          if (!byScore[p.score]) byScore[p.score] = []
+                          byScore[p.score].push(p.name)
+                        })
+                        return Object.entries(byScore)
+                          .sort((a, b) => b[1].length - a[1].length)
+                          .map(([score, names]) => (
+                            <div key={score} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: '0.2rem 0.5rem' }}>
+                              <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.82rem', color: g.color, fontWeight: 700 }}>{score}</span>
+                              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)' }}>→</span>
+                              <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.75)' }}>{names.join(', ')}</span>
+                            </div>
+                          ))
+                      })()}
                     </div>
                   </div>
                 ))}
