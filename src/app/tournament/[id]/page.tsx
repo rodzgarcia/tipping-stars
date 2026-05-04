@@ -399,7 +399,8 @@ export default function TournamentPage() {
                         if (pick2 === res.second) count += 1
                         else if (pick2 === res.first) count += 0.5
                       })
-                      return <span style={{ color: count > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{count}</span>
+                      const display = count % 1 === 0 ? count : count.toFixed(1)
+                      return <span style={{ color: count > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{display}</span>
                     })()}
                   </div>
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
@@ -526,6 +527,9 @@ export default function TournamentPage() {
               Let's go! 🚀
             </button>
             <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.75rem' }}>
+              🔒 Your team and position are permanently assigned and cannot be changed.
+            </p>
+            <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.15)', marginTop: '0.25rem' }}>
               Tap anywhere to close
             </p>
           </div>

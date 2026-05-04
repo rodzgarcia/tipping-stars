@@ -25,6 +25,12 @@ function AuthForm() {
     e.preventDefault()
     setError(''); setSuccess(''); setLoading(true)
 
+    if (mode === 'signup' && !nickname.trim()) {
+      setError(t.lang === 'pt' ? 'Apelido é obrigatório.' : 'Nickname is required.')
+      setLoading(false)
+      return
+    }
+
     if (mode === 'signup') {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -97,8 +103,9 @@ function AuthForm() {
                 <div>
                   <label className="label">
                     {t.lang === 'pt' ? 'Apelido' : 'Nickname'}
+                    <span style={{ color: '#f87171', marginLeft: '0.25rem' }}>*</span>
                     <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400, marginLeft: '0.4rem', fontSize: '0.78rem' }}>
-                      {t.lang === 'pt' ? '(opcional — aparece no placar)' : '(optional — shown on leaderboard)'}
+                      {t.lang === 'pt' ? '(aparece no placar)' : '(shown on leaderboard)'}
                     </span>
                   </label>
                   <input
@@ -108,6 +115,7 @@ function AuthForm() {
                     value={nickname}
                     onChange={e => setNickname(e.target.value)}
                     maxLength={20}
+                    required
                   />
                   {nickname.length > 0 && (
                     <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
