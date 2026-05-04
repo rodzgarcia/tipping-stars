@@ -1556,10 +1556,16 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
                   setKoTimezone(tz)
                   if (!koForm.kickoff_at || !tz) return
                   const offsetHours = Number(tz)
-                  const local = new Date(koForm.kickoff_at)
-                  const utc = new Date(local.getTime() - offsetHours * 60 * 60 * 1000)
+                  // Treat the input value as the LOCAL time at the venue (naive, no browser TZ)
+                  // Parse it manually to avoid browser adding its own timezone offset
+                  const [datePart, timePart] = koForm.kickoff_at.split('T')
+                  const [year, month, day] = datePart.split('-').map(Number)
+                  const [hour, minute] = timePart.split(':').map(Number)
+                  // Convert venue local time to UTC by subtracting venue offset
+                  const utcMs = Date.UTC(year, month - 1, day, hour, minute) - offsetHours * 60 * 60 * 1000
+                  const utc = new Date(utcMs)
                   const pad = (n: number) => String(n).padStart(2,'0')
-                  const utcStr = `${utc.getFullYear()}-${pad(utc.getMonth()+1)}-${pad(utc.getDate())}T${pad(utc.getHours())}:${pad(utc.getMinutes())}`
+                  const utcStr = `${utc.getUTCFullYear()}-${pad(utc.getUTCMonth()+1)}-${pad(utc.getUTCDate())}T${pad(utc.getUTCHours())}:${pad(utc.getUTCMinutes())}`
                   setKoForm(prev => ({...prev, kickoff_at: utcStr}))
                 }}>
                 <option value="">Select timezone</option>
@@ -1573,6 +1579,11 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
             <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
               Enter local kickoff time → select venue timezone → field auto-converts to UTC
             </p>
+            {koForm.kickoff_at && koTimezone && (
+              <p style={{ fontSize: '0.72rem', color: '#4ade80', marginTop: '0.25rem' }}>
+                ✅ Stored as UTC: {koForm.kickoff_at} UTC → Sydney: {new Date(koForm.kickoff_at + 'Z').toLocaleString('en-AU', { timeZone: 'Australia/Sydney', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })} AEST
+              </p>
+            )}
           </div>
         </div>
         <button onClick={addKoMatch} disabled={savingKo || !koForm.home_team || !koForm.away_team || !koForm.kickoff_at} className="btn btn-primary" style={{ marginTop: '1rem', background: 'rgba(96,165,250,0.2)', borderColor: '#60a5fa', color: '#60a5fa' }}>

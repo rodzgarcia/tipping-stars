@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -161,8 +161,10 @@ function ReminderBanner({ matches, myTips, tournament, t }: any) {
       </div>
       <button
         onClick={() => {
-          // Scroll to tips tab and switch to open view
-          document.querySelector('[data-tab="tips"]')?.scrollIntoView({ behavior: 'smooth' })
+          // Switch to tips tab and scroll to top of page
+          const btn = document.querySelector('[data-tab="tips"]') as HTMLElement
+          if (btn) btn.click()
+          window.scrollTo({ top: 0, behavior: 'smooth' })
         }}
         style={{
           padding: '0.35rem 0.85rem', borderRadius: 8, fontSize: '0.78rem', cursor: 'pointer', flexShrink: 0,
@@ -172,6 +174,203 @@ function ReminderBanner({ matches, myTips, tournament, t }: any) {
         }}
       >
         {t.lang === 'pt' ? 'Apostar agora →' : 'Tip now →'}
+      </button>
+    </div>
+  )
+}
+
+
+// ── Countdown to next lock ────────────────────────────────────────────────────
+function CountdownBar({ matches, myTips, tournament }: any) {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const i = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(i)
+  }, [])
+
+  const lockMins = tournament?.tip_lock_minutes ?? 120
+  const next = matches
+    .filter((m: any) => {
+      if (m.status !== 'upcoming' || m.tip_lock_override || myTips[m.id]) return false
+      const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
+      return lockTime > now
+    })
+    .sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0]
+
+  if (!next) return null
+
+  const lockTime = new Date(new Date(next.kickoff_at).getTime() - lockMins * 60 * 1000)
+  const secsLeft = Math.max(0, Math.floor((lockTime.getTime() - now.getTime()) / 1000))
+  const h = Math.floor(secsLeft / 3600)
+  const m = Math.floor((secsLeft % 3600) / 60)
+  const s = secsLeft % 60
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const isUrgent = secsLeft < 7200
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '0.6rem',
+      padding: '0.5rem 0.85rem', borderRadius: 8, marginBottom: '0.75rem',
+      background: isUrgent ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
+      border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)'}`,
+    }}>
+      <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>Next lock:</span>
+      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isUrgent ? '#f87171' : '#e8f5ee' }}>
+        {next.home_team} vs {next.away_team}
+      </span>
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color: isUrgent ? '#f87171' : '#fbbf24', marginLeft: 'auto', letterSpacing: '0.05em' }}>
+        {h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`}
+      </span>
+    </div>
+  )
+}
+
+// ── Head to Head ──────────────────────────────────────────────────────────────
+function HeadToHead({ leaderboard, allTips, profilesMap, userId, matches }: any) {
+  const [opponent, setOpponent] = useState('')
+  
+  const me = leaderboard.find((r: any) => r.user_id === userId)
+  const others = leaderboard.filter((r: any) => r.user_id !== userId)
+  const opp = leaderboard.find((r: any) => r.user_id === opponent)
+
+  const completedMatches = matches.filter((m: any) => m.status === 'completed')
+
+  const myTips = allTips.filter((tp: any) => tp.user_id === userId)
+  const oppTips = allTips.filter((tp: any) => tp.user_id === opponent)
+
+  const results = completedMatches.map((m: any) => {
+    const myTip = myTips.find((tp: any) => tp.match_id === m.id)
+    const oppTip = oppTips.find((tp: any) => tp.match_id === m.id)
+    const myPts = Number(myTip?.pts_with_multiplier || 0)
+    const oppPts = Number(oppTip?.pts_with_multiplier || 0)
+    return { match: m, myTip, oppTip, myPts, oppPts,
+      winner: myPts > oppPts ? 'me' : oppPts > myPts ? 'opp' : myTip && oppTip ? 'draw' : null }
+  }).filter((r: any) => r.myTip || r.oppTip)
+
+  const myWins = results.filter(r => r.winner === 'me').length
+  const oppWins = results.filter(r => r.winner === 'opp').length
+  const draws = results.filter(r => r.winner === 'draw').length
+  const myTotal = results.reduce((s, r) => s + r.myPts, 0)
+  const oppTotal = results.reduce((s, r) => s + r.oppPts, 0)
+
+  const myName = profilesMap?.[userId]?.nickname || me?.display_name || 'You'
+  const oppName = opp ? (profilesMap?.[opponent]?.nickname || opp?.display_name) : '...'
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)' }}>⚔️ HEAD TO HEAD</h3>
+        <select className="input" style={{ background: '#1a1a2e', color: '#fff', width: 'auto', flex: 1, maxWidth: 200 }}
+          value={opponent} onChange={e => setOpponent(e.target.value)}>
+          <option value="">Select opponent...</option>
+          {others.map((r: any) => (
+            <option key={r.user_id} value={r.user_id}>
+              {profilesMap?.[r.user_id]?.nickname || r.display_name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {!opponent ? (
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
+          Pick someone to compare against
+        </div>
+      ) : (
+        <>
+          {/* Score card */}
+          <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '1rem', textAlign: 'center' }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#4ade80' }}>{myName} (you)</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', color: '#4ade80', lineHeight: 1 }}>{myWins}</div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)' }}>{myTotal} pts</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', marginBottom: '0.25rem' }}>DRAWS</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: '#fbbf24' }}>{draws}</div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)' }}>{results.length} matches</div>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f87171' }}>{oppName}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', color: '#f87171', lineHeight: 1 }}>{oppWins}</div>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)' }}>{oppTotal} pts</div>
+            </div>
+          </div>
+
+          {/* Match by match */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            {results.slice().reverse().map(({ match: m, myTip, oppTip, myPts, oppPts, winner }: any) => (
+              <div key={m.id} style={{
+                display: 'grid', gridTemplateColumns: '1fr auto 1fr',
+                gap: '0.5rem', alignItems: 'center', padding: '0.6rem 0.75rem',
+                borderRadius: 8, fontSize: '0.78rem',
+                background: winner === 'me' ? 'rgba(74,222,128,0.05)' : winner === 'opp' ? 'rgba(248,113,113,0.05)' : 'rgba(255,255,255,0.03)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {winner === 'me' && <span style={{ color: '#4ade80', fontWeight: 700 }}>▶</span>}
+                  <span style={{ fontFamily: 'var(--font-display)', color: myTip ? (myPts > 0 ? '#4ade80' : '#f87171') : 'rgba(255,255,255,0.2)' }}>
+                    {myTip ? `${myTip.tip_home}–${myTip.tip_away}` : '–'}
+                  </span>
+                  {myPts > 0 && <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>+{myPts}</span>}
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
+                    {m.home_team.split(' ').pop()} {m.home_score}–{m.away_score} {m.away_team.split(' ').pop()}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                  {oppPts > 0 && <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>+{oppPts}</span>}
+                  <span style={{ fontFamily: 'var(--font-display)', color: oppTip ? (oppPts > 0 ? '#f87171' : 'rgba(255,255,255,0.4)') : 'rgba(255,255,255,0.2)' }}>
+                    {oppTip ? `${oppTip.tip_home}–${oppTip.tip_away}` : '–'}
+                  </span>
+                  {winner === 'opp' && <span style={{ color: '#f87171', fontWeight: 700 }}>◀</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── Share Card ────────────────────────────────────────────────────────────────
+function ShareCard({ row, leaderboard, profilesMap, tournament }: any) {
+  const [copied, setCopied] = useState(false)
+  if (!row) return null
+
+  const rank = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
+    .findIndex((r: any) => r.user_id === row.user_id) + 1
+  const name = profilesMap?.[row.user_id]?.nickname || row.display_name || 'Player'
+  const total = leaderboard.length
+  const exact = row.exact_scores ?? 0
+  const winners = Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))
+  const gd = Math.max(0, (row.correct_goal_diff ?? 0) - exact)
+  const MEDAL = ['🥇', '🥈', '🥉']
+  const medal = rank <= 3 ? MEDAL[rank - 1] : `#${rank}`
+
+  const text = `${medal} ${name} | ${tournament?.name || 'Tipping Stars'} 🌍
+` +
+    `📊 ${row.total_points} pts · Rank ${rank}/${total}
+` +
+    `🎯 ${exact} exact · ⚖️ ${gd} goal diff · ✅ ${winners} winners
+` +
+    `⭐ tipping-stars.vercel.app`
+
+  function copyToClipboard() {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    })
+  }
+
+  return (
+    <div>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }}>📤 SHARE YOUR STATS</h3>
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '0.75rem', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)' }}>
+        <pre style={{ fontFamily: 'inherit', fontSize: '0.85rem', lineHeight: 1.7, color: '#e8f5ee', margin: 0, whiteSpace: 'pre-wrap' }}>{text}</pre>
+      </div>
+      <button onClick={copyToClipboard} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
+        {copied ? '✅ Copied! Paste in WhatsApp' : '📋 Copy to clipboard'}
       </button>
     </div>
   )
@@ -383,6 +582,8 @@ export default function TournamentPage() {
           <PrizeBanner tournament={tournament} approvedCount={approvedCount} leaderboard={leaderboard} t={t} />
         )}
 
+        <CountdownBar matches={matches} myTips={myTips} tournament={tournament} />
+
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none', display: 'flex', flexWrap: 'nowrap' }}>
           <button data-tab="tips" className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>⚽ Tips</button>
@@ -584,7 +785,27 @@ export default function TournamentPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-              <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />
+              {/* H2H + Share sub-tabs */}
+              {(() => {
+                const [lbSubTab, setLbSubTab] = React.useState<'cards'|'h2h'|'share'>('cards')
+                return (
+                  <>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.75rem' }}>
+                      {([['cards','🃏 Cards'],['h2h','⚔️ Head to Head'],['share','📤 Share']] as const).map(([v,label]) => (
+                        <button key={v} onClick={() => setLbSubTab(v)} style={{
+                          padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.74rem', cursor: 'pointer',
+                          border: `1px solid ${lbSubTab===v ? '#fbbf24' : 'rgba(255,255,255,0.12)'}`,
+                          background: lbSubTab===v ? 'rgba(251,191,36,0.1)' : 'transparent',
+                          color: lbSubTab===v ? '#fbbf24' : 'rgba(255,255,255,0.4)',
+                        }}>{label}</button>
+                      ))}
+                    </div>
+                    {lbSubTab === 'cards' && <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />}
+                    {lbSubTab === 'h2h' && <HeadToHead leaderboard={leaderboard} allTips={allTips} profilesMap={profilesMap} userId={user.id} matches={matches} />}
+                    {lbSubTab === 'share' && <ShareCard row={leaderboard.find((r:any) => r.user_id === user.id)} leaderboard={leaderboard} profilesMap={profilesMap} tournament={tournament} />}
+                  </>
+                )
+              })()}
               <RoundStandings leaderboard={leaderboard} allTips={allTips} profilesMap={profilesMap} t={t} />
             </div>
             <LeaderboardCharts leaderboard={leaderboard} allTips={allTips} t={t} sortKey={sortKey} setSortKey={setSortKey} profilesMap={profilesMap} userId={user.id} />
