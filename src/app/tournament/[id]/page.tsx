@@ -351,8 +351,8 @@ export default function TournamentPage() {
                 <div></div>
                 <div>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
                 <div style={{ textAlign: 'center' }} title="Exact scores">🎯</div>
-                <div style={{ textAlign: 'center' }} title="Correct goal difference">⚖️</div>
-                <div style={{ textAlign: 'center' }} title="Correct winner">✅</div>
+                <div style={{ textAlign: 'center' }} title="Correct goal difference only (not exact score)">⚖️</div>
+                <div style={{ textAlign: 'center' }} title="Correct winner only (not goal diff or exact score)">✅</div>
                 <div style={{ textAlign: 'center' }} title="Qualifier teams correct">🏟️</div>
                 <div style={{ textAlign: 'center' }}>{t.lang === 'pt' ? 'PTS' : 'PTS'}</div>
               </div>
@@ -386,11 +386,11 @@ export default function TournamentPage() {
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: row.exact_scores > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>
                     {row.exact_scores ?? 0}
                   </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: row.correct_goal_diff > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>
-                    {row.correct_goal_diff ?? 0}
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: (row.correct_goal_diff - row.exact_scores) > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>
+                    {Math.max(0, (row.correct_goal_diff ?? 0) - (row.exact_scores ?? 0))}
                   </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: row.correct_winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>
-                    {row.correct_winners ?? 0}
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: (row.correct_winners - row.correct_goal_diff) > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>
+                    {Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))}
                   </div>
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
                     {(() => {
@@ -425,7 +425,7 @@ export default function TournamentPage() {
             <div style={{ marginTop: '0.75rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <span>🎯 {t.lang === 'pt' ? 'Placar exato' : 'Exact score'}</span>
               <span>⚖️ {t.lang === 'pt' ? 'Saldo de gols' : 'Goal difference'}</span>
-              <span>✅ {t.lang === 'pt' ? 'Vencedor correto' : 'Correct winner'}</span>
+              <span>✅ {t.lang === 'pt' ? 'Só vencedor correto (sem saldo ou placar exato)' : 'Winner only (no goal diff or exact score)'}</span>
               <span>🏟️ {t.lang === 'pt' ? 'Times classificados corretos' : 'Qualifier teams correct'} (1 = certo, 0.5 = posição errada)</span>
               <span>{t.lang === 'pt' ? 'Desempate: placar exato → saldo de gols' : 'Tiebreak: exact scores → goal diff'}</span>
             </div>
