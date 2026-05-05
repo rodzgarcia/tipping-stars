@@ -614,7 +614,7 @@ async function exportRulesPDF(tournament: any, lang: string) {
     <div class="row"><span>✅ ${isPt ? 'Vencedor correto' : 'Correct winner'}</span><span class="pts">+${pWinner} pts</span></div>
     <div class="row"><span>⚖️ ${isPt ? 'Saldo de gols correto' : 'Correct goal difference'}</span><span class="pts">+${pDiff} pts</span></div>
     <div class="row"><span>🎯 ${isPt ? 'Placar exato' : 'Exact score'}</span><span class="pts">+${pExact} pts</span></div>
-    ${pBonus > 0 ? `<div class="row"><span>🚀 ${isPt ? 'Bônus goleada (${tn.big_margin_threshold}+ gols)' : 'Big margin bonus (${tn.big_margin_threshold}+ goals)'}</span><span class="pts">+${pBonus} pts</span></div>` : ''}
+    ${pBonus > 0 ? `<div class="row"><span>🚀 ${isPt ? 'Bônus goleada' : 'Big margin bonus'} (${tn.big_margin_threshold}+ ${isPt ? 'gols' : 'goals'})</span><span class="pts">+${pBonus} pts</span></div>` : ''}
   </div>
   <div class="note">${isPt
     ? `💡 Exemplo: Você apostou 2–0 e o resultado foi 2–0 → +${pWinner} + ${pDiff} + ${pExact} = ${pWinner + pDiff + pExact} pontos total`
