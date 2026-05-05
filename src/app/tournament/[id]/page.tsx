@@ -377,6 +377,83 @@ function ShareCard({ row, leaderboard, profilesMap, tournament }: any) {
 }
 
 
+function TournamentProgress({ matches, t }: any) {
+  const total = matches.length
+  if (total === 0) return null
+  const completed = matches.filter((m: any) => m.status === 'completed').length
+  const live = matches.filter((m: any) => m.status === 'live').length
+  const pct = Math.round((completed / total) * 100)
+  return (
+    <div style={{ marginBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.05em' }}>
+          TOURNAMENT PROGRESS
+        </span>
+        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>
+          {completed}/{total} matches · {live > 0 ? `${live} live · ` : ''}{pct}%
+        </span>
+      </div>
+      <div style={{ height: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#fbbf24' : 'var(--green)', borderRadius: 3, transition: 'width 0.5s ease' }} />
+      </div>
+    </div>
+  )
+}
+
+
+function WinnerPredictionWall({ allTournamentTips, profilesMap, leaderboard, t }: any) {
+  if (!allTournamentTips?.length) return null
+  const tips = allTournamentTips.filter((tt: any) => tt.predicted_winner)
+  if (!tips.length) return null
+
+  // Group by predicted winner
+  const byWinner: Record<string, any[]> = {}
+  tips.forEach((tt: any) => {
+    const w = tt.predicted_winner
+    if (!byWinner[w]) byWinner[w] = []
+    const name = profilesMap?.[tt.user_id]?.nickname || profilesMap?.[tt.user_id]?.display_name || '?'
+    byWinner[w].push(name)
+  })
+  const sorted = Object.entries(byWinner).sort((a, b) => b[1].length - a[1].length)
+
+  const TEAM_FLAGS: Record<string, string> = {
+    'Argentina':'ar','France':'fr','England':'gb-eng','Spain':'es','Brazil':'br',
+    'Portugal':'pt','Netherlands':'nl','Germany':'de','Italy':'it','Morocco':'ma',
+    'Croatia':'hr','United States':'us','Mexico':'mx','Japan':'jp','Uruguay':'uy',
+  }
+
+  return (
+    <div className="card" style={{ overflow: 'hidden', marginBottom: '1.25rem' }}>
+      <div style={{ padding: '0.875rem 1.25rem', borderBottom: '1px solid var(--dark-border)', background: 'rgba(251,191,36,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: '#fbbf24' }}>
+          🏆 {t.lang === 'pt' ? 'QUEM VAI GANHAR?' : 'WHO WINS THE WORLD CUP?'}
+        </span>
+        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>{tips.length} predictions</span>
+      </div>
+      <div style={{ padding: '0.75rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        {sorted.map(([team, names]) => {
+          const code = TEAM_FLAGS[team]
+          const pct = Math.round((names.length / tips.length) * 100)
+          return (
+            <div key={team}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                {code && <img src={`https://flagcdn.com/w40/${code}.png`} style={{ height: 16, borderRadius: 2 }} alt="" />}
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, flex: 1 }}>{team}</span>
+                <span style={{ fontSize: '0.78rem', color: '#fbbf24', fontFamily: 'var(--font-display)' }}>{names.length} pick{names.length > 1 ? 's' : ''}</span>
+              </div>
+              <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, marginBottom: '0.2rem' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: 'rgba(251,191,36,0.5)', borderRadius: 2 }} />
+              </div>
+              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)' }}>{names.join(', ')}</div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+
 function FlagImg({ team, size = 20 }: { team: string, size?: number }) {
   const code = TEAM_FLAGS[team]
   if (!code) return null
@@ -583,6 +660,7 @@ export default function TournamentPage() {
           <PrizeBanner tournament={tournament} approvedCount={approvedCount} leaderboard={leaderboard} t={t} />
         )}
 
+        <TournamentProgress matches={matches} t={t} />
         <CountdownBar matches={matches} myTips={myTips} tournament={tournament} />
 
         {/* Tabs */}
@@ -658,7 +736,7 @@ export default function TournamentPage() {
             })()}
             {matches.length === 0 && (
               <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-                Matches haven't been added yet. Check back soon!
+Matches haven't been added yet.{matches.length === 0 && tournament?.status === 'upcoming' ? ' The tournament hasn\'t started yet — check back soon!' : ' Check back soon!'}
               </div>
             )}
           </div>
@@ -2929,6 +3007,9 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
       )}
 
       {/* ── PREDICTIONS TABLE ── */}
+      {view === 'predictions' && tournament?.predictions_locked && (
+        <WinnerPredictionWall allTournamentTips={allTournamentTips} profilesMap={profilesMap} leaderboard={leaderboard} t={t} />
+      )}
       {view === 'predictions' && !tournament?.predictions_locked && (
         <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
           <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🔒</div>
