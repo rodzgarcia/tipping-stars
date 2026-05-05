@@ -199,12 +199,12 @@ export default function ProfilePage() {
         {/* Stats grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
           {[
-            { label: 'Points', value: totalPts, color: '#fbbf24', icon: '⭐' },
-            { label: 'Tips', value: totalTips, color: '#e8f5ee', icon: '📝' },
-            { label: '🎯 Exact Scores', value: totalExact, color: '#fbbf24', icon: '' },
-            { label: '✅ Winners', value: Math.max(0, totalWinners - totalGD), color: '#4ade80', icon: '' },
-            { label: 'Win Accuracy', value: `${winnerRate}%`, color: winnerRate >= 60 ? '#4ade80' : '#e8f5ee', icon: '📊' },
-            { label: 'Exact Rate', value: `${exactRate}%`, color: exactRate >= 15 ? '#fbbf24' : '#e8f5ee', icon: '🎯' },
+            { label: t.lang === 'pt' ? 'Pontos' : 'Points', value: totalPts, color: '#fbbf24', icon: '⭐' },
+            { label: t.lang === 'pt' ? 'Palpites' : 'Tips', value: totalTips, color: '#e8f5ee', icon: '📝' },
+            { label: t.lang === 'pt' ? '🎯 Exatos' : '🎯 Exact Scores', value: totalExact, color: '#fbbf24', icon: '' },
+            { label: t.lang === 'pt' ? '✅ Vencedores' : '✅ Winners', value: Math.max(0, totalWinners - totalGD), color: '#4ade80', icon: '' },
+            { label: t.lang === 'pt' ? 'Acertos' : 'Win Accuracy', value: `${winnerRate}%`, color: winnerRate >= 60 ? '#4ade80' : '#e8f5ee', icon: '📊' },
+            { label: t.lang === 'pt' ? 'Taxa Exata' : 'Exact Rate', value: `${exactRate}%`, color: exactRate >= 15 ? '#fbbf24' : '#e8f5ee', icon: '🎯' },
           ].map(stat => (
             <div key={stat.label} className="card" style={{ padding: '0.875rem', textAlign: 'center' }}>
               <div style={{ fontSize: '1rem', marginBottom: '0.25rem' }}>{stat.icon}</div>
@@ -220,7 +220,7 @@ export default function ProfilePage() {
             <span style={{ fontSize: '1.5rem' }}>{streak >= 5 ? '⚡' : '🔥'}</span>
             <div>
               <div style={{ fontWeight: 600, color: '#fbbf24' }}>{streak} correct pick{streak > 1 ? 's' : ''} in a row!</div>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>{streak >= 5 ? 'Unstoppable!' : streak >= 3 ? 'On fire!' : 'Keep it going'}</div>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>{streak >= 5 ? t.unstoppable : streak >= 3 ? 'On fire!' : t.keepItGoing}</div>
             </div>
           </div>
         )}

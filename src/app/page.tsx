@@ -114,7 +114,7 @@ export default function HomePage() {
           </h2>
           {myMemberships.length === 0 ? (
             <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-              You haven't joined any tournaments yet. Use your invite link to join one.
+              {t.noMemberships}
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '1rem' }}>
@@ -135,14 +135,14 @@ export default function HomePage() {
                         <div className="flex items-center gap-4 flex-wrap" style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>
                           {t.entry_fee > 0 && <span>Entry: {t.currency} ${t.entry_fee}</span>}
                           <span className={`badge ${m.status === 'approved' ? 'badge-green' : m.status === 'rejected' ? 'badge-red' : 'badge-grey'}`}>
-                            {m.status === 'approved' ? 'Joined' : m.status === 'pending' ? 'Awaiting approval' : 'Rejected'}
+                            {m.status === 'approved' ? t.joined : m.status === 'pending' ? t.awaiting : 'Rejected'}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {m.status === 'approved' ? (
                           <Link href={`/tournament/${t.id}`} className="btn btn-primary">
-                            Open <ChevronRight size={14} />
+                            {t.open} <ChevronRight size={14} />
                           </Link>
                         ) : m.status === 'pending' ? (
                           <span className="btn btn-ghost" style={{ cursor: 'default', fontSize: '0.8rem' }}>Pending approval</span>

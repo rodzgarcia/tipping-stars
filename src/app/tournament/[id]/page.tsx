@@ -382,13 +382,13 @@ function TournamentProgress({ matches, t }: any) {
   // WC 2026 total = 104 games: 72 group + 16 R32 + 8 R16 + 4 QF + 2 SF + 1 3rd + 1 Final
   const WC_TOTAL = 104
   const STAGES = [
-    { key: 'group',       label: 'Group',  total: 72, color: '#4ade80' },
-    { key: 'r32',         label: 'R32',    total: 16, color: '#60a5fa' },
-    { key: 'r16',         label: 'R16',    total: 8,  color: '#a78bfa' },
-    { key: 'qf',          label: 'QF',     total: 4,  color: '#f59e0b' },
-    { key: 'sf',          label: 'SF',     total: 2,  color: '#f97316' },
-    { key: 'third_place', label: '3rd',    total: 1,  color: '#6b7280' },
-    { key: 'final',       label: 'Final',  total: 1,  color: '#fbbf24' },
+    { key: 'group',       label: t.lang === 'pt' ? 'Grupo' : 'Group', total: 72, color: '#4ade80' },
+    { key: 'r32',         label: 'R32', total: 16, color: '#60a5fa' },
+    { key: 'r16',         label: 'R16', total: 8,  color: '#a78bfa' },
+    { key: 'qf',          label: t.lang === 'pt' ? 'QF' : 'QF', total: 4,  color: '#f59e0b' },
+    { key: 'sf',          label: t.lang === 'pt' ? 'SF' : 'SF', total: 2,  color: '#f97316' },
+    { key: 'third_place', label: t.lang === 'pt' ? '3º' : '3rd', total: 1,  color: '#6b7280' },
+    { key: 'final',       label: t.lang === 'pt' ? 'Final' : 'Final', total: 1,  color: '#fbbf24' },
   ]
 
   // Count completed matches per stage
@@ -750,7 +750,7 @@ export default function TournamentPage() {
                     const viewMatches = tipsView === 'locked' ? lockedMatches : openMatches
                     if (viewMatches.length === 0) return (
                       <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-                        {tipsView === 'open' ? 'No open matches right now — all tips are locked.' : 'No locked or past matches yet.'}
+                        {tipsView === 'open' ? t.noOpenMatches : t.noLockedMatches}
                       </div>
                     )
                     // Group by date
@@ -1785,7 +1785,7 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
       const resp = await fetch('/api/banter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ players, matchContext, seed: Math.floor(Math.random() * 10000) })
+        body: JSON.stringify({ players, matchContext, seed: Math.floor(Math.random() * 10000), lang: t.lang })
       })
       console.log('Response status:', resp.status)
       const data = await resp.json()
@@ -2017,7 +2017,7 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
         )}
         <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(96,165,250,0.05)', borderRadius: 8, border: '1px solid rgba(96,165,250,0.15)' }}>
           <div style={{ fontSize: '0.78rem', color: '#60a5fa', fontWeight: 600, marginBottom: '0.4rem' }}>
-            🤝 {ispt ? 'EMPATES' : 'DRAWS'}
+            🤝 {ispt ? 'EMPATES' : t.lang === 'pt' ? 'EMPATES' : 'DRAWS'}
           </div>
           <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
             {ispt
@@ -2672,10 +2672,10 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
         </p>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           {([
-            { key: 'total_points', label: '🏆 Total Points' },
-            { key: 'exact_scores', label: '🎯 Exact Score Pts' },
-            { key: 'correct_winners', label: '✅ Winner Pts' },
-            { key: 'correct_goal_diff', label: '⚖️ Goal Diff Pts' },
+            { key: 'total_points', label: t.lang === 'pt' ? '🏆 Total de Pontos' : '🏆 Total Points' },
+            { key: 'exact_scores', label: t.lang === 'pt' ? '🎯 Pts Placar Exato' : '🎯 Exact Score Pts' },
+            { key: 'correct_winners', label: t.lang === 'pt' ? '✅ Pts Vencedor' : '✅ Winner Pts' },
+            { key: 'correct_goal_diff', label: t.lang === 'pt' ? '⚖️ Pts Saldo de Gols' : '⚖️ Goal Diff Pts' },
           ] as { key: SortKey, label: string }[]).map(opt => (
             <button key={opt.key} onClick={() => setSortKey(opt.key)} style={{
               padding: '0.4rem 0.85rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer', border: 'none',
@@ -2700,7 +2700,7 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
               padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.72rem', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.2)',
               background: selectedPlayers.size === leaderboard.length ? 'rgba(255,255,255,0.15)' : 'transparent',
               color: 'rgba(255,255,255,0.6)',
-            }}>All</button>
+            }}>{t.lang === 'pt' ? 'Todos' : 'All'}</button>
             {leaderboard.map((row: any, i: number) => {
               const name = profilesMap?.[row.user_id]?.nickname || row.display_name.split(' ')[0]
               const isSelected = selectedPlayers.has(row.user_id)
@@ -2716,7 +2716,7 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
                 }}>
                   {isSelected && <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' }} />}
                   {name}
-                  {row.user_id === userId && <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>(you)</span>}
+                  {row.user_id === userId && <span style={{ fontSize: '0.65rem', opacity: 0.6 }}>({t.you})</span>}
                 </button>
               )
             })}
@@ -2772,10 +2772,10 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
                 />
                 {sortKey === 'total_points' ? (
                   <>
-                    <Bar dataKey="winner" stackId="a" fill="#4ade80" name="✅ Winner" />
-                    <Bar dataKey="goalDiff" stackId="a" fill="#60a5fa" name="⚖️ Goal Diff" />
-                    <Bar dataKey="exact" stackId="a" fill="#fbbf24" name="🎯 Exact" />
-                    <Bar dataKey="bonus" stackId="a" fill="#f87171" name="🚀 Bonus" radius={[0,4,4,0]} />
+                    <Bar dataKey="winner" stackId="a" fill="#4ade80" name={t.lang === 'pt' ? '✅ Vencedor' : '✅ Winner'} />
+                    <Bar dataKey="goalDiff" stackId="a" fill="#60a5fa" name={t.lang === 'pt' ? '⚖️ Saldo de Gols' : '⚖️ Goal Diff'} />
+                    <Bar dataKey="exact" stackId="a" fill="#fbbf24" name={t.lang === 'pt' ? '🎯 Exato' : '🎯 Exact'} />
+                    <Bar dataKey="bonus" stackId="a" fill="#f87171" name={t.lang === 'pt' ? '🚀 Bônus' : '🚀 Bonus'} radius={[0,4,4,0]} />
                   </>
                 ) : (
                   <Bar dataKey="value" fill={barColor[sortKey]} radius={[0,4,4,0]}
