@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
-import { isPast, subHours, subMinutes } from 'date-fns'
 import { useLang } from '../../LanguageContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
