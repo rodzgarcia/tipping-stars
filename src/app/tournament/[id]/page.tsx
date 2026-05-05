@@ -155,7 +155,7 @@ function ReminderBanner({ matches, myTips, tournament, t }: any) {
           <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
             {urgent.length > 1
               ? urgent.slice(1, 3).map((m: any) => `${m.home_team} vs ${m.away_team}`).join(' · ') + (urgent.length > 3 ? ` +${urgent.length - 3} more` : '')
-              : t.haventTipped}
+              : t.lang === 'pt' ? 'Você ainda não apostou neste jogo' : "You haven't tipped this match yet"}
           </div>
         </div>
       </div>
@@ -173,7 +173,7 @@ function ReminderBanner({ matches, myTips, tournament, t }: any) {
           color: isRed ? '#f87171' : isYellow ? '#fbbf24' : '#4ade80',
         }}
       >
-        {t.tipNow}
+        {t.lang === 'pt' ? 'Apostar agora →' : 'Tip now →'}
       </button>
     </div>
   )
@@ -371,7 +371,7 @@ function ShareCard({ row, leaderboard, profilesMap, tournament }: any) {
         <pre style={{ fontFamily: 'inherit', fontSize: '0.85rem', lineHeight: 1.7, color: '#e8f5ee', margin: 0, whiteSpace: 'pre-wrap' }}>{text}</pre>
       </div>
       <button onClick={copyToClipboard} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
-        {copied ? t.copied : t.copyClipboard}
+        {copied ? t.lang === 'pt' ? '✅ Copiado! Cole no WhatsApp' : '✅ Copied! Paste in WhatsApp' : t.lang === 'pt' ? '📋 Copiar' : '📋 Copy to clipboard'}
       </button>
     </div>
   )
@@ -476,7 +476,7 @@ function WinnerPredictionWall({ allTournamentTips, profilesMap, leaderboard, t }
     <div className="card" style={{ overflow: 'hidden', marginBottom: '1.25rem' }}>
       <div style={{ padding: '0.875rem 1.25rem', borderBottom: '1px solid var(--dark-border)', background: 'rgba(251,191,36,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: '#fbbf24' }}>
-          🏆 {t.whoWins}
+          🏆 {t.lang === 'pt' ? 'QUEM VAI GANHAR A COPA?' : 'WHO WINS THE WORLD CUP?'}
         </span>
         <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>{tips.length} predictions</span>
       </div>
@@ -715,13 +715,13 @@ export default function TournamentPage() {
 
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none', display: 'flex', flexWrap: 'nowrap' }}>
-          <button data-tab="tips" className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>⚽ Tips</button>
-          <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🗂️ Groups</button>
-          <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>🏆 Predict</button>
-          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📊 Board</button>
-          <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => setTab('tips_reveal')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>👁 All Tips</button>
-          <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📈 Stats</button>
-          <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>📋 Rules</button>
+          <button data-tab="tips" className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '⚽ Palpites' : '⚽ Tips'}</button>
+          <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '🗂️ Grupos' : '🗂️ Groups'}</button>
+          <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '🏆 Previsões' : '🏆 Predict'}</button>
+          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📊 Ranking' : '📊 Board'}</button>
+          <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => setTab('tips_reveal')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '👁 Palpites' : '👁 All Tips'}</button>
+          <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📈 Stats' : '📈 Stats'}</button>
+          <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📋 Regras' : '📋 Rules'}</button>
         </div>
 
         <ReminderBanner matches={matches} myTips={myTips} tournament={tournament} t={t} />
@@ -819,7 +819,7 @@ Matches haven't been added yet.{matches.length === 0 && tournament?.status === '
                 <div style={{ textAlign: 'center' }}>{t.lang === 'pt' ? 'PTS' : 'PTS'}</div>
               </div>
               {leaderboard.length === 0 ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>{t.noScoresYet}</div>
+                <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>{t.lang === 'pt' ? 'Nenhuma pontuação ainda — resultados aparecerão após os jogos.' : 'No scores yet — results will appear after matches are played.'}</div>
               ) : [...leaderboard].sort((a: any, b: any) => {
                   if (b.total_points !== a.total_points) return b.total_points - a.total_points
                   if (b.exact_scores !== a.exact_scores) return b.exact_scores - a.exact_scores
@@ -916,7 +916,7 @@ Matches haven't been added yet.{matches.length === 0 && tournament?.status === '
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               {/* H2H + Share sub-tabs */}
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.75rem' }}>
-                {([['cards',t.cards],['h2h',t.headToHead],['share',t.share]] as const).map(([v,label]) => (
+                {([['cards',t.lang === 'pt' ? '🃏 Cartões' : '🃏 Cards'],['h2h',t.lang === 'pt' ? '⚔️ Confronto' : '⚔️ Head to Head'],['share',t.lang === 'pt' ? '📤 Compartilhar' : '📤 Share']] as const).map(([v,label]) => (
                   <button key={v} onClick={() => setLbSubTab(v)} style={{
                     padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.74rem', cursor: 'pointer',
                     border: `1px solid ${lbSubTab===v ? '#fbbf24' : 'rgba(255,255,255,0.12)'}`,
@@ -1349,7 +1349,7 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
 
       {/* Sub-tab switcher */}
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        {([['upcoming', ispt ? '🔒 Aguardando resultado' : t.awaitingResult, upcomingLocked.length],
+        {([['upcoming', ispt ? '🔒 Aguardando resultado' : t.lang === 'pt' ? '🔒 Bloqueado, aguardando resultado' : '🔒 Locked, awaiting result', upcomingLocked.length],
            ['finished',  ispt ? '✅ Partidas encerradas' : '✅ Finished matches', finishedMatches.length]] as const).map(([v, label, count]) => (
           <button key={v} onClick={() => setStatsView(v)} style={{
             padding: '0.45rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
@@ -2835,8 +2835,8 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
       {/* View toggle */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {([
-          ['group', `⚽ Group Stage (${groupCount})`, `⚽ Grupo (${groupCount})`],
-          ['knockout', `⚡ Knockout (${knockoutCount})`, `⚡ Eliminatórias (${knockoutCount})`],
+          ['group', t.lang === 'pt' ? `⚽ Grupos (${groupCount})` : `⚽ Group Stage (${groupCount})`, `⚽ Grupo (${groupCount})`],
+          ['knockout', t.lang === 'pt' ? `⚡ Eliminatórias (${knockoutCount})` : `⚡ Knockout (${knockoutCount})`, `⚡ Eliminatórias (${knockoutCount})`],
           ['qualifiers', '🗂️ Group Qualifiers', '🗂️ Classificados'],
           ['predictions', '🏆 Predictions', '🏆 Previsões'],
         ] as const).map(([v, en, pt]) => (
