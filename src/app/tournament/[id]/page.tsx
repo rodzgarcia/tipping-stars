@@ -1089,11 +1089,11 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
     if (mode === 'first_game') {
       const first = (matches || []).filter((m: any) => m.round === 'group').sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0]
       if (!first) return false
-      return isPast(subMinutes(new Date(first.kickoff_at), lockMins))
+      return new Date() >= new Date(new Date(first.kickoff_at).getTime() - lockMins * 60 * 1000)
     }
     const lockTime = GROUP_LOCK_TIMES[group]
     if (!lockTime) return false
-    return isPast(subMinutes(new Date(lockTime), lockMins))
+    return new Date() >= new Date(new Date(lockTime).getTime() - lockMins * 60 * 1000)
   }
 
   async function save() {
@@ -3137,7 +3137,7 @@ function Avatar({ userId, avatars, size = 32, style = {} }: { userId: string, av
 function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   const { t } = useLang()
   const lockMins = tournament?.tip_lock_minutes ?? 120
-  const isLocked = match.tip_lock_override || match.status !== 'upcoming' || isPast(subMinutes(new Date(match.kickoff_at), lockMins))
+  const isLocked = match.tip_lock_override || match.status !== 'upcoming' || new Date() >= new Date(new Date(match.kickoff_at).getTime() - lockMins * 60 * 1000)
   const [home, setHome] = useState<string>(tip?.id != null ? String(tip.tip_home) : '')
   const [away, setAway] = useState<string>(tip?.id != null ? String(tip.tip_away) : '')
   const prevTipId = useRef<string | undefined>(tip?.id)
