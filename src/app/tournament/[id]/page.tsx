@@ -530,17 +530,17 @@ async function exportLeaderboardPDF(leaderboard: any[], profilesMap: any, tourna
     </tr>`
   }).join('')
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; color: #111; }
-    .header { background: #0a0f0d; color: white; padding: 24px; border-radius: 12px; margin-bottom: 20px; text-align: center; }
-    .title { font-size: 28px; font-weight: 900; letter-spacing: 4px; margin: 0; }
-    .subtitle { font-size: 16px; opacity: 0.6; margin: 4px 0 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th { background: #0a0f0d; color: white; padding: 10px 12px; text-align: left; font-size: 11px; letter-spacing: 1px; }
-    th:not(:first-child):not(:nth-child(2)) { text-align: center; }
-    .footer { margin-top: 16px; text-align: center; font-size: 11px; color: #999; }
-  </style></head><body>
+  const css = [
+    'body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#111}',
+    '.header{background:#0a0f0d;color:white;padding:24px;border-radius:12px;margin-bottom:20px;text-align:center}',
+    '.title{font-size:28px;font-weight:900;letter-spacing:4px;margin:0}',
+    '.subtitle{font-size:16px;opacity:0.6;margin:4px 0 0}',
+    'table{width:100%;border-collapse:collapse;font-size:14px}',
+    'th{background:#0a0f0d;color:white;padding:10px 12px;text-align:left;font-size:11px;letter-spacing:1px}',
+    '.footer{margin-top:16px;text-align:center;font-size:11px;color:#999}',
+  ].join('')
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body>
   <div class="header">
     <div class="title">⭐ ${appName} ⭐</div>
     <div class="subtitle">${title} — ${isPt ? 'Ranking' : 'Leaderboard'} — ${now}</div>
@@ -586,19 +586,20 @@ async function exportRulesPDF(tournament: any, lang: string) {
     ? `Fase de Grupos (×1) → Oitavas (×2) → Quartas (×3) → Quartas de Final (×4) → Semifinais (×5) → Final (×6)`
     : `Group Stage (×1) → Round of 32 (×2) → Round of 16 (×3) → Quarter-Finals (×4) → Semi-Finals (×5) → Final (×6)`
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; color: #111; font-size: 13px; }
-    .header { background: #0a0f0d; color: white; padding: 20px 24px; border-radius: 12px; margin-bottom: 20px; }
-    .title { font-size: 24px; font-weight: 900; letter-spacing: 3px; margin: 0; }
-    .subtitle { font-size: 14px; opacity: 0.6; margin: 4px 0 0; }
-    h2 { font-size: 13px; letter-spacing: 2px; color: #166534; border-bottom: 2px solid #166534; padding-bottom: 4px; margin: 16px 0 8px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-    .row { display: flex; justify-content: space-between; padding: 6px 10px; background: #f9fafb; border-radius: 6px; border-left: 3px solid #16a34a; }
-    .pts { font-weight: 900; color: #ca8a04; }
-    .note { background: #fefce8; border: 1px solid #fde047; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #713f12; margin: 8px 0; }
-    .footer { margin-top: 16px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
-  </style></head><body>
+  const css2 = [
+    'body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#111;font-size:13px}',
+    '.header{background:#0a0f0d;color:white;padding:20px 24px;border-radius:12px;margin-bottom:20px}',
+    '.title{font-size:24px;font-weight:900;letter-spacing:3px;margin:0}',
+    '.subtitle{font-size:14px;opacity:0.6;margin:4px 0 0}',
+    'h2{font-size:13px;letter-spacing:2px;color:#166534;border-bottom:2px solid #166534;padding-bottom:4px;margin:16px 0 8px}',
+    '.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}',
+    '.row{display:flex;justify-content:space-between;padding:6px 10px;background:#f9fafb;border-radius:6px;border-left:3px solid #16a34a}',
+    '.pts{font-weight:900;color:#ca8a04}',
+    '.note{background:#fefce8;border:1px solid #fde047;border-radius:6px;padding:8px 12px;font-size:12px;color:#713f12;margin:8px 0}',
+    '.footer{margin-top:16px;text-align:center;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:8px}',
+  ].join('')
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css2}</style></head><body>
   <div class="header">
     <div class="title">⭐ ${appName}</div>
     <div class="subtitle">${tn.name} — ${isPt ? 'Regras do Torneio' : 'Tournament Rules'} — ${now}</div>
