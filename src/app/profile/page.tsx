@@ -89,12 +89,14 @@ export default function ProfilePage() {
     </div>
   )
 
-  // Aggregate stats across all tournaments
-  const totalPts = leaderboardRows.reduce((s, r) => s + (r.total_points || 0), 0)
-  const totalTips = leaderboardRows.reduce((s, r) => s + (r.tips_submitted || 0), 0)
-  const totalExact = leaderboardRows.reduce((s, r) => s + (r.exact_scores || 0), 0)
-  const totalWinners = leaderboardRows.reduce((s, r) => s + (r.correct_winners || 0), 0)
-  const totalGD = leaderboardRows.reduce((s, r) => s + (r.correct_goal_diff || 0), 0)
+  // Use first tournament for primary stats, or let user select
+  const [selectedTourId, setSelectedTourId] = useState<string>(leaderboardRows[0]?.tournament_id || '')
+  const selectedRow = leaderboardRows.find((r: any) => r.tournament_id === selectedTourId) || leaderboardRows[0]
+  const totalPts = selectedRow?.total_points || 0
+  const totalTips = selectedRow?.tips_submitted || 0
+  const totalExact = selectedRow?.exact_scores || 0
+  const totalWinners = selectedRow?.correct_winners || 0
+  const totalGD = selectedRow?.correct_goal_diff || 0
   const winnerRate = totalTips > 0 ? Math.round((totalWinners / totalTips) * 100) : 0
   const exactRate = totalTips > 0 ? Math.round((totalExact / totalTips) * 100) : 0
 
@@ -176,14 +178,31 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Tournament selector — if in multiple tournaments */}
+        {leaderboardRows.length > 1 && (
+          <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {leaderboardRows.map((row: any) => {
+              const tname = tournaments.find((t: any) => t.id === row.tournament_id)?.name || 'Tournament'
+              return (
+                <button key={row.tournament_id} onClick={() => setSelectedTourId(row.tournament_id)} style={{
+                  padding: '0.35rem 0.85rem', borderRadius: 20, fontSize: '0.75rem', cursor: 'pointer',
+                  border: `1px solid ${selectedTourId === row.tournament_id ? '#4ade80' : 'rgba(255,255,255,0.12)'}`,
+                  background: selectedTourId === row.tournament_id ? 'rgba(74,222,128,0.1)' : 'transparent',
+                  color: selectedTourId === row.tournament_id ? '#4ade80' : 'rgba(255,255,255,0.5)',
+                }}>{tname}</button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Stats grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
           {[
-            { label: 'Total Points', value: totalPts, color: '#fbbf24', icon: '⭐' },
-            { label: 'Tips Submitted', value: totalTips, color: '#e8f5ee', icon: '📝' },
-            { label: 'Exact Scores', value: totalExact, color: '#fbbf24', icon: '🎯' },
-            { label: 'Correct Winners', value: totalWinners, color: '#4ade80', icon: '✅' },
-            { label: 'Winner Accuracy', value: `${winnerRate}%`, color: winnerRate >= 60 ? '#4ade80' : '#e8f5ee', icon: '📊' },
+            { label: 'Points', value: totalPts, color: '#fbbf24', icon: '⭐' },
+            { label: 'Tips', value: totalTips, color: '#e8f5ee', icon: '📝' },
+            { label: '🎯 Exact Scores', value: totalExact, color: '#fbbf24', icon: '' },
+            { label: '✅ Winners', value: Math.max(0, totalWinners - totalGD), color: '#4ade80', icon: '' },
+            { label: 'Win Accuracy', value: `${winnerRate}%`, color: winnerRate >= 60 ? '#4ade80' : '#e8f5ee', icon: '📊' },
             { label: 'Exact Rate', value: `${exactRate}%`, color: exactRate >= 15 ? '#fbbf24' : '#e8f5ee', icon: '🎯' },
           ].map(stat => (
             <div key={stat.label} className="card" style={{ padding: '0.875rem', textAlign: 'center' }}>
