@@ -1853,6 +1853,7 @@ function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournam
 
 
 function BanterGenerator({ matchStats, leaderboard, profilesMap, tournament, allTips }: any) {
+  const { t } = useLang()
   const [banter, setBanter] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [generated, setGenerated] = useState(false)
@@ -3282,6 +3283,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
 }
 
 function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // tournament has qualifiers_locked and predictions_locked
+  const { t } = useLang()
   const [winner, setWinner] = useState(existing?.tip_winner || '')
   const [second, setSecond] = useState(existing?.tip_second || '')
   const [third, setThird] = useState(existing?.tip_third || '')
