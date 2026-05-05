@@ -786,7 +786,9 @@ export default function TournamentPage() {
             })()}
             {matches.length === 0 && (
               <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-Matches haven't been added yet.{matches.length === 0 && tournament?.status === 'upcoming' ? ' The tournament hasn\'t started yet — check back soon!' : ' Check back soon!'}
+                {matches.length === 0 && tournament?.status === 'upcoming'
+                  ? (t.lang === 'pt' ? 'O torneio ainda não começou — volte em breve!' : "The tournament hasn't started yet — check back soon!")
+                  : (t.lang === 'pt' ? 'Os jogos ainda não foram adicionados. Volte em breve!' : "Matches haven't been added yet. Check back soon!")}
               </div>
             )}
           </div>
@@ -806,6 +808,14 @@ Matches haven't been added yet.{matches.length === 0 && tournament?.status === '
         {/* Leaderboard */}
         {tab === 'leaderboard' && (
           <div style={{ paddingBottom: '3rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <button onClick={() => exportLeaderboardPDF(leaderboard, profilesMap, tournament, t.lang)} className="btn btn-ghost" style={{ fontSize: '0.72rem' }}>
+                📄 {t.lang === 'pt' ? 'Exportar PDF' : 'Export PDF'}
+              </button>
+              <a href="/global" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 6, padding: '0.25rem 0.6rem', textDecoration: 'none', background: 'rgba(96,165,250,0.06)', whiteSpace: 'nowrap' }}>
+                🌍 {t.lang === 'pt' ? 'Global' : 'Global'}
+              </a>
+            </div>
             <div className="card" style={{ overflow: 'hidden' }}>
               {/* Header */}
               <div style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
@@ -965,6 +975,7 @@ Matches haven't been added yet.{matches.length === 0 && tournament?.status === '
               </button>
             </div>
             <TournamentRules tournament={tournament} approvedCount={approvedCount} t={t} />
+          </div>
         )}
 
         {/* Tournament Tips */}
