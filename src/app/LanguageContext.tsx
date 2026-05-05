@@ -113,7 +113,7 @@ export function LangSwitcher() {
           background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
           borderRadius: 5, lineHeight: 1, transition: 'all 0.15s ease',
           opacity: lang === 'en' ? 1 : 0.3,
-          background: lang === 'en' ? 'rgba(255,255,255,0.1)' : 'none',
+          backgroundColor: lang === 'en' ? 'rgba(255,255,255,0.1)' : 'transparent',
         } as any}
       >
         <img src="https://flagcdn.com/w40/au.png" alt="EN" style={{ width: 22, height: 16, borderRadius: 2, display: 'block' }} />
@@ -125,7 +125,7 @@ export function LangSwitcher() {
           background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
           borderRadius: 5, lineHeight: 1, transition: 'all 0.15s ease',
           opacity: lang === 'pt' ? 1 : 0.3,
-          background: lang === 'pt' ? 'rgba(255,255,255,0.1)' : 'none',
+          backgroundColor: lang === 'pt' ? 'rgba(255,255,255,0.1)' : 'transparent',
         } as any}
       >
         <img src="https://flagcdn.com/w40/br.png" alt="PT" style={{ width: 22, height: 16, borderRadius: 2, display: 'block' }} />
