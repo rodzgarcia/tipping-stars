@@ -349,13 +349,12 @@ function ShareCard({ row, leaderboard, profilesMap, tournament }: any) {
   const MEDAL = ['🥇', '🥈', '🥉']
   const medal = rank <= 3 ? MEDAL[rank - 1] : `#${rank}`
 
-  const text = `${medal} ${name} | ${tournament?.name || (t.lang === 'pt' ? 'Bolão das Estrelas' : 'Tipping Stars')} 🌍
-` +
-    `📊 ${row.total_points} pts · Rank ${rank}/${total}
-` +
-    `🎯 ${exact} exact · ⚖️ ${gd} goal diff · ✅ ${winners} winners
-` +
-    `⭐ tipping-stars.vercel.app`
+  const appName = t.lang === 'pt' ? 'Bolão das Estrelas' : 'Tipping Stars'
+  const tourName = tournament?.name || appName
+  const text = medal + ' ' + name + ' | ' + tourName + ' 🌍\n'
+    + '📊 ' + row.total_points + ' pts · Rank ' + rank + '/' + total + '\n'
+    + '🎯 ' + exact + ' exact · ⚖️ ' + gd + ' goal diff · ✅ ' + winners + ' winners\n'
+    + '⭐ tipping-stars.vercel.app'
 
   function copyToClipboard() {
     navigator.clipboard.writeText(text).then(() => {
