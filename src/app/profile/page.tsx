@@ -43,6 +43,7 @@ export default function ProfilePage() {
   const [tournaments, setTournaments] = useState<any[]>([])
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [selectedTourId, setSelectedTourId] = useState<string>('')
   const supabase = createClient()
 
   useEffect(() => { load() }, [])
@@ -62,6 +63,7 @@ export default function ProfilePage() {
     setProfile(profRes.data)
     setLeaderboardRows(lbRes.data || [])
     setAllTips(tipsRes.data || [])
+    setSelectedTourId(lbRes.data?.[0]?.tournament_id || '')
     const tourMap: Record<string, string> = {}
     toursRes.data?.forEach((t: any) => { tourMap[t.id] = t.name })
     setTournaments(toursRes.data || [])
@@ -89,8 +91,7 @@ export default function ProfilePage() {
     </div>
   )
 
-  // Use first tournament for primary stats, or let user select
-  const [selectedTourId, setSelectedTourId] = useState<string>(leaderboardRows[0]?.tournament_id || '')
+  // Use selected tournament for stats
   const selectedRow = leaderboardRows.find((r: any) => r.tournament_id === selectedTourId) || leaderboardRows[0]
   const totalPts = selectedRow?.total_points || 0
   const totalTips = selectedRow?.tips_submitted || 0
