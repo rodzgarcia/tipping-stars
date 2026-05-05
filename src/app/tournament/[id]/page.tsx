@@ -1727,6 +1727,7 @@ function HelpChat({ t, tournament }: { t: any, tournament?: any }) {
 
 
 function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournament }: any) {
+  const { t } = useLang()
   const [banter, setBanter] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [loaded, setLoaded] = useState(false)
