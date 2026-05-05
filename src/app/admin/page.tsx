@@ -1176,6 +1176,7 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
   const [newName, setNewName] = useState('')
   const [newDesc, setNewDesc] = useState('')
   const [newFee, setNewFee] = useState('0')
+  const [newCurrency, setNewCurrency] = useState('A$')
 
   async function saveSettings() {
     setSaving(true)
@@ -1186,7 +1187,7 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
   async function createTournament() {
     if (!newName.trim()) return
     setCreating(true)
-    await supabase.from('tournaments').insert({ name: newName, description: newDesc, entry_fee: Number(newFee) || 0 })
+    await supabase.from('tournaments').insert({ name: newName, description: newDesc, entry_fee: Number(newFee) || 0, currency: newCurrency })
     setNewName(''); setNewDesc(''); setNewFee('0'); onCreate(); setCreating(false)
   }
 
@@ -1205,7 +1206,18 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <div><label className="label">Tournament name</label><input type="text" className="input" placeholder="e.g. Work Crew Cup" value={newName} onChange={e => setNewName(e.target.value)} /></div>
           <div><label className="label">Description (optional)</label><input type="text" className="input" placeholder="Brief description..." value={newDesc} onChange={e => setNewDesc(e.target.value)} /></div>
-          <div><label className="label">Entry fee (AUD)</label><input type="number" className="input" value={newFee} onChange={e => setNewFee(e.target.value)} /></div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}><label className="label">Entry fee</label><input type="number" className="input" value={newFee} onChange={e => setNewFee(e.target.value)} /></div>
+            <div><label className="label">Currency</label>
+              <select className="input" style={{ background: '#1a1a2e', color: '#fff' }} value={newCurrency} onChange={e => setNewCurrency(e.target.value)}>
+                <option value="A$">A$ (AUD)</option>
+                <option value="R$">R$ (BRL)</option>
+                <option value="US$">US$ (USD)</option>
+                <option value="£">£ (GBP)</option>
+                <option value="€">€ (EUR)</option>
+              </select>
+            </div>
+          </div>
           <button onClick={createTournament} disabled={creating || !newName.trim()} className="btn btn-gold"><Plus size={14} />{creating ? 'Creating...' : 'Create tournament'}</button>
         </div>
       </div>

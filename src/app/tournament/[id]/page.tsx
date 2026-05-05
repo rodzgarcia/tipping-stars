@@ -405,10 +405,10 @@ function TournamentProgress({ matches, t }: any) {
     <div style={{ marginBottom: '0.75rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
         <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.05em' }}>
-          WORLD CUP PROGRESS
+          {t.lang === 'pt' ? 'PROGRESSO DA COPA' : 'WORLD CUP PROGRESS'}
         </span>
         <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>
-          {totalCompleted}/{WC_TOTAL} matches · {overallPct}%
+          {totalCompleted}/{WC_TOTAL} {t.lang === 'pt' ? 'jogos' : 'matches'} · {overallPct}%
         </span>
       </div>
 
@@ -1930,7 +1930,7 @@ Return ONLY a JSON array of 6 strings, no other text. Example format: ["comment 
           className="btn btn-primary"
           style={{ padding: '0.6rem 1.5rem' }}
         >
-          {loading ? '⏳ Generating banter...' : '🎤 Generate Banter'}
+          {loading ? (t.lang === 'pt' ? '⏳ Gerando zoação...' : '⏳ Generating banter...') : (t.lang === 'pt' ? '🎤 Gerar Zoação' : '🎤 Generate Banter')}
         </button>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -3321,9 +3321,9 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
   return (
     <div style={{ maxWidth: 480, paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', letterSpacing: '0.06em', marginBottom: '0.35rem' }}>Tournament Predictions</h2>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.3rem', letterSpacing: '0.06em', marginBottom: '0.35rem' }}>{t.lang === 'pt' ? 'Previsões do Torneio' : 'Tournament Predictions'}</h2>
         <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.35)' }}>
-          Set these before the tournament starts — they lock when the first match kicks off and can't be changed.
+          {t.lang === 'pt' ? 'Defina antes do torneio começar — bloqueiam no primeiro jogo e não podem ser alteradas.' : "Set these before the tournament starts — they lock when the first match kicks off and can't be changed."}
         </p>
       </div>
       <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -3335,7 +3335,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
             </div>
             {isLocked ? (
               <div style={{ padding: '0.65rem 0.9rem', background: 'rgba(255,255,255,0.04)', borderRadius: 10, fontSize: '0.9rem', color: f.val ? '#e8f5ee' : 'rgba(255,255,255,0.25)' }}>
-                {f.val || 'Not submitted'}
+                {f.val || (t.lang === 'pt' ? 'Não enviado' : 'Not submitted')}
               </div>
             ) : (
               <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={f.val} onChange={e => f.set(e.target.value)}>

@@ -1,6 +1,6 @@
 export async function exportLeaderboardPDF(leaderboard: any[], profilesMap: any, tournament: any, lang: string) {
   const isPt = lang === 'pt'
-  const appName = isPt ? 'BOLÃO DAS ESTRELAS' : 'TIPPING STARS'
+  const appName = isPt ? 'Bolão das Estrelas' : 'Tipping Stars'
   const title = tournament?.name || appName
   const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
   const now = new Date().toLocaleDateString(isPt ? 'pt-BR' : 'en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -26,7 +26,7 @@ export async function exportLeaderboardPDF(leaderboard: any[], profilesMap: any,
   }).join('')
 
   const style = 'body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#111}'
-    + '.h{background:#0a0f0d;color:white;padding:24px;border-radius:12px;margin-bottom:20px;text-align:center}'
+    + '.hd{background:#0a0f0d;color:white;padding:24px;border-radius:12px;margin-bottom:20px;text-align:center}'
     + '.t{font-size:28px;font-weight:900;letter-spacing:4px;margin:0}'
     + '.s{font-size:16px;opacity:0.6;margin:4px 0 0}'
     + 'table{width:100%;border-collapse:collapse;font-size:14px}'
@@ -43,7 +43,7 @@ export async function exportLeaderboardPDF(leaderboard: any[], profilesMap: any,
   const lbl8 = isPt ? 'Gerado em' : 'Generated on'
 
   const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' + style + '</style></head><body>'
-    + '<div class="h"><div class="t">STAR ' + appName + ' STAR</div>'
+    + '<div class="hd"><div class="t">⭐ ' + appName + ' ⭐</div>'
     + '<div class="s">' + title + ' — ' + lbl7 + ' — ' + now + '</div></div>'
     + '<table><thead><tr>'
     + '<th>#</th><th>' + lbl + '</th>'
@@ -66,7 +66,7 @@ export async function exportLeaderboardPDF(leaderboard: any[], profilesMap: any,
 
 export async function exportRulesPDF(tournament: any, lang: string) {
   const isPt = lang === 'pt'
-  const appName = isPt ? 'BOLÃO DAS ESTRELAS' : 'TIPPING STARS'
+  const appName = isPt ? 'Bolão das Estrelas' : 'Tipping Stars'
   const tn = tournament
   if (!tn) return
   const now = new Date().toLocaleDateString(isPt ? 'pt-BR' : 'en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -78,70 +78,110 @@ export async function exportRulesPDF(tournament: any, lang: string) {
   const pQ = tn.pts_qualify ?? 10
   const lkM = tn.tip_lock_minutes ?? 120
   const thresh = tn.big_margin_threshold ?? 3
+  const mG = tn.multiplier_group ?? 1
+  const mR32 = tn.multiplier_r32 ?? 2
+  const mR16 = tn.multiplier_r16 ?? 3
+  const mQF = tn.multiplier_qf ?? 4
+  const mSF = tn.multiplier_sf ?? 5
+  const mF = tn.multiplier_final ?? 6
+  const pTW = tn.pts_tournament_winner ?? 0
+  const pTP2 = tn.pts_second_place ?? 0
+  const pTP3 = tn.pts_third_place ?? 0
+  const pTS = tn.pts_top_scorer ?? 0
+  const cur = tn.currency || 'A$'
+  const fee = tn.entry_fee || 0
+  const s1 = tn.prize_split_1st || 60
+  const s2 = tn.prize_split_2nd || 30
+  const s3 = tn.prize_split_3rd || 10
 
   const style = 'body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#111;font-size:13px}'
     + '.hd{background:#0a0f0d;color:white;padding:20px 24px;border-radius:12px;margin-bottom:20px}'
-    + '.t{font-size:24px;font-weight:900;letter-spacing:3px;margin:0}'
-    + '.s{font-size:14px;opacity:0.6;margin:4px 0 0}'
-    + 'h2{font-size:13px;letter-spacing:2px;color:#166534;border-bottom:2px solid #166534;padding-bottom:4px;margin:16px 0 8px}'
-    + '.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}'
-    + '.row{display:flex;justify-content:space-between;padding:6px 10px;background:#f9fafb;border-radius:6px;border-left:3px solid #16a34a}'
+    + '.t{font-size:22px;font-weight:900;letter-spacing:3px;margin:0}'
+    + '.s{font-size:13px;opacity:0.6;margin:4px 0 0}'
+    + 'h2{font-size:13px;letter-spacing:2px;color:#166534;border-bottom:2px solid #166534;padding-bottom:4px;margin:16px 0 8px;text-transform:uppercase}'
+    + '.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}'
+    + '.row{display:flex;justify-content:space-between;padding:5px 10px;background:#f9fafb;border-radius:6px;border-left:3px solid #16a34a}'
     + '.pts{font-weight:900;color:#ca8a04}'
     + '.note{background:#fefce8;border:1px solid #fde047;border-radius:6px;padding:8px 12px;font-size:12px;color:#713f12;margin:8px 0}'
+    + '.prize{background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:12px 16px;margin-bottom:12px}'
     + '.ft{margin-top:16px;text-align:center;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:8px}'
 
   const h2 = (txt: string) => '<h2>' + txt + '</h2>'
   const row = (label: string, pts: string) => '<div class="row"><span>' + label + '</span><span class="pts">' + pts + '</span></div>'
   const note = (txt: string) => '<div class="note">' + txt + '</div>'
-  const p = (txt: string) => '<p>' + txt + '</p>'
+  const p = (txt: string) => '<p style="margin:4px 0 8px">' + txt + '</p>'
 
-  let body = '<div class="hd"><div class="t">STAR ' + appName + '</div>'
+  let body = '<div class="hd"><div class="t">⭐ ' + appName + '</div>'
     + '<div class="s">' + tn.name + ' — ' + (isPt ? 'Regras do Torneio' : 'Tournament Rules') + ' — ' + now + '</div></div>'
 
-  body += h2(isPt ? '⚽ COMO FUNCIONA' : '⚽ HOW IT WORKS')
-  body += p(isPt
-    ? 'Para cada jogo, aposte no placar final aos 90 minutos. Os palpites bloqueiam ' + lkM + ' minutos antes do início. Pontos são cumulativos.'
-    : 'Tip the final score at 90 minutes. Tips lock ' + lkM + ' minutes before kickoff. Points are cumulative.')
-
-  body += h2(isPt ? '🎯 SISTEMA DE PONTUAÇÃO' : '🎯 POINTS SYSTEM')
-  body += '<div class="grid">'
-    + row('✅ ' + (isPt ? 'Vencedor correto' : 'Correct winner'), '+' + pW + ' pts')
-    + row('⚖️ ' + (isPt ? 'Saldo de gols correto' : 'Correct goal difference'), '+' + pD + ' pts')
-    + row('🎯 ' + (isPt ? 'Placar exato' : 'Exact score'), '+' + pE + ' pts')
-    + (pB > 0 ? row('🚀 ' + (isPt ? 'Bônus goleada (' + thresh + '+ gols)' : 'Big margin bonus (' + thresh + '+ goals)'), '+' + pB + ' pts') : '')
-    + '</div>'
-  body += note(isPt
-    ? '💡 Exemplo: Você apostou 2–0, resultado foi 2–0 → +' + pW + ' + ' + pD + ' + ' + pE + ' = ' + (pW + pD + pE) + ' pontos'
-    : '💡 Example: You tip 2–0, result is 2–0 → +' + pW + ' + ' + pD + ' + ' + pE + ' = ' + (pW + pD + pE) + ' pts total')
-
-  body += h2(isPt ? '🏆 MULTIPLICADORES POR FASE' : '🏆 PHASE MULTIPLIERS')
-  body += p(isPt
-    ? 'Grupos (×1) → Oitavas (×2) → Quartas (×3) → Quartas de Final (×4) → Semifinais (×5) → Final (×6)'
-    : 'Group Stage (×1) → R32 (×2) → R16 (×3) → QF (×4) → SF (×5) → Final (×6)')
-
-  body += h2(isPt ? '🤝 EMPATES' : '🤝 DRAWS')
-  body += p(isPt
-    ? 'Empate é válido. Aposte empate e acerte → vencedor (+' + pW + ') + saldo de gols (+' + pD + '). Placar exato → +' + pE + ' também.'
-    : 'A draw is valid. Tip a draw and it ends level → winner (+' + pW + ') + goal diff (+' + pD + '). Exact score → +' + pE + ' too.')
-
-  body += h2(isPt ? '⏱️ PRORROGAÇÃO E PÊNALTIS' : '⏱️ EXTRA TIME & PENALTIES')
-  body += p(isPt
-    ? 'Placar sempre aos 90 min. Prorrogação e pênaltis não afetam a pontuação. Vencedor = time que avança.'
-    : 'Score is always at 90 minutes. Extra time and penalties do not affect scoring. Winner = team that advances.')
-
-  body += h2(isPt ? '🗂️ CLASSIFICADOS POR GRUPO' : '🗂️ GROUP QUALIFIERS')
-  body += p(isPt
-    ? 'Escolha os 2 primeiros de cada grupo. ' + pQ + ' pontos para posição correta, ' + (pQ / 2) + ' para time certo posição errada.'
-    : 'Pick top 2 from each group. ' + pQ + ' pts for correct position, ' + (pQ / 2) + ' for correct team wrong position.')
-
-  if (tn.entry_fee > 0) {
-    body += h2(isPt ? '💰 PREMIAÇÃO' : '💰 PRIZE POOL')
-    body += p(isPt
-      ? 'Entrada: ' + tn.currency + ' $' + tn.entry_fee + '. Divisão: 🥇 ' + (tn.prize_split_1st || 60) + '% · 🥈 ' + (tn.prize_split_2nd || 30) + '% · 🥉 ' + (tn.prize_split_3rd || 10) + '%'
-      : 'Entry: ' + tn.currency + ' $' + tn.entry_fee + '. Split: 🥇 ' + (tn.prize_split_1st || 60) + '% · 🥈 ' + (tn.prize_split_2nd || 30) + '% · 🥉 ' + (tn.prize_split_3rd || 10) + '%')
+  // PRIZE POOL FIRST
+  if (fee > 0) {
+    body += '<div class="prize">'
+    body += '<div style="font-size:16px;font-weight:900;margin-bottom:8px">💰 ' + (isPt ? 'PREMIAÇÃO' : 'PRIZE POOL') + '</div>'
+    body += '<div style="font-size:13px;margin-bottom:4px">' + (isPt ? 'Entrada' : 'Entry fee') + ': <strong>' + cur + ' $' + fee + '</strong> ' + (isPt ? 'por jogador' : 'per player') + '</div>'
+    body += '<div style="display:flex;gap:16px;margin-top:8px">'
+    body += '<div>🥇 ' + (isPt ? '1º lugar' : '1st place') + ': <strong>' + s1 + '%</strong></div>'
+    body += '<div>🥈 ' + (isPt ? '2º lugar' : '2nd place') + ': <strong>' + s2 + '%</strong></div>'
+    body += '<div>🥉 ' + (isPt ? '3º lugar' : '3rd place') + ': <strong>' + s3 + '%</strong></div>'
+    body += '</div></div>'
   }
 
-  body += '<div class="ft">' + appName + ' · ' + now + '</div>'
+  // HOW IT WORKS
+  body += h2(isPt ? '⚽ Como Funciona' : '⚽ How It Works')
+  body += p(isPt
+    ? 'Aposte no placar final aos 90 minutos. Palpites bloqueiam ' + lkM + ' min antes do início. Pontos são cumulativos — cada nível de acerto adiciona ao anterior.'
+    : 'Tip the final score at 90 minutes. Tips lock ' + lkM + ' min before kickoff. Points are cumulative — each level of accuracy adds on top.')
+
+  // POINTS SYSTEM
+  body += h2(isPt ? '🎯 Sistema de Pontuação' : '🎯 Points System')
+  body += '<div class="grid">'
+    + row('✅ ' + (isPt ? 'Vencedor correto' : 'Correct winner'), '+' + pW + ' pts')
+    + row('⚖️ ' + (isPt ? 'Saldo de gols correto' : 'Correct goal diff'), '+' + pD + ' pts')
+    + row('🎯 ' + (isPt ? 'Placar exato' : 'Exact score'), '+' + pE + ' pts')
+    + (pB > 0 ? row('🚀 ' + (isPt ? 'Bônus goleada (' + thresh + '+ gols)' : 'Big margin (' + thresh + '+ goals)'), '+' + pB + ' pts') : '')
+    + '</div>'
+  body += note(isPt
+    ? '💡 Exemplo máximo: Você apostou 4–0, resultado foi 4–0 → +' + pW + ' + ' + pD + ' + ' + pE + (pB > 0 ? ' + ' + pB : '') + ' = ' + (pW + pD + pE + (pB > 0 ? pB : 0)) + ' pts'
+    : '💡 Max example: You tip 4–0, result is 4–0 → +' + pW + ' + ' + pD + ' + ' + pE + (pB > 0 ? ' + ' + pB : '') + ' = ' + (pW + pD + pE + (pB > 0 ? pB : 0)) + ' pts')
+
+  // PHASE MULTIPLIERS
+  body += h2(isPt ? '🏆 Multiplicadores por Fase' : '🏆 Phase Multipliers')
+  body += '<div class="grid">'
+    + row(isPt ? 'Fase de Grupos' : 'Group Stage', '×' + mG)
+    + row(isPt ? 'Oitavas de Final' : 'Round of 32', '×' + mR32)
+    + row(isPt ? 'Oitavas' : 'Round of 16', '×' + mR16)
+    + row(isPt ? 'Quartas de Final' : 'Quarter-Finals', '×' + mQF)
+    + row(isPt ? 'Semifinais' : 'Semi-Finals', '×' + mSF)
+    + row(isPt ? 'Final' : 'Final', '×' + mF)
+    + '</div>'
+  body += note(isPt
+    ? '💡 Exemplo: Placar exato na Final = ' + pE + ' × ' + mF + ' = ' + (pE * mF) + ' pts!'
+    : '💡 Example: Exact score in the Final = ' + pE + ' × ' + mF + ' = ' + (pE * mF) + ' pts!')
+
+  // TOURNAMENT PREDICTIONS
+  if (pTW > 0 || pTP2 > 0 || pTS > 0) {
+    body += h2(isPt ? '🔮 Previsões do Torneio' : '🔮 Tournament Predictions')
+    body += '<div class="grid">'
+    if (pTW > 0) body += row('🏆 ' + (isPt ? 'Campeão da Copa' : 'World Cup Winner'), pTW + ' pts')
+    if (pTP2 > 0) body += row('🥈 ' + (isPt ? '2º Lugar' : '2nd Place'), pTP2 + ' pts')
+    if (pTP3 > 0) body += row('🥉 ' + (isPt ? '3º Lugar' : '3rd Place'), pTP3 + ' pts')
+    if (pTS > 0) body += row('⚽ ' + (isPt ? 'Artilheiro' : 'Top Scorer'), pTS + ' pts')
+    body += '</div>'
+  }
+
+  // GROUP QUALIFIERS
+  body += h2(isPt ? '🗂️ Classificados por Grupo' : '🗂️ Group Qualifiers')
+  body += p(isPt
+    ? 'Escolha os 2 primeiros de cada grupo. ' + pQ + ' pts posição correta · ' + (pQ / 2) + ' pts time certo posição errada.'
+    : 'Pick top 2 from each group. ' + pQ + ' pts correct position · ' + (pQ / 2) + ' pts correct team wrong position.')
+
+  // DRAWS & EXTRA TIME
+  body += h2(isPt ? '🤝 Empates & Prorrogação' : '🤝 Draws & Extra Time')
+  body += p(isPt
+    ? 'Empate vale vencedor (+' + pW + ') + saldo (+' + pD + '). Placar exato = +' + pE + ' também. Prorrogação/pênaltis não afetam pontuação — placar é sempre aos 90 min.'
+    : 'Draw earns winner (+' + pW + ') + goal diff (+' + pD + '). Exact score = +' + pE + ' too. Extra time/penalties do not affect scoring — score is always at 90 min.')
+
+  body += '<div class="ft">⭐ ' + appName + ' · ' + now + '</div>'
 
   const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>' + style + '</style></head><body>' + body + '</body></html>'
 
