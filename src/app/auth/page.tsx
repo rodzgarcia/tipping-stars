@@ -100,10 +100,10 @@ function AuthForm() {
                 </div>
                 <div>
                   <label className="label">
-                    {t.lang === 'pt' t.nickname}
+                    {t.nickname}
                     <span style={{ color: '#f87171', marginLeft: '0.25rem' }}>*</span>
                     <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400, marginLeft: '0.4rem', fontSize: '0.78rem' }}>
-                      {t.lang === 'pt' t.nicknameHint}
+                      {t.nicknameHint}
                     </span>
                   </label>
                   <input
