@@ -220,7 +220,7 @@ export default function ProfilePage() {
             <span style={{ fontSize: '1.5rem' }}>{streak >= 5 ? '⚡' : '🔥'}</span>
             <div>
               <div style={{ fontWeight: 600, color: '#fbbf24' }}>{streak} correct pick{streak > 1 ? 's' : ''} in a row!</div>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>{streak >= 5 ? t.unstoppable : streak >= 3 ? 'On fire!' : t.keepItGoing}</div>
+              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>{streak >= 5 ? t.lang === 'pt' ? 'Imparável!' : 'Unstoppable!' : streak >= 3 ? 'On fire!' : t.lang === 'pt' ? 'Continue assim' : 'Keep it going'}</div>
             </div>
           </div>
         )}
