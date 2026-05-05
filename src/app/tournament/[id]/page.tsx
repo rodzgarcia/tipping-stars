@@ -349,7 +349,7 @@ function ShareCard({ row, leaderboard, profilesMap, tournament }: any) {
   const MEDAL = ['🥇', '🥈', '🥉']
   const medal = rank <= 3 ? MEDAL[rank - 1] : `#${rank}`
 
-  const text = `${medal} ${name} | ${tournament?.name || 'Tipping Stars'} 🌍
+  const text = `${medal} ${name} | ${tournament?.name || (t.lang === 'pt' ? 'Bolão das Estrelas' : 'Tipping Stars')} 🌍
 ` +
     `📊 ${row.total_points} pts · Rank ${rank}/${total}
 ` +
@@ -504,6 +504,157 @@ function WinnerPredictionWall({ allTournamentTips, profilesMap, leaderboard, t }
 }
 
 
+// ── PDF Export ────────────────────────────────────────────────────────────────
+async function exportLeaderboardPDF(leaderboard: any[], profilesMap: any, tournament: any, allTips: any[], lang: string) {
+  const isPt = lang === 'pt'
+  const appName = isPt ? 'BOLÃO DAS ESTRELAS' : 'TIPPING STARS'
+  const title = tournament?.name || appName
+  const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
+  const now = new Date().toLocaleDateString(isPt ? 'pt-BR' : 'en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const MEDAL = ['🥇', '🥈', '🥉']
+
+  const rows = sorted.map((row: any, i: number) => {
+    const name = profilesMap?.[row.user_id]?.nickname || row.display_name || 'Player'
+    const exact = row.exact_scores ?? 0
+    const gd = Math.max(0, (row.correct_goal_diff ?? 0) - exact)
+    const winners = Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))
+    const medal = i < 3 ? MEDAL[i] : `${i + 1}.`
+    return `<tr style="background:${i % 2 === 0 ? '#f9fafb' : '#fff'}">
+      <td style="padding:8px 12px;font-weight:700;font-size:16px">${medal}</td>
+      <td style="padding:8px 12px;font-weight:600">${name}</td>
+      <td style="padding:8px 12px;text-align:center;color:#16a34a;font-weight:700">${row.tips_submitted ?? 0}</td>
+      <td style="padding:8px 12px;text-align:center;color:#ca8a04;font-weight:700">${exact}</td>
+      <td style="padding:8px 12px;text-align:center;color:#2563eb">${gd}</td>
+      <td style="padding:8px 12px;text-align:center;color:#16a34a">${winners}</td>
+      <td style="padding:8px 12px;text-align:center;font-size:18px;font-weight:900;color:${i === 0 ? '#ca8a04' : '#111'}">${row.total_points}</td>
+    </tr>`
+  }).join('')
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; color: #111; }
+    .header { background: #0a0f0d; color: white; padding: 24px; border-radius: 12px; margin-bottom: 20px; text-align: center; }
+    .title { font-size: 28px; font-weight: 900; letter-spacing: 4px; margin: 0; }
+    .subtitle { font-size: 16px; opacity: 0.6; margin: 4px 0 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { background: #0a0f0d; color: white; padding: 10px 12px; text-align: left; font-size: 11px; letter-spacing: 1px; }
+    th:not(:first-child):not(:nth-child(2)) { text-align: center; }
+    .footer { margin-top: 16px; text-align: center; font-size: 11px; color: #999; }
+  </style></head><body>
+  <div class="header">
+    <div class="title">⭐ ${appName} ⭐</div>
+    <div class="subtitle">${title} — ${isPt ? 'Ranking' : 'Leaderboard'} — ${now}</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>#</th>
+      <th>${isPt ? 'JOGADOR' : 'PLAYER'}</th>
+      <th style="text-align:center">${isPt ? 'PALPITES' : 'TIPS'}</th>
+      <th style="text-align:center">🎯 ${isPt ? 'EXATO' : 'EXACT'}</th>
+      <th style="text-align:center">⚖️ ${isPt ? 'SALDO' : 'GOAL DIFF'}</th>
+      <th style="text-align:center">✅ ${isPt ? 'VENCEDOR' : 'WINNER'}</th>
+      <th style="text-align:center">${isPt ? 'PONTOS' : 'POINTS'}</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">${isPt ? 'Gerado em' : 'Generated on'} ${now} · ${appName}</div>
+  </body></html>`
+
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+  win.focus()
+  setTimeout(() => { win.print(); }, 500)
+}
+
+async function exportRulesPDF(tournament: any, lang: string) {
+  const isPt = lang === 'pt'
+  const appName = isPt ? 'BOLÃO DAS ESTRELAS' : 'TIPPING STARS'
+  const now = new Date().toLocaleDateString(isPt ? 'pt-BR' : 'en-AU', { day: 'numeric', month: 'long', year: 'numeric' })
+  const tn = tournament
+  if (!tn) return
+
+  const pWinner = tn.pts_winner ?? 2
+  const pDiff = tn.pts_goal_diff ?? 3
+  const pExact = tn.pts_exact_score ?? 5
+  const pBonus = tn.pts_big_margin_bonus ?? 5
+  const pQualify = tn.pts_qualify ?? 10
+  const lockMins = tn.tip_lock_minutes ?? 120
+
+  const multipliers = isPt
+    ? `Fase de Grupos (×1) → Oitavas (×2) → Quartas (×3) → Quartas de Final (×4) → Semifinais (×5) → Final (×6)`
+    : `Group Stage (×1) → Round of 32 (×2) → Round of 16 (×3) → Quarter-Finals (×4) → Semi-Finals (×5) → Final (×6)`
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; color: #111; font-size: 13px; }
+    .header { background: #0a0f0d; color: white; padding: 20px 24px; border-radius: 12px; margin-bottom: 20px; }
+    .title { font-size: 24px; font-weight: 900; letter-spacing: 3px; margin: 0; }
+    .subtitle { font-size: 14px; opacity: 0.6; margin: 4px 0 0; }
+    h2 { font-size: 13px; letter-spacing: 2px; color: #166534; border-bottom: 2px solid #166534; padding-bottom: 4px; margin: 16px 0 8px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .row { display: flex; justify-content: space-between; padding: 6px 10px; background: #f9fafb; border-radius: 6px; border-left: 3px solid #16a34a; }
+    .pts { font-weight: 900; color: #ca8a04; }
+    .note { background: #fefce8; border: 1px solid #fde047; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #713f12; margin: 8px 0; }
+    .footer { margin-top: 16px; text-align: center; font-size: 11px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
+  </style></head><body>
+  <div class="header">
+    <div class="title">⭐ ${appName}</div>
+    <div class="subtitle">${tn.name} — ${isPt ? 'Regras do Torneio' : 'Tournament Rules'} — ${now}</div>
+  </div>
+
+  <h2>${isPt ? '⚽ COMO FUNCIONA' : '⚽ HOW IT WORKS'}</h2>
+  <p>${isPt
+    ? `Para cada jogo, aposte no placar final aos 90 minutos. Os palpites bloqueiam ${lockMins} minutos antes do início. Pontos são cumulativos — cada nível de acerto adiciona ao anterior.`
+    : `Tip the final score at 90 minutes for each match. Tips lock ${lockMins} minutes before kickoff. Points are cumulative — each level of accuracy adds on top.`}</p>
+
+  <h2>${isPt ? '🎯 SISTEMA DE PONTUAÇÃO' : '🎯 POINTS SYSTEM'}</h2>
+  <div class="grid">
+    <div class="row"><span>✅ ${isPt ? 'Vencedor correto' : 'Correct winner'}</span><span class="pts">+${pWinner} pts</span></div>
+    <div class="row"><span>⚖️ ${isPt ? 'Saldo de gols correto' : 'Correct goal difference'}</span><span class="pts">+${pDiff} pts</span></div>
+    <div class="row"><span>🎯 ${isPt ? 'Placar exato' : 'Exact score'}</span><span class="pts">+${pExact} pts</span></div>
+    ${pBonus > 0 ? `<div class="row"><span>🚀 ${isPt ? 'Bônus goleada (${tn.big_margin_threshold}+ gols)' : 'Big margin bonus (${tn.big_margin_threshold}+ goals)'}</span><span class="pts">+${pBonus} pts</span></div>` : ''}
+  </div>
+  <div class="note">${isPt
+    ? `💡 Exemplo: Você apostou 2–0 e o resultado foi 2–0 → +${pWinner} + ${pDiff} + ${pExact} = ${pWinner + pDiff + pExact} pontos total`
+    : `💡 Example: You tip 2–0 and the result is 2–0 → +${pWinner} + ${pDiff} + ${pExact} = ${pWinner + pDiff + pExact} pts total`}</div>
+
+  <h2>${isPt ? '🏆 MULTIPLICADORES POR FASE' : '🏆 PHASE MULTIPLIERS'}</h2>
+  <p>${multipliers}</p>
+
+  <h2>${isPt ? '🤝 EMPATES' : '🤝 DRAWS'}</h2>
+  <p>${isPt
+    ? `Empate é um resultado válido. Se você apostar empate e o jogo terminar empatado, você ganha o vencedor correto (+${pWinner}). Como todos os empates têm saldo de gols 0, você também ganha +${pDiff}. Se o placar for exato, ganha mais +${pExact}.`
+    : `A draw is a valid outcome. Tip a draw and it ends level — you earn correct winner (+${pWinner}). Since all draws have 0 goal difference, you also earn +${pDiff}. Exact scoreline earns the extra +${pExact}.`}</p>
+
+  <h2>${isPt ? '⏱️ PRORROGAÇÃO E PÊNALTIS' : '⏱️ EXTRA TIME & PENALTIES'}</h2>
+  <p>${isPt
+    ? 'O placar considerado é sempre o resultado aos 90 minutos. Prorrogação e pênaltis não afetam a pontuação. Para o vencedor correto nas fases eliminatórias, conta o time que efetivamente avança.'
+    : 'The score used is always the 90-minute result. Extra time and penalties do not affect scoring. For the correct winner in knockout rounds, the team that actually advances counts.'}</p>
+
+  <h2>${isPt ? '🗂️ CLASSIFICADOS POR GRUPO' : '🗂️ GROUP QUALIFIERS'}</h2>
+  <p>${isPt
+    ? `Escolha os 2 primeiros times de cada grupo. ${pQualify} pontos para acertar o time na posição correta, ${pQualify / 2} pontos para acertar o time na posição errada.`
+    : `Pick the top 2 teams from each group. ${pQualify} points for correct team in correct position, ${pQualify / 2} points for correct team in wrong position.`}</p>
+
+  ${tn.entry_fee > 0 ? `<h2>${isPt ? '💰 PREMIAÇÃO' : '💰 PRIZE POOL'}</h2>
+  <p>${isPt
+    ? `Entrada: ${tn.currency} $${tn.entry_fee} por jogador. Divisão: 🥇 ${tn.prize_split_1st || 60}% · 🥈 ${tn.prize_split_2nd || 30}% · 🥉 ${tn.prize_split_3rd || 10}%`
+    : `Entry fee: ${tn.currency} $${tn.entry_fee} per player. Split: 🥇 ${tn.prize_split_1st || 60}% · 🥈 ${tn.prize_split_2nd || 30}% · 🥉 ${tn.prize_split_3rd || 10}%`}</p>` : ''}
+
+  <div class="footer">${appName} · ${now}</div>
+  </body></html>`
+
+  const win = window.open('', '_blank')
+  if (!win) return
+  win.document.write(html)
+  win.document.close()
+  win.focus()
+  setTimeout(() => { win.print(); }, 500)
+}
+
+
 function FlagImg({ team, size = 20 }: { team: string, size?: number }) {
   const code = TEAM_FLAGS[team]
   if (!code) return null
@@ -549,9 +700,9 @@ const WC2026_TEAMS = [
 type Tab = 'tips' | 'leaderboard' | 'predictions' | 'qualifiers' | 'rules' | 'tips_reveal' | 'stats'
 type SortKey = 'total_points' | 'exact_scores' | 'correct_winners' | 'correct_goal_diff'
 
-function formatLocalTime(dateStr: string) {
+function formatLocalTime(dateStr: string, lang?: string) {
   const date = new Date(dateStr)
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(lang === 'pt' ? 'pt-BR' : 'en-AU', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -674,7 +825,7 @@ export default function TournamentPage() {
   const roundOrder = ['group','r32','r16','qf','sf','third_place','final']
   const roundLabel: Record<string, string> = {
     group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16',
-    qf: 'Quarter-Finals', sf: 'Semi-Finals', third_place: '3rd Place', final: 'Final'
+    qf: 'Quarter-Finals', sf: 'Semi-Finals', third_place: t.lang === 'pt' ? '3º Lugar' : '3rd Place', final: 'Final'
   }
   const multiplierLabel: Record<string, number> = {
     group: tournament.multiplier_group, r32: tournament.multiplier_r32,
@@ -756,7 +907,7 @@ export default function TournamentPage() {
                     // Group by date
                     const byDate: Record<string, any[]> = {}
                     viewMatches.forEach((m: any) => {
-                      const date = new Date(m.kickoff_at).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+                      const date = new Date(m.kickoff_at).toLocaleDateString(t.lang === 'pt' ? 'pt-BR' : 'en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
                       if (!byDate[date]) byDate[date] = []
                       byDate[date].push(m)
                     })
@@ -958,7 +1109,13 @@ Matches haven't been added yet.{matches.length === 0 && tournament?.status === '
 
         {/* Rules */}
         {tab === 'rules' && (
-          <TournamentRules tournament={tournament} approvedCount={approvedCount} t={t} />
+          <div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => exportRulesPDF(tournament, t.lang)} className="btn btn-ghost" style={{ fontSize: '0.78rem' }}>
+                📄 {t.lang === 'pt' ? 'Exportar Regras PDF' : 'Export Rules PDF'}
+              </button>
+            </div>
+            <TournamentRules tournament={tournament} approvedCount={approvedCount} t={t} />
         )}
 
         {/* Tournament Tips */}
@@ -2196,7 +2353,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
   const bottom3 = [...sorted].reverse().slice(0, 3)
 
   const heroEmojis = ['🥇', '🥈', '🥉']
-  const heroTitles = ['The Prophet', 'The Oracle', 'The Visionary']
+  const heroTitles = t.lang === 'pt' ? ['O Profeta', 'O Oráculo', 'O Visionário'] : ['The Prophet', 'The Oracle', 'The Visionary']
   const zeroTitles = ['The Disaster', 'The Confused', 'The Optimist']
   const heroColors = ['#fbbf24', '#9ca3af', '#b87333']
   const zeroEmojis = ['💀', '🤡', '😵']
@@ -2209,7 +2366,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 220, flex: 1 }}>
       {/* Round Heroes */}
       <div className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(251,191,36,0.15)' }}>
-        <Label color="#fbbf24">{hasToday ? (t.lang === 'pt' ? '⭐ HERÓIS DO DIA' : '⭐ HEROES OF THE DAY') : (t.lang === 'pt' ? '⭐ TOP TIPPERS' : '⭐ TOP TIPPERS')}</Label>
+        <Label color="#fbbf24">{hasToday ? (t.lang === 'pt' ? '⭐ HERÓIS DO DIA' : '⭐ HEROES OF THE DAY') : (t.lang === 'pt' ? '⭐ MELHORES PALPITEIROS' : '⭐ TOP TIPPERS')}</Label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           {top3.map((row: any, i: number) => {
             const pts = ptsMap[row.user_id] || 0
@@ -2230,7 +2387,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
       {/* Round Zeroes */}
       {leaderboard.length > 1 && (
         <div className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(248,113,113,0.15)' }}>
-          <Label color="#f87171">{hasToday ? (t.lang === 'pt' ? '💀 DESASTRES DO DIA' : '💀 DISASTERS OF THE DAY') : (t.lang === 'pt' ? '💀 BOTTOM TIPPERS' : '💀 BOTTOM TIPPERS')}</Label>
+          <Label color="#f87171">{hasToday ? (t.lang === 'pt' ? '💀 DESASTRES DO DIA' : '💀 DISASTERS OF THE DAY') : (t.lang === 'pt' ? '💀 PIORES PALPITEIROS' : '💀 BOTTOM TIPPERS')}</Label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             {bottom3.map((row: any, i: number) => {
               const pts = ptsMap[row.user_id] || 0
@@ -2391,7 +2548,7 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t, leaderb
           {/* Top badge */}
           {(isGold || isGrey) && (
             <div style={{ textAlign: 'center', padding: '5px 0 0', fontSize: '7px', fontWeight: 700, letterSpacing: '0.13em', color: isGold ? '#c9a227' : '#555' }}>
-              {isGold ? '⭐ TIPPER OF THE DAY ⭐' : '😩 DEFLATED BALL 😩'}
+              {isGold ? (t.lang === 'pt' ? '⭐ PALPITEIRO DO DIA ⭐' : '⭐ TIPPER OF THE DAY ⭐') : (t.lang === 'pt' ? '😩 BOLA MURCHA 😩' : '😩 DEFLATED BALL 😩')}
             </div>
           )}
 
@@ -3179,7 +3336,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
               <Clock size={11} style={{ display: 'inline', marginRight: 3 }} />
-              {formatLocalTime(match.kickoff_at)}
+              {formatLocalTime(match.kickoff_at, t.lang)}
             </span>
             {match.group_name && <span className="badge badge-grey">{match.group_name}</span>}
             {match.status === 'completed' && match.home_score !== null && (
@@ -3294,9 +3451,9 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
   }
 
   const teamFields = [
-    { label: 'World Cup Winner', key: 'winner', val: winner, set: setWinner, pts: tournament.pts_tournament_winner },
-    { label: '2nd Place (Runner-up)', key: 'second', val: second, set: setSecond, pts: tournament.pts_second_place },
-    { label: '3rd Place', key: 'third', val: third, set: setThird, pts: tournament.pts_third_place },
+    { label: t.lang === 'pt' ? 'Campeão da Copa' : 'World Cup Winner', key: 'winner', val: winner, set: setWinner, pts: tournament.pts_tournament_winner },
+    { label: t.lang === 'pt' ? '2º Lugar (Vice-campeão)' : '2nd Place (Runner-up)', key: 'second', val: second, set: setSecond, pts: tournament.pts_second_place },
+    { label: t.lang === 'pt' ? '3º Lugar' : '3rd Place', key: 'third', val: third, set: setThird, pts: tournament.pts_third_place },
   ]
 
   return (
@@ -3363,7 +3520,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
         </div>
         {!isLocked && (
           <button onClick={save} disabled={saving} className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
-            {saved ? '✔ Saved!' : saving ? 'Saving...' : existing ? 'Update predictions' : 'Submit predictions'}
+            {saved ? '✔ Saved!' : saving ? 'Saving...' : existing ? t.lang === 'pt' ? 'Atualizar previsões' : 'Update predictions' : t.lang === 'pt' ? 'Enviar previsões' : 'Submit predictions'}
           </button>
         )}
         {isLocked && (
