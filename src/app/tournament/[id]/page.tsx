@@ -173,7 +173,7 @@ function ReminderBanner({ matches, myTips, tournament, t }: any) {
           color: isRed ? '#f87171' : isYellow ? '#fbbf24' : '#4ade80',
         }}
       >
-        {t.lang === 'pt' t.tipNow}
+        {t.tipNow}
       </button>
     </div>
   )

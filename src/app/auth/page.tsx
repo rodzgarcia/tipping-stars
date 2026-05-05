@@ -61,8 +61,7 @@ function AuthForm() {
           }
         }
         setTimeout(saveProfile, 600)
-        setSuccess(t.lang === 'pt'
-          t.accountCreated)
+        setSuccess(t.accountCreated)
       }
     } else {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
