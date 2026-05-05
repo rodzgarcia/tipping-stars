@@ -335,6 +335,7 @@ function HeadToHead({ leaderboard, allTips, profilesMap, userId, matches }: any)
 
 // ── Share Card ────────────────────────────────────────────────────────────────
 function ShareCard({ row, leaderboard, profilesMap, tournament }: any) {
+  const { t } = useLang()
   const [copied, setCopied] = useState(false)
   if (!row) return null
 
