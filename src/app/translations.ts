@@ -6,8 +6,9 @@ export const T = {
     appName: 'TIPPING STARS',
     tagline: 'Tip every match, predict the winner, top scorer, and more. Climb the leaderboard with your crew.',
     joinTournament: 'Join a tournament',
-    tournaments: 'TOURNAMENTS',
+    tournaments: 'MY TOURNAMENTS',
     noTournaments: 'No tournaments yet. Admin will set them up soon.',
+    noMemberships: "You haven't joined any tournaments yet. Use your invite link to join one.",
     open: 'Open',
     pending: 'Pending',
     awaiting: 'Awaiting approval',
@@ -18,6 +19,7 @@ export const T = {
     signIn: 'Sign in',
     admin: 'Admin',
     standings: 'Standings',
+    profile: 'Profile',
     entry: 'Entry',
     statusUpcoming: 'Upcoming',
     statusActive: 'Active',
@@ -31,14 +33,33 @@ export const T = {
     password: 'Password',
     displayName: 'Your name',
     displayNamePlaceholder: 'How you\'ll appear on the leaderboard',
+    nickname: 'Nickname',
+    nicknamePlaceholder: 'e.g. ScoreKing, The Prophet...',
+    nicknameRequired: 'Nickname is required.',
+    nicknameHint: '(shown on leaderboard)',
     alreadyHaveAccount: 'Already have an account?',
     noAccount: 'Don\'t have an account?',
+    accountCreated: 'Account created! Check your email to confirm, then sign in.',
 
     // Tournament page tabs
+    tipsTab: '⚽ Tips',
+    allTipsTab: '👁 All Tips',
+    qualifiersTab: '🗂️ Qualifiers',
+    statsTab: '📊 Stats',
+    leaderboardTab: '🏆 Leaderboard',
+    rulesTab: '📋 Rules',
+    predictionsTab: '🔮 Predictions',
     matchTips: 'Match Tips',
     groupQualifiers: 'Group Qualifiers',
     leaderboard: 'Leaderboard',
     tournamentTips: 'Tournament Tips',
+
+    // Tips tab
+    openTips: 'Open',
+    lockedTips: 'Locked / Past',
+    noOpenMatches: 'No open matches right now — all tips are locked.',
+    noLockedMatches: 'No locked or past matches yet.',
+    tipNow: 'Tip now →',
 
     // Match tips
     groupStage: 'Group Stage',
@@ -54,6 +75,13 @@ export const T = {
     noTipSubmitted: 'No tip submitted',
     result: 'Result',
     noMatchesYet: "Matches haven't been added yet. Check back soon!",
+    tournamentNotStarted: "The tournament hasn't started yet — check back soon!",
+
+    // Reminder banner
+    tipReminderSingle: 'tip lock in',
+    tipReminderMultiple: 'matches closing soon — next:',
+    tipReminderIn: 'in',
+    haventTipped: "You haven't tipped this match yet",
 
     // Group qualifiers
     groupQualifiersTitle: 'Group Qualifiers',
@@ -71,12 +99,20 @@ export const T = {
     locksAt: 'Locks',
 
     // Leaderboard
-    noScoresYet: 'No scores yet',
+    noScoresYet: 'No scores yet — results will appear here after matches are played.',
     you: 'you',
     match: 'Match',
     tournament: 'Tournament',
     tips: 'Tips',
     pointsNote: 'Points include phase multipliers · Leaderboard updates after each match result is entered',
+    cards: '🃏 Cards',
+    headToHead: '⚔️ Head to Head',
+    share: '📤 Share',
+    shareTitle: 'SHARE YOUR STATS',
+    copyClipboard: '📋 Copy to clipboard',
+    copied: '✅ Copied! Paste in WhatsApp',
+    whoWins: 'WHO WINS THE WORLD CUP?',
+    predictions: 'predictions',
 
     // Tournament predictions
     tournamentPredictions: 'Tournament Predictions',
@@ -95,6 +131,24 @@ export const T = {
     saving: 'Saving...',
     pts: 'pts',
 
+    // Stats tab
+    awaitingResult: '🔒 Locked, awaiting result',
+    finished: '✅ Finished',
+    howGroupTipped: 'How the group tipped — result not yet known',
+    howGroupTippedVsResult: 'How the group tipped vs the final result',
+
+    // Rules
+    howItWorks: 'HOW IT WORKS',
+    pointsSystem: 'POINTS SYSTEM',
+    draws: 'DRAWS',
+    extraTimePenalties: 'EXTRA TIME & PENALTIES (KNOCKOUT ROUNDS)',
+    phaseMultipliers: 'PHASE MULTIPLIERS',
+    tournamentPredictionsRules: 'TOURNAMENT PREDICTIONS',
+
+    // Progress
+    worldCupProgress: 'WORLD CUP PROGRESS',
+    matches: 'matches',
+
     // Status
     loading: 'LOADING...',
     awaitingApproval: 'Awaiting approval',
@@ -108,7 +162,7 @@ export const T = {
     adminPanel: 'ADMIN PANEL',
     setup: 'Setup',
     members: 'Members',
-    matches: 'Matches',
+    matchesTab: 'Matches',
     results: 'Results',
     pendingApproval: 'PENDING APPROVAL',
     approve: 'Approve',
@@ -117,6 +171,19 @@ export const T = {
     allMembers: 'ALL MEMBERS',
     paid: '$ Paid',
     unpaid: '$ Unpaid',
+    pendingTips: '⏳ Pending Tips',
+    backup: '💾 Backup',
+
+    // Profile
+    myProfile: 'MY PROFILE',
+    lastResults: 'LAST',
+    results2: 'RESULTS',
+    tournamentBreakdown: 'TOURNAMENT BREAKDOWN',
+    recentTips: 'RECENT TIPS',
+    onFire: 'correct picks in a row!',
+    unstoppable: 'Unstoppable!',
+    keepItGoing: 'Keep it going',
+    teamPositionFixed: '🔒 Team and position permanently assigned',
 
     // Standings
     standingsTitle: 'FIFA WORLD CUP 2026 — GROUP STANDINGS',
@@ -130,9 +197,20 @@ export const T = {
     points: 'PTS',
     advancesAutomatically: 'Advances automatically',
     possibleThirdPlace: 'Possible best 3rd place',
-    pointsSystem: 'Win = 3 pts · Draw = 1 pt · Loss = 0 pts',
     tiebreakers: 'Tiebreakers (in order)',
     advancing: 'Advancing',
+
+    // Welcome popup
+    yourTippingIdentity: 'YOUR TIPPING IDENTITY',
+    from: 'from',
+    letsGo: "Let's go! 🚀",
+    permanentlyAssigned: '🔒 Your team and position are permanently assigned and cannot be changed.',
+    tapToClose: 'Tap anywhere to close',
+
+    // Global leaderboard
+    globalLeaderboard: 'GLOBAL LEADERBOARD',
+    globalDesc: 'All players · All tournaments · Each entry ranked independently',
+    globalNote: 'Each player appears once per tournament',
   },
 
   pt: {
@@ -140,8 +218,9 @@ export const T = {
     appName: 'TIPPING STARS',
     tagline: 'Aposte em cada jogo, preveja o campeão, artilheiro e mais. Suba no ranking com seus amigos.',
     joinTournament: 'Participar de um torneio',
-    tournaments: 'TORNEIOS',
+    tournaments: 'MEUS TORNEIOS',
     noTournaments: 'Nenhum torneio ainda. O administrador irá configurar em breve.',
+    noMemberships: 'Você ainda não entrou em nenhum torneio. Use seu link de convite para participar.',
     open: 'Abrir',
     pending: 'Pendente',
     awaiting: 'Aguardando aprovação',
@@ -152,6 +231,7 @@ export const T = {
     signIn: 'Entrar',
     admin: 'Admin',
     standings: 'Classificação',
+    profile: 'Perfil',
     entry: 'Entrada',
     statusUpcoming: 'Em breve',
     statusActive: 'Ativo',
@@ -165,14 +245,33 @@ export const T = {
     password: 'Senha',
     displayName: 'Seu nome',
     displayNamePlaceholder: 'Como você aparecerá no ranking',
+    nickname: 'Apelido',
+    nicknamePlaceholder: 'Ex: Rei do Placar, O Profeta...',
+    nicknameRequired: 'Apelido é obrigatório.',
+    nicknameHint: '(aparece no placar)',
     alreadyHaveAccount: 'Já tem uma conta?',
     noAccount: 'Não tem uma conta?',
+    accountCreated: 'Conta criada! Verifique seu e-mail para confirmar, depois entre.',
 
     // Tournament page tabs
+    tipsTab: '⚽ Palpites',
+    allTipsTab: '👁 Todos os Palpites',
+    qualifiersTab: '🗂️ Classificados',
+    statsTab: '📊 Estatísticas',
+    leaderboardTab: '🏆 Ranking',
+    rulesTab: '📋 Regras',
+    predictionsTab: '🔮 Previsões',
     matchTips: 'Palpites',
     groupQualifiers: 'Classificados por Grupo',
     leaderboard: 'Ranking',
     tournamentTips: 'Previsões do Torneio',
+
+    // Tips tab
+    openTips: 'Abertos',
+    lockedTips: 'Bloqueados / Passados',
+    noOpenMatches: 'Nenhum jogo aberto agora — todos os palpites estão bloqueados.',
+    noLockedMatches: 'Nenhum jogo bloqueado ainda.',
+    tipNow: 'Apostar agora →',
 
     // Match tips
     groupStage: 'Fase de Grupos',
@@ -188,6 +287,13 @@ export const T = {
     noTipSubmitted: 'Nenhum palpite enviado',
     result: 'Resultado',
     noMatchesYet: 'Os jogos ainda não foram adicionados. Volte em breve!',
+    tournamentNotStarted: 'O torneio ainda não começou — volte em breve!',
+
+    // Reminder banner
+    tipReminderSingle: 'bloqueia em',
+    tipReminderMultiple: 'jogos fechando em breve — próximo:',
+    tipReminderIn: 'em',
+    haventTipped: 'Você ainda não apostou neste jogo',
 
     // Group qualifiers
     groupQualifiersTitle: 'Classificados por Grupo',
@@ -205,12 +311,20 @@ export const T = {
     locksAt: 'Bloqueia',
 
     // Leaderboard
-    noScoresYet: 'Nenhuma pontuação ainda',
+    noScoresYet: 'Nenhuma pontuação ainda — os resultados aparecerão aqui após os jogos.',
     you: 'você',
     match: 'Jogos',
     tournament: 'Torneio',
     tips: 'Palpites',
     pointsNote: 'Pontos incluem multiplicadores de fase · Ranking atualiza após cada resultado',
+    cards: '🃏 Cartões',
+    headToHead: '⚔️ Confronto Direto',
+    share: '📤 Compartilhar',
+    shareTitle: 'COMPARTILHE SUAS ESTATÍSTICAS',
+    copyClipboard: '📋 Copiar para área de transferência',
+    copied: '✅ Copiado! Cole no WhatsApp',
+    whoWins: 'QUEM VAI GANHAR A COPA?',
+    predictions: 'previsões',
 
     // Tournament predictions
     tournamentPredictions: 'Previsões do Torneio',
@@ -229,6 +343,24 @@ export const T = {
     saving: 'Salvando...',
     pts: 'pts',
 
+    // Stats tab
+    awaitingResult: '🔒 Bloqueado, aguardando resultado',
+    finished: '✅ Finalizado',
+    howGroupTipped: 'Como o grupo apostou — resultado ainda não conhecido',
+    howGroupTippedVsResult: 'Como o grupo apostou vs resultado final',
+
+    // Rules
+    howItWorks: 'COMO FUNCIONA',
+    pointsSystem: 'SISTEMA DE PONTUAÇÃO',
+    draws: 'EMPATES',
+    extraTimePenalties: 'PRORROGAÇÃO E PÊNALTIS (FASES ELIMINATÓRIAS)',
+    phaseMultipliers: 'MULTIPLICADORES DE FASE',
+    tournamentPredictionsRules: 'PREVISÕES DO TORNEIO',
+
+    // Progress
+    worldCupProgress: 'PROGRESSO DA COPA',
+    matches: 'jogos',
+
     // Status
     loading: 'CARREGANDO...',
     awaitingApproval: 'Aguardando aprovação',
@@ -242,7 +374,7 @@ export const T = {
     adminPanel: 'PAINEL ADMIN',
     setup: 'Configurar',
     members: 'Membros',
-    matches: 'Jogos',
+    matchesTab: 'Jogos',
     results: 'Resultados',
     pendingApproval: 'AGUARDANDO APROVAÇÃO',
     approve: 'Aprovar',
@@ -251,6 +383,19 @@ export const T = {
     allMembers: 'TODOS OS MEMBROS',
     paid: '$ Pago',
     unpaid: '$ Não pago',
+    pendingTips: '⏳ Palpites Pendentes',
+    backup: '💾 Backup',
+
+    // Profile
+    myProfile: 'MEU PERFIL',
+    lastResults: 'ÚLTIMOS',
+    results2: 'RESULTADOS',
+    tournamentBreakdown: 'RESUMO POR TORNEIO',
+    recentTips: 'PALPITES RECENTES',
+    onFire: 'acertos seguidos!',
+    unstoppable: 'Imparável!',
+    keepItGoing: 'Continue assim',
+    teamPositionFixed: '🔒 Time e posição atribuídos permanentemente',
 
     // Standings
     standingsTitle: 'COPA DO MUNDO FIFA 2026 — CLASSIFICAÇÃO DOS GRUPOS',
@@ -264,8 +409,19 @@ export const T = {
     points: 'PTS',
     advancesAutomatically: 'Avança automaticamente',
     possibleThirdPlace: 'Possível melhor 3º lugar',
-    pointsSystem: 'Vitória = 3 pts · Empate = 1 pt · Derrota = 0 pts',
     tiebreakers: 'Critérios de desempate (em ordem)',
     advancing: 'Classificação',
+
+    // Welcome popup
+    yourTippingIdentity: 'SUA IDENTIDADE DE PALPITEIRO',
+    from: 'do',
+    letsGo: 'Vamos lá! 🚀',
+    permanentlyAssigned: '🔒 Seu time e posição são permanentes e não podem ser alterados.',
+    tapToClose: 'Toque em qualquer lugar para fechar',
+
+    // Global leaderboard
+    globalLeaderboard: 'RANKING GLOBAL',
+    globalDesc: 'Todos os jogadores · Todos os torneios · Cada entrada ranqueada independentemente',
+    globalNote: 'Cada jogador aparece uma vez por torneio',
   }
 }

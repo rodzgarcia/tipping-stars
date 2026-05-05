@@ -26,7 +26,7 @@ function AuthForm() {
     setError(''); setSuccess(''); setLoading(true)
 
     if (mode === 'signup' && !nickname.trim()) {
-      setError(t.lang === 'pt' ? 'Apelido é obrigatório.' : 'Nickname is required.')
+      setError(t.nicknameRequired)
       setLoading(false)
       return
     }
@@ -62,8 +62,7 @@ function AuthForm() {
         }
         setTimeout(saveProfile, 600)
         setSuccess(t.lang === 'pt'
-          ? 'Conta criada! Verifique seu e-mail para confirmar, depois entre.'
-          : 'Account created! Check your email to confirm, then sign in.')
+          t.accountCreated)
       }
     } else {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
@@ -102,16 +101,16 @@ function AuthForm() {
                 </div>
                 <div>
                   <label className="label">
-                    {t.lang === 'pt' ? 'Apelido' : 'Nickname'}
+                    {t.lang === 'pt' t.nickname}
                     <span style={{ color: '#f87171', marginLeft: '0.25rem' }}>*</span>
                     <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400, marginLeft: '0.4rem', fontSize: '0.78rem' }}>
-                      {t.lang === 'pt' ? '(aparece no placar)' : '(shown on leaderboard)'}
+                      {t.lang === 'pt' t.nicknameHint}
                     </span>
                   </label>
                   <input
                     className="input"
                     type="text"
-                    placeholder={t.lang === 'pt' ? 'Ex: Rei do Placar, O Profeta...' : 'e.g. ScoreKing, The Prophet...'}
+                    placeholder={t.nicknamePlaceholder}
                     value={nickname}
                     onChange={e => setNickname(e.target.value)}
                     maxLength={20}

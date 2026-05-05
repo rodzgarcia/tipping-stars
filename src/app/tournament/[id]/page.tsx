@@ -155,7 +155,7 @@ function ReminderBanner({ matches, myTips, tournament, t }: any) {
           <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
             {urgent.length > 1
               ? urgent.slice(1, 3).map((m: any) => `${m.home_team} vs ${m.away_team}`).join(' · ') + (urgent.length > 3 ? ` +${urgent.length - 3} more` : '')
-              : t.lang === 'pt' ? 'Você ainda não apostou neste jogo' : "You haven't tipped this match yet"}
+              : t.haventTipped}
           </div>
         </div>
       </div>
@@ -173,7 +173,7 @@ function ReminderBanner({ matches, myTips, tournament, t }: any) {
           color: isRed ? '#f87171' : isYellow ? '#fbbf24' : '#4ade80',
         }}
       >
-        {t.lang === 'pt' ? 'Apostar agora →' : 'Tip now →'}
+        {t.lang === 'pt' t.tipNow}
       </button>
     </div>
   )
@@ -370,7 +370,7 @@ function ShareCard({ row, leaderboard, profilesMap, tournament }: any) {
         <pre style={{ fontFamily: 'inherit', fontSize: '0.85rem', lineHeight: 1.7, color: '#e8f5ee', margin: 0, whiteSpace: 'pre-wrap' }}>{text}</pre>
       </div>
       <button onClick={copyToClipboard} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
-        {copied ? '✅ Copied! Paste in WhatsApp' : '📋 Copy to clipboard'}
+        {copied ? t.copied : t.copyClipboard}
       </button>
     </div>
   )
@@ -475,7 +475,7 @@ function WinnerPredictionWall({ allTournamentTips, profilesMap, leaderboard, t }
     <div className="card" style={{ overflow: 'hidden', marginBottom: '1.25rem' }}>
       <div style={{ padding: '0.875rem 1.25rem', borderBottom: '1px solid var(--dark-border)', background: 'rgba(251,191,36,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: '#fbbf24' }}>
-          🏆 {t.lang === 'pt' ? 'QUEM VAI GANHAR?' : 'WHO WINS THE WORLD CUP?'}
+          🏆 {t.whoWins}
         </span>
         <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>{tips.length} predictions</span>
       </div>
@@ -736,7 +736,7 @@ export default function TournamentPage() {
               return (
                 <>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {([['open', `⚽ Open (${openMatches.length})`], ['locked', `🔒 Locked / Past (${lockedMatches.length})`]] as const).map(([v, label]) => (
+                    {([['open', `${t.openTips} (${openMatches.length})`], ['locked', `${t.lockedTips} (${lockedMatches.length})`]] as const).map(([v, label]) => (
                       <button key={v} onClick={() => setTipsView(v as any)} style={{
                         padding: '0.4rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
                         border: `1px solid ${tipsView === v ? 'var(--green)' : 'rgba(255,255,255,0.15)'}`,
@@ -915,7 +915,7 @@ Matches haven't been added yet.{matches.length === 0 && tournament?.status === '
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               {/* H2H + Share sub-tabs */}
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.75rem' }}>
-                {([['cards','🃏 Cards'],['h2h','⚔️ Head to Head'],['share','📤 Share']] as const).map(([v,label]) => (
+                {([['cards',t.cards],['h2h',t.headToHead],['share',t.share]] as const).map(([v,label]) => (
                   <button key={v} onClick={() => setLbSubTab(v)} style={{
                     padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.74rem', cursor: 'pointer',
                     border: `1px solid ${lbSubTab===v ? '#fbbf24' : 'rgba(255,255,255,0.12)'}`,
@@ -1348,7 +1348,7 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
 
       {/* Sub-tab switcher */}
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        {([['upcoming', ispt ? '🔒 Aguardando resultado' : '🔒 Locked, awaiting result', upcomingLocked.length],
+        {([['upcoming', ispt ? '🔒 Aguardando resultado' : t.awaitingResult, upcomingLocked.length],
            ['finished',  ispt ? '✅ Partidas encerradas' : '✅ Finished matches', finishedMatches.length]] as const).map(([v, label, count]) => (
           <button key={v} onClick={() => setStatsView(v)} style={{
             padding: '0.45rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
