@@ -394,6 +394,7 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
 
 function PendingTips({ tournamentId, supabase, tournaments }: any) {
   const [qualifierTips, setQualifierTips] = useState<any[]>([])
+  const [members, setMembers] = useState<any[]>([])
   const [matches, setMatches] = useState<any[]>([])
   const [matchTips, setMatchTips] = useState<any[]>([])
   const [tournamentTips, setTournamentTips] = useState<any[]>([])
