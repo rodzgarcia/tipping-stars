@@ -2857,7 +2857,7 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
 
   const lockedMatches = matches.filter((m: any) => isLocked(m))
   const lockedGroup = lockedMatches.filter((m: any) => m.tip_lock_override || !m.round || m.round === 'group')
-  const lockedKnockout = lockedMatches.filter((m: any) => m.round && m.round !== 'group')
+  const lockedKnockout = lockedMatches.filter((m: any) => m.round && m.round !== 'group' && !m.tip_lock_override)
 
   const players = leaderboard.map((r: any) => ({
     id: r.user_id,
@@ -2941,7 +2941,7 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                           </span>
                         </div>
                       </td>
-                      {lockedMatches.map((m: any) => {
+                      {lockedGroup.map((m: any) => {
                         const tip = allTips.find((tp: any) => tp.match_id === m.id && tp.user_id === player.id)
                         const hasResult = m.status === 'completed' && m.home_score !== null
                         const exact = hasResult && tip && tip.tip_home === m.home_score && tip.tip_away === m.away_score
