@@ -198,7 +198,11 @@ function CountdownBar({ matches, myTips, tournament, t }: any) {
       const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
       return lockTime > now
     })
-    .sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0]
+    .sort((a: any, b: any) => {
+      const la = new Date(a.kickoff_at).getTime() - lockMins * 60 * 1000
+      const lb = new Date(b.kickoff_at).getTime() - lockMins * 60 * 1000
+      return la - lb
+    })[0]
 
   if (!next) return null
 
@@ -2852,7 +2856,7 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
   }
 
   const lockedMatches = matches.filter((m: any) => isLocked(m))
-  const lockedGroup = lockedMatches.filter((m: any) => !m.round || m.round === 'group')
+  const lockedGroup = lockedMatches.filter((m: any) => m.tip_lock_override || !m.round || m.round === 'group')
   const lockedKnockout = lockedMatches.filter((m: any) => m.round && m.round !== 'group')
 
   const players = leaderboard.map((r: any) => ({
@@ -2902,13 +2906,13 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
           </div>
         ) : (
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: Math.max(500, lockedMatches.length * 80 + 120) }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', minWidth: Math.max(500, lockedGroup.length * 80 + 120) }}>
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.72rem', letterSpacing: '0.05em', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', left: 0, background: '#0a0f0d', zIndex: 2, minWidth: 110 }}>
                     {t.lang === 'pt' ? 'JOGADOR' : 'PLAYER'}
                   </th>
-                  {lockedMatches.map((m: any) => (
+                  {lockedGroup.map((m: any) => (
                     <th key={m.id} style={{ textAlign: 'center', padding: '0.4rem 0.5rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600, fontSize: '0.65rem', borderBottom: '1px solid rgba(255,255,255,0.08)', minWidth: 72 }}>
                       <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem' }}>{roundLabel[m.round] || m.round}</div>
                       <div style={{ whiteSpace: 'nowrap' }}><><FlagImg team={m.home_team} size={14} />{m.home_team?.split(' ')[0]}</></div>
