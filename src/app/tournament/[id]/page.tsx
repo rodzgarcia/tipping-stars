@@ -190,13 +190,14 @@ function CountdownBar({ matches, myTips, tournament, t }: any) {
 
   const lockMins = tournament?.tip_lock_minutes ?? 120
 
-  // Find the very next upcoming match lock (show to all players regardless of whether they've tipped)
+  // Find the very next upcoming match whose lock time is still in the future
+  // Exclude: already started, manually locked, or past lock time
   const next = matches
     .filter((m: any) => {
       if (m.status !== 'upcoming') return false
-      if (m.tip_lock_override) return false // already locked, don't count
+      if (m.tip_lock_override) return false // manually locked already
       const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
-      return lockTime > now
+      return lockTime > now // lock time must be in the future
     })
     .sort((a: any, b: any) => {
       const la = new Date(a.kickoff_at).getTime() - lockMins * 60 * 1000
