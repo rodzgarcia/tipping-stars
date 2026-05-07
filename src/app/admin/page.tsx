@@ -1450,16 +1450,18 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
 
   async function toggleMatchLock(matchId: string, currentlyLocked: boolean) {
     setLockingMatch(matchId)
-    // We store manual lock as a special kickoff_at in the past (1 min ago) to force lock
-    // Better approach: add a is_manually_locked column, or set kickoff_at to past
-    if (currentlyLocked) {
-      // Unlock: restore kickoff to 2 hours from now as placeholder
-      // Actually we store the real kickoff, just set tip_lock_override
-      await supabase.from('matches').update({ tip_lock_override: false }).eq('id', matchId)
-    } else {
-      await supabase.from('matches').update({ tip_lock_override: true }).eq('id', matchId)
+    try {
+      const res = await fetch('/api/admin/lock-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, lock: !currentlyLocked }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to lock match')
+      onUpdate()
+    } catch (e: any) {
+      alert('Lock failed: ' + e.message)
     }
-    onUpdate()
     setLockingMatch(null)
   }
 
