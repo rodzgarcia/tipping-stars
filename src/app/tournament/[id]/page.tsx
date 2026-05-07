@@ -181,7 +181,7 @@ function ReminderBanner({ matches, myTips, tournament, t }: any) {
 
 
 // ── Countdown to next lock ────────────────────────────────────────────────────
-function CountdownBar({ matches, myTips, tournament }: any) {
+function CountdownBar({ matches, myTips, tournament, t }: any) {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
     const i = setInterval(() => setNow(new Date()), 1000)
@@ -189,6 +189,8 @@ function CountdownBar({ matches, myTips, tournament }: any) {
   }, [])
 
   const lockMins = tournament?.tip_lock_minutes ?? 120
+
+  // Find the VERY NEXT match to lock that user hasn't tipped
   const next = matches
     .filter((m: any) => {
       if (m.status !== 'upcoming' || m.tip_lock_override || myTips[m.id]) return false
@@ -201,25 +203,44 @@ function CountdownBar({ matches, myTips, tournament }: any) {
 
   const lockTime = new Date(new Date(next.kickoff_at).getTime() - lockMins * 60 * 1000)
   const secsLeft = Math.max(0, Math.floor((lockTime.getTime() - now.getTime()) / 1000))
-  const h = Math.floor(secsLeft / 3600)
-  const m = Math.floor((secsLeft % 3600) / 60)
-  const s = secsLeft % 60
+
+  const days = Math.floor(secsLeft / 86400)
+  const hours = Math.floor((secsLeft % 86400) / 3600)
+  const mins = Math.floor((secsLeft % 3600) / 60)
+  const secs = secsLeft % 60
   const pad = (n: number) => String(n).padStart(2, '0')
-  const isUrgent = secsLeft < 7200
+
+  const isUrgent = secsLeft < 7200   // < 2 hours
+  const isWarning = secsLeft < 86400 // < 1 day
+
+  // Format: "29d 12h" or "3h 45m" or "45:30"
+  let timeStr: string
+  if (days > 0) {
+    timeStr = days + 'd ' + hours + 'h'
+  } else if (hours > 0) {
+    timeStr = hours + 'h ' + pad(mins) + 'm'
+  } else {
+    timeStr = pad(mins) + ':' + pad(secs)
+  }
+
+  const color = isUrgent ? '#f87171' : isWarning ? '#fbbf24' : '#4ade80'
+  const bg = isUrgent ? 'rgba(239,68,68,0.08)' : isWarning ? 'rgba(251,191,36,0.06)' : 'rgba(74,222,128,0.05)'
+  const border = isUrgent ? 'rgba(239,68,68,0.2)' : isWarning ? 'rgba(251,191,36,0.15)' : 'rgba(74,222,128,0.15)'
 
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '0.6rem',
       padding: '0.5rem 0.85rem', borderRadius: 8, marginBottom: '0.75rem',
-      background: isUrgent ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
-      border: `1px solid ${isUrgent ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.08)'}`,
+      background: bg, border: `1px solid ${border}`,
     }}>
-      <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>Next lock:</span>
-      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: isUrgent ? '#f87171' : '#e8f5ee' }}>
+      <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+        {t?.lang === 'pt' ? 'Próximo bloqueio:' : 'Next lock:'}
+      </span>
+      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#e8f5ee', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {next.home_team} vs {next.away_team}
       </span>
-      <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color: isUrgent ? '#f87171' : '#fbbf24', marginLeft: 'auto', letterSpacing: '0.05em' }}>
-        {h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`}
+      <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.95rem', color, flexShrink: 0, letterSpacing: '0.03em' }}>
+        {timeStr}
       </span>
     </div>
   )
@@ -711,7 +732,7 @@ export default function TournamentPage() {
         )}
 
         <TournamentProgress matches={matches} t={t} />
-        <CountdownBar matches={matches} myTips={myTips} tournament={tournament} />
+        <CountdownBar matches={matches} myTips={myTips} tournament={tournament} t={t} />
 
         {/* Tabs */}
         <div className="tab-nav" style={{ marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none', display: 'flex', flexWrap: 'nowrap' }}>
@@ -802,6 +823,8 @@ export default function TournamentPage() {
             onSave={loadAll}
             matches={matches}
             t={t}
+            allQualifierTips={allTournamentTips}
+            profilesMap={profilesMap}
           />
         )}
 
@@ -1060,7 +1083,7 @@ export default function TournamentPage() {
 }
 
 
-function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }: any) {
+function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches, allQualifierTips, profilesMap }: any) {
   const supabase = createClient()
   // localPicks only holds unsaved edits — we always fall back to existing (DB) for display
   const [localPicks, setLocalPicks] = useState<Record<string, { first?: string, second?: string }>>({})
@@ -1160,14 +1183,14 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
                     <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>🥇 {t.firstPlace}</label>
                     <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={getVal(group, 'first')} onChange={e => setPick(group, 'first', e.target.value)}>
                       <option value="">{t.selectTeam}</option>
-                      {teams.map(tm => <option key={tm} value={tm}>{tm}</option>)}
+                      {teams.map(tm => <option key={tm} value={tm} disabled={tm === getVal(group, 'second')}>{tm}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', display: 'block', marginBottom: '0.25rem' }}>🥈 {t.secondPlace}</label>
                     <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={getVal(group, 'second')} onChange={e => setPick(group, 'second', e.target.value)}>
                       <option value="">{t.selectTeam}</option>
-                      {teams.map(tm => <option key={tm} value={tm}>{tm}</option>)}
+                      {teams.map(tm => <option key={tm} value={tm} disabled={tm === getVal(group, 'first')}>{tm}</option>)}
                     </select>
                   </div>
                 </div>
@@ -1187,6 +1210,20 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches }
               ✔ {t.lang === 'pt' ? 'Palpites guardados com sucesso!' : 'Your qualifier picks have been saved!'}
             </span>
           )}
+        </div>
+      )}
+
+      {unlockedGroups.length === 0 && lockedGroups.length > 0 && allQualifierTips && allQualifierTips.length > 0 && (
+        <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1rem', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.1)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', marginBottom: '0.5rem' }}>
+            {t.lang === 'pt' ? '📋 QUEM NÃO ENVIOU OS PALPITES DE QUALIFICADOS' : '📋 MISSING QUALIFIER PICKS'}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+            {allQualifierTips.filter((qt: any) => !qt.p_a1 && !qt.p_a2).map((qt: any) => {
+              const name = profilesMap?.[qt.user_id]?.nickname || qt.display_name || '?'
+              return <span key={qt.user_id} style={{ padding: '0.2rem 0.6rem', borderRadius: 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: '0.75rem', color: '#f87171' }}>{name}</span>
+            })}
+          </div>
         </div>
       )}
 
@@ -2874,7 +2911,7 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
         lockedGroup.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
-            <p>{t.lang === 'pt' ? 'Palpites visíveis após o início das partidas.' : 'Tips visible once matches kick off.'}</p>
+            <p>{t.lang === 'pt' ? 'Palpites visíveis após o bloqueio das apostas.' : 'Tips visible once tips are locked.'}</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
