@@ -641,6 +641,25 @@ export default function TournamentPage() {
 
   useEffect(() => { loadAll() }, [tournamentId])
 
+  // Auto-refresh matches when admin locks/unlocks a match
+  useEffect(() => {
+    if (!tournamentId) return
+    const channel = supabase
+      .channel('matches_lock_' + tournamentId)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'matches',
+        filter: 'tournament_id=eq.' + tournamentId,
+      }, () => {
+        // Reload just the matches
+        supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('kickoff_at')
+          .then(({ data }) => { if (data) setMatches(data) })
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [tournamentId])
+
   async function loadAll() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth'); return }
