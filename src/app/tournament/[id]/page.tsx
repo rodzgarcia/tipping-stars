@@ -190,10 +190,11 @@ function CountdownBar({ matches, myTips, tournament, t }: any) {
 
   const lockMins = tournament?.tip_lock_minutes ?? 120
 
-  // Find the VERY NEXT match to lock that user hasn't tipped
+  // Find the very next upcoming match lock (show to all players regardless of whether they've tipped)
   const next = matches
     .filter((m: any) => {
-      if (m.status !== 'upcoming' || m.tip_lock_override || myTips[m.id]) return false
+      if (m.status !== 'upcoming') return false
+      if (m.tip_lock_override) return false // already locked, don't count
       const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
       return lockTime > now
     })
@@ -1210,20 +1211,6 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches, 
               ✔ {t.lang === 'pt' ? 'Palpites guardados com sucesso!' : 'Your qualifier picks have been saved!'}
             </span>
           )}
-        </div>
-      )}
-
-      {unlockedGroups.length === 0 && lockedGroups.length > 0 && allQualifierTips && allQualifierTips.length > 0 && (
-        <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1rem', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.1)' }}>
-          <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', marginBottom: '0.5rem' }}>
-            {t.lang === 'pt' ? '📋 QUEM NÃO ENVIOU OS PALPITES DE QUALIFICADOS' : '📋 MISSING QUALIFIER PICKS'}
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            {allQualifierTips.filter((qt: any) => !qt.p_a1 && !qt.p_a2).map((qt: any) => {
-              const name = profilesMap?.[qt.user_id]?.nickname || qt.display_name || '?'
-              return <span key={qt.user_id} style={{ padding: '0.2rem 0.6rem', borderRadius: 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: '0.75rem', color: '#f87171' }}>{name}</span>
-            })}
-          </div>
         </div>
       )}
 
