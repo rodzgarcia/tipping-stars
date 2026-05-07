@@ -2868,6 +2868,15 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
 
   const groupCount = lockedGroup.length
   const knockoutCount = lockedKnockout.length
+  // Debug: log what's locked
+  if (typeof window !== 'undefined') {
+    console.log('[TipsReveal] matches total:', matches.length,
+      'locked:', lockedMatches.length,
+      'lockedGroup:', lockedGroup.length,
+      'tip_lock_override matches:', matches.filter((m:any)=>m.tip_lock_override).map((m:any)=>m.home_team+'v'+m.away_team+' override='+m.tip_lock_override+' status='+m.status),
+      'allTips count:', allTips.length
+    )
+  }
 
   return (
     <div style={{ paddingBottom: '3rem' }}>
