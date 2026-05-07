@@ -567,7 +567,9 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
       </div>
     )}
   )
-}({ supabase, tournaments }: any) {
+}
+
+function BackupPanel({ supabase, tournaments }: any) {
   const [status, setStatus] = useState<Record<string, 'idle' | 'loading' | 'done'>>({})
   const [lastBackup, setLastBackup] = useState<string | null>(
     typeof window !== 'undefined' ? localStorage.getItem('last_backup') : null
