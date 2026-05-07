@@ -393,7 +393,7 @@ function KnockoutTemplates({ supabase, tournaments }: any) {
 
 
 function PendingTips({ tournamentId, supabase, tournaments }: any) {
-  const [members, setMembers] = useState<any[]>([])
+  const [qualifierTips, setQualifierTips] = useState<any[]>([])
   const [matches, setMatches] = useState<any[]>([])
   const [matchTips, setMatchTips] = useState<any[]>([])
   const [tournamentTips, setTournamentTips] = useState<any[]>([])
@@ -409,10 +409,11 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
       supabase.from('tournament_members').select('user_id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('matches').select('id, home_team, away_team, kickoff_at, round, status, tip_lock_override').eq('tournament_id', tournamentId).order('kickoff_at'),
       supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId),
-      supabase.from('tournament_tips').select('user_id').eq('tournament_id', tournamentId),
+      supabase.from('tournament_tips').select('user_id, p_a1').eq('tournament_id', tournamentId),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url'),
     ]).then(([membRes, matchRes, tipRes, ttRes, profRes]: any) => {
       setMembers(membRes.data || [])
+      setQualifierTips(ttRes.data || [])
       setMatches(matchRes.data || [])
       setMatchTips(tipRes.data || [])
       setTournamentTips(ttRes.data || [])
@@ -544,11 +545,29 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
         </div>
       )}
     </div>
+
+    {/* Missing qualifier picks */}
+    {members.length > 0 && (
+      <div className="card" style={{ padding: '1rem 1.25rem', marginTop: '1.5rem', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.8rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: '0.6rem' }}>
+          🗂️ MISSING QUALIFIER PICKS
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+          {(() => {
+            const submittedIds = new Set(qualifierTips.filter((qt: any) => qt.p_a1).map((qt: any) => qt.user_id))
+            const missing = members.filter((m: any) => !submittedIds.has(m.user_id))
+            if (missing.length === 0) return <span style={{ fontSize: '0.8rem', color: '#4ade80' }}>✅ Everyone submitted qualifier picks!</span>
+            return missing.map((m: any) => {
+              const prof = profiles[m.user_id]
+              const name = prof?.nickname || prof?.display_name || m.user_id.slice(0, 8)
+              return <span key={m.user_id} style={{ padding: '0.25rem 0.7rem', borderRadius: 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: '0.78rem', color: '#f87171' }}>{name}</span>
+            })
+          })()}
+        </div>
+      </div>
+    )}
   )
-}
-
-
-function BackupPanel({ supabase, tournaments }: any) {
+}({ supabase, tournaments }: any) {
   const [status, setStatus] = useState<Record<string, 'idle' | 'loading' | 'done'>>({})
   const [lastBackup, setLastBackup] = useState<string | null>(
     typeof window !== 'undefined' ? localStorage.getItem('last_backup') : null
