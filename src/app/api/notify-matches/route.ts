@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
     let sent = 0
     let failed = 0
     let noEmail = 0
+    const failedNames: string[] = []
 
     for (const member of members) {
       const email = emailMap[member.user_id]
@@ -153,11 +154,13 @@ export async function POST(req: NextRequest) {
         sent++
       } else {
         failed++
-        console.error('Resend error for', email, await res.text())
+        const errText = await res.text()
+        console.error('Resend error for', email, errText)
+        failedNames.push(name + ' (' + email + '): ' + errText)
       }
     }
 
-    return NextResponse.json({ sent, failed, noEmail, total: members.length })
+    return NextResponse.json({ sent, failed, noEmail, total: members.length, failedNames })
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
