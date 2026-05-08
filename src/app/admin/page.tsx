@@ -854,7 +854,13 @@ function NotifyPanel({ tournamentId, supabase, tournaments }: any) {
                 </div>
                 {result.failed > 0 && (
                   <div style={{ color: '#f87171', fontSize: '0.78rem' }}>
-                    ❌ {result.failed} email{result.failed > 1 ? 's' : ''} failed — likely invalid email address or Resend domain not verified. Check Vercel logs for details.
+                    <div>❌ {result.failed} email{result.failed > 1 ? 's' : ''} failed</div>
+                    {result.failedNames?.map((n: string, i: number) => (
+                      <div key={i} style={{ marginTop: '0.2rem', opacity: 0.8, fontSize: '0.72rem' }}>· {n}</div>
+                    ))}
+                    <div style={{ marginTop: '0.35rem', opacity: 0.6, fontSize: '0.72rem' }}>
+                      Note: Resend free tier only sends to verified emails. Add your domain at resend.com/domains to send to everyone.
+                    </div>
                   </div>
                 )}
                 {result.noEmail > 0 && (
@@ -1630,7 +1636,8 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
       const { data: allTours, error: tourErr } = await supabase.from('tournaments').select('id')
       if (tourErr) { alert('Error fetching tournaments: ' + tourErr.message); setSavingKo(false); return }
       
-      const kickoffISO = new Date(koForm.kickoff_at).toISOString()
+      // koForm.kickoff_at is already in UTC after timezone conversion — append Z to prevent browser re-converting
+      const kickoffISO = new Date(koForm.kickoff_at + 'Z').toISOString()
       const inserts = (allTours || []).map((t: any) => ({
         home_team: koForm.home_team,
         away_team: koForm.away_team,
