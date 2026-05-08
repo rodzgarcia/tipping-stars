@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
-import { useLang } from '../LanguageContext'
+import { useLang, LangSwitcher } from '../LanguageContext'
 
 const GROUPS: Record<string, string[]> = {
   A: ['Mexico', 'South Africa', 'South Korea', 'Czechia'],
@@ -106,7 +106,9 @@ export default function StandingsPage() {
       <header style={{ borderBottom: '1px solid var(--dark-border)', background: 'rgba(10,15,13,0.9)', backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/" style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center' }}><ChevronLeft size={18} /></Link>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', letterSpacing: '0.08em', flex: 1 }}>{t.standingsTitle}</span>
+          <LangSwitcher />
+            <Link href='/profile' style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>👤</Link>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', letterSpacing: '0.08em', flex: 1 }}>{t.standingsTitle}</span>
         </div>
       </header>
 
@@ -122,7 +124,9 @@ export default function StandingsPage() {
             return (
               <div key={group} className="card" style={{ overflow: 'hidden' }}>
                 <div style={{ padding: '0.875rem 1.25rem', borderBottom: '1px solid var(--dark-border)', background: 'rgba(255,255,255,0.03)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.1em', color: 'var(--gold)' }}>
+                  <LangSwitcher />
+            <Link href='/profile' style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>👤</Link>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.1em', color: 'var(--gold)' }}>
                     {t.lang === 'pt' ? `GRUPO ${group}` : `GROUP ${group}`}
                   </span>
                   <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>{played}/6 {t.lang === 'pt' ? 'jogos' : 'played'}</span>

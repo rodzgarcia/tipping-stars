@@ -130,6 +130,7 @@ export default function ProfilePage() {
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/" style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center' }}><ChevronLeft size={20} /></Link>
           <span style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', flex: 1 }}>MY PROFILE</span>
+          <Link href='/standings' style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>{t.lang === 'pt' ? 'Classificação' : 'Standings'}</Link>
           <LangSwitcher />
         </div>
       </header>
