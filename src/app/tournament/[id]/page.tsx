@@ -2332,7 +2332,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 220, flex: 1 }}>
       {/* Round Heroes */}
       <div className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(251,191,36,0.15)' }}>
-        <Label color="#fbbf24">{hasToday ? hasToday ? (t.lang === 'pt' ? '⭐ BOLA CHEIA DO DIA' : '⭐ HEROES OF THE DAY') : hasLatestDay ? (t.lang === 'pt' ? `⭐ BOLA CHEIA — ${latestDayLabel}` : `⭐ TOP — ${latestDayLabel}`) : (t.lang === 'pt' ? '⭐ MELHORES PALPITEIROS' : '⭐ TOP TIPPERS')}</Label>
+        <Label color="#fbbf24">{hasToday ? (t.lang === 'pt' ? '⭐ BOLA CHEIA DO DIA' : '⭐ HEROES OF THE DAY') : hasLatestDay ? (t.lang === 'pt' ? `⭐ BOLA CHEIA — ${latestDayLabel}` : `⭐ TOP — ${latestDayLabel}`) : (t.lang === 'pt' ? '⭐ MELHORES PALPITEIROS' : '⭐ TOP TIPPERS')}</Label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           {top3.map((row: any, i: number) => {
             const pts = ptsMap[row.user_id] || 0
@@ -2353,7 +2353,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
       {/* Round Zeroes */}
       {leaderboard.length > 1 && (
         <div className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(248,113,113,0.15)' }}>
-          <Label color="#f87171">{hasToday ? hasToday ? (t.lang === 'pt' ? '💀 DESASTRES DO DIA' : '💀 DISASTERS OF THE DAY') : hasLatestDay ? (t.lang === 'pt' ? `💀 DESASTRES — ${latestDayLabel}` : `💀 BOTTOM — ${latestDayLabel}`) : (t.lang === 'pt' ? '💀 PIORES PALPITEIROS' : '💀 BOTTOM TIPPERS')}</Label>
+          <Label color="#f87171">{hasToday ? (t.lang === 'pt' ? '💀 DESASTRES DO DIA' : '💀 DISASTERS OF THE DAY') : hasLatestDay ? (t.lang === 'pt' ? `💀 DESASTRES — ${latestDayLabel}` : `💀 BOTTOM — ${latestDayLabel}`) : (t.lang === 'pt' ? '💀 PIORES PALPITEIROS' : '💀 BOTTOM TIPPERS')}</Label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             {bottom3.map((row: any, i: number) => {
               const pts = ptsMap[row.user_id] || 0
