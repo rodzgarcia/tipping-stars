@@ -2042,9 +2042,9 @@ Return ONLY a JSON array of 6 strings, no other text. Example format: ["comment 
 function TournamentRules({ tournament: tn, approvedCount, t }: any) {
   const ispt = t.lang === 'pt'
   const pool = (tn.entry_fee || 0) * approvedCount
-  const prize1 = Math.floor(pool * (tn.prize_split_1st || 60) / 100)
-  const prize2 = Math.floor(pool * (tn.prize_split_2nd || 30) / 100)
-  const prize3 = Math.floor(pool * (tn.prize_split_3rd || 10) / 100)
+  const prize1 = Math.floor(pool * (tn.prize_split_1st != null ? tn.prize_split_1st : 60) / 100)
+  const prize2 = Math.floor(pool * (tn.prize_split_2nd != null ? tn.prize_split_2nd : 30) / 100)
+  const prize3 = Math.floor(pool * (tn.prize_split_3rd != null ? tn.prize_split_3rd : 10) / 100)
   const cur = tn.currency || 'AUD'
 
   const pWinner   = tn.pts_winner           || tn.pts_correct_winner       || 2
@@ -2194,9 +2194,9 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
       {pool > 0 && (
         <Section emoji="💰" title={ispt ? 'PREMIAÇÃO' : 'PRIZE POOL'}>
           <Row label={ispt ? 'Premiação total' : 'Total prize pool'} value={`${cur} $${pool.toLocaleString()}`} highlight="#fbbf24" />
-          <Row label={`🥇 ${ispt ? '1º lugar' : '1st place'} (${tn.prize_split_1st || 60}%)`} value={`${cur} $${prize1.toLocaleString()}`} highlight="#fbbf24" />
-          <Row label={`🥈 ${ispt ? '2º lugar' : '2nd place'} (${tn.prize_split_2nd || 30}%)`} value={`${cur} $${prize2.toLocaleString()}`} highlight="#9ca3af" />
-          <Row label={`🥉 ${ispt ? '3º lugar' : '3rd place'} (${tn.prize_split_3rd || 10}%)`} value={`${cur} $${prize3.toLocaleString()}`} highlight="#b87333" />
+          <Row label={`🥇 ${ispt ? '1º lugar' : '1st place'} (${tn.prize_split_1st != null ? tn.prize_split_1st : 60}%)`} value={`${cur} $${prize1.toLocaleString()}`} highlight="#fbbf24" />
+          <Row label={`🥈 ${ispt ? '2º lugar' : '2nd place'} (${tn.prize_split_2nd != null ? tn.prize_split_2nd : 30}%)`} value={`${cur} $${prize2.toLocaleString()}`} highlight="#9ca3af" />
+          <Row label={`🥉 ${ispt ? '3º lugar' : '3rd place'} (${tn.prize_split_3rd != null ? tn.prize_split_3rd : 10}%)`} value={`${cur} $${prize3.toLocaleString()}`} highlight="#b87333" />
           <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>
             {ispt ? `* Baseado em ${approvedCount} jogadores × ${cur} $${tn.entry_fee} de entrada. Atualiza conforme novos jogadores são aprovados.` : `* Based on ${approvedCount} players × ${cur} $${tn.entry_fee} entry fee. Updates as new players are approved.`}
           </div>
@@ -2217,9 +2217,9 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
 }
 function PrizeBanner({ tournament, approvedCount, leaderboard, t }: any) {
   const pool = (tournament.entry_fee || 0) * approvedCount
-  const split1 = Number(tournament.prize_split_1st) || 60
-  const split2 = Number(tournament.prize_split_2nd) || 30
-  const split3 = Number(tournament.prize_split_3rd) || 10
+  const split1 = tournament.prize_split_1st != null ? Number(tournament.prize_split_1st) : 60
+  const split2 = tournament.prize_split_2nd != null ? Number(tournament.prize_split_2nd) : 30
+  const split3 = tournament.prize_split_3rd != null ? Number(tournament.prize_split_3rd) : 10
   const prize1 = Math.floor(pool * split1 / 100)
   const prize2 = Math.floor(pool * split2 / 100)
   const prize3 = Math.floor(pool * split3 / 100)
@@ -2288,7 +2288,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
   let latestDayPtsMap: Record<string, number> = {}
   let latestDayLabel = ''
   if (!hasToday) {
-    const completedTips = allTips.filter((tip: any) => Number(tip.pts_with_multiplier) > 0 && tip.match?.kickoff_at)
+    const completedTips = allTips.filter((tip: any) => Number(tip.pts_with_multiplier) > 0 && tip.match?.kickoff_at && tip.match?.status === 'completed')
     if (completedTips.length > 0) {
       // Find the most recent day with results
       const days = completedTips.map((tip: any) => {
@@ -2623,7 +2623,7 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
   let latestCardPtsMap: Record<string, number> = {}
   let latestCardLabel = ''
   if (!hasTodayCards) {
-    const completedTips = allTips.filter((tip: any) => Number(tip.pts_with_multiplier) > 0 && tip.match?.kickoff_at)
+    const completedTips = allTips.filter((tip: any) => Number(tip.pts_with_multiplier) > 0 && tip.match?.kickoff_at && tip.match?.status === 'completed')
     if (completedTips.length > 0) {
       const days = completedTips.map((tip: any) => { const d = new Date(tip.match.kickoff_at); d.setHours(0,0,0,0); return d.getTime() })
       const latestDay = new Date(Math.max(...days)); latestDay.setHours(0,0,0,0)
