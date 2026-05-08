@@ -847,8 +847,22 @@ function NotifyPanel({ tournamentId, supabase, tournaments }: any) {
       {result && (
         <div style={{ marginTop: '1rem', padding: '0.875rem 1.25rem', borderRadius: 8, background: result.error ? 'rgba(239,68,68,0.08)' : 'rgba(74,222,128,0.08)', border: `1px solid ${result.error ? 'rgba(239,68,68,0.2)' : 'rgba(74,222,128,0.2)'}` }}>
           {result.error
-            ? <span style={{ color: '#f87171', fontSize: '0.85rem' }}>❌ Error: {result.error}</span>
-            : <span style={{ color: '#4ade80', fontSize: '0.85rem' }}>✅ Sent to {result.sent} player{result.sent !== 1 ? 's' : ''}{result.failed > 0 ? ` (${result.failed} failed)` : ''}</span>
+            ? <div style={{ color: '#f87171', fontSize: '0.85rem' }}>❌ Error: {result.error}</div>
+            : <div>
+                <div style={{ color: '#4ade80', fontSize: '0.85rem', marginBottom: result.failed > 0 || result.noEmail > 0 ? '0.5rem' : 0 }}>
+                  ✅ Sent to {result.sent} player{result.sent !== 1 ? 's' : ''}
+                </div>
+                {result.failed > 0 && (
+                  <div style={{ color: '#f87171', fontSize: '0.78rem' }}>
+                    ❌ {result.failed} email{result.failed > 1 ? 's' : ''} failed — likely invalid email address or Resend domain not verified. Check Vercel logs for details.
+                  </div>
+                )}
+                {result.noEmail > 0 && (
+                  <div style={{ color: '#fbbf24', fontSize: '0.78rem', marginTop: '0.25rem' }}>
+                    ⚠️ {result.noEmail} player{result.noEmail > 1 ? 's' : ''} had no email on file — add SUPABASE_SERVICE_ROLE_KEY to Vercel env vars to fix this.
+                  </div>
+                )}
+              </div>
           }
         </div>
       )}
@@ -1645,8 +1659,20 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
   }
 
   async function deleteMatch(id: string) {
-    if (!confirm('Delete this match?')) return
-    await supabase.from('matches').delete().eq('id', id)
+    if (!confirm('Delete this match and all its tips from ALL tournaments?')) return
+    // Get match details to delete all copies across tournaments
+    const { data: m } = await supabase.from('matches').select('home_team, away_team, kickoff_at').eq('id', id).single()
+    if (m) {
+      // Delete tips first (cascade may not be set)
+      const { data: copies } = await supabase.from('matches').select('id').eq('home_team', m.home_team).eq('away_team', m.away_team).eq('kickoff_at', m.kickoff_at)
+      if (copies?.length) {
+        const ids = copies.map((c: any) => c.id)
+        await supabase.from('match_tips').delete().in('match_id', ids)
+        await supabase.from('matches').delete().in('id', ids)
+      }
+    } else {
+      await supabase.from('matches').delete().eq('id', id)
+    }
     onUpdate()
   }
 
@@ -1747,21 +1773,27 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
                   const utcStr = `${utc.getUTCFullYear()}-${pad(utc.getUTCMonth()+1)}-${pad(utc.getUTCDate())}T${pad(utc.getUTCHours())}:${pad(utc.getUTCMinutes())}`
                   setKoForm(prev => ({...prev, kickoff_at: utcStr}))
                 }}>
-                <option value="">Select timezone</option>
-                <option value="-4">ET (UTC-4) — New York / Miami</option>
-                <option value="-5">CT (UTC-5) — Dallas / Kansas City</option>
-                <option value="-6">MT (UTC-6) — Denver / Phoenix / Mexico City</option>
-                <option value="-7">PT (UTC-7) — LA / Seattle / Vancouver</option>
-                <option value="10">Sydney AEST (UTC+10)</option>
+                <option value="">Select timezone of venue</option>
+                <option value="10">🇦🇺 Sydney AEST (UTC+10)</option>
+                <option value="11">🇦🇺 Sydney AEDT (UTC+11) — daylight saving</option>
+                <option value="-3">🇧🇷 Brazil BRT (UTC-3)</option>
+                <option value="-4">🇺🇸 ET (UTC-4) — New York / Miami</option>
+                <option value="-5">🇺🇸 CT (UTC-5) — Dallas / Kansas City</option>
+                <option value="-6">🇺🇸 MT (UTC-6) — Denver / Phoenix / Mexico City</option>
+                <option value="-7">🇺🇸 PT (UTC-7) — LA / Seattle / Vancouver</option>
+                <option value="0">UTC (UTC+0)</option>
               </select>
             </div>
             <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
               Enter local kickoff time → select venue timezone → field auto-converts to UTC
             </p>
-            {koForm.kickoff_at && koTimezone && (
-              <p style={{ fontSize: '0.72rem', color: '#4ade80', marginTop: '0.25rem' }}>
-                ✅ Stored as UTC: {koForm.kickoff_at} UTC → Sydney: {new Date(koForm.kickoff_at + 'Z').toLocaleString('en-AU', { timeZone: 'Australia/Sydney', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })} AEST
-              </p>
+            {koForm.kickoff_at && (
+              <div style={{ fontSize: '0.72rem', marginTop: '0.35rem' }}>
+                {koTimezone
+                  ? <span style={{ color: '#4ade80' }}>✅ Sydney time: {new Date(koForm.kickoff_at + 'Z').toLocaleString('en-AU', { timeZone: 'Australia/Sydney', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })} AEST</span>
+                  : <span style={{ color: '#f87171' }}>⚠️ Select a timezone above to convert correctly</span>
+                }
+              </div>
             )}
           </div>
         </div>

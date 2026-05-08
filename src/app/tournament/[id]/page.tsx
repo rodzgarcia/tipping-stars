@@ -1146,9 +1146,15 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches, 
 
   async function save() {
     setSaving(true)
-    const result = await supabase.rpc('save_qualifier_picks', {
-      p_user_id: userId,
-      p_tournament_id: tournament.id,
+    // Get all tournaments this user is a member of to sync picks across all
+    const { data: memberships } = await supabase
+      .from('tournament_members')
+      .select('tournament_id')
+      .eq('user_id', userId)
+      .eq('status', 'approved')
+
+    const tournamentIds = memberships?.map((m: any) => m.tournament_id) || [tournament.id]
+    const picks = {
       p_a1: getVal('A','first'), p_a2: getVal('A','second'),
       p_b1: getVal('B','first'), p_b2: getVal('B','second'),
       p_c1: getVal('C','first'), p_c2: getVal('C','second'),
@@ -1161,10 +1167,18 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches, 
       p_j1: getVal('J','first'), p_j2: getVal('J','second'),
       p_k1: getVal('K','first'), p_k2: getVal('K','second'),
       p_l1: getVal('L','first'), p_l2: getVal('L','second'),
-    })
-    if (result.error) {
-      console.error('Qualifier save error:', result.error)
-      alert('Save failed: ' + result.error.message)
+    }
+    let anyError = null
+    for (const tid of tournamentIds) {
+      const result = await supabase.rpc('save_qualifier_picks', {
+        p_user_id: userId,
+        p_tournament_id: tid,
+        ...picks,
+      })
+      if (result.error) anyError = result.error
+    }
+    if (anyError) {
+      alert('Save failed: ' + anyError.message)
       setSaving(false)
       return
     }
@@ -3354,9 +3368,20 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
 
   async function save() {
     setSaving(true)
-    const payload = { tournament_id: tournament.id, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: topScorer, updated_at: new Date().toISOString() }
-    if (existing?.id) await supabase.from('tournament_tips').update(payload).eq('id', existing.id)
-    else await supabase.from('tournament_tips').insert(payload)
+    // Sync predictions across all user's tournaments
+    const { data: memberships } = await supabase
+      .from('tournament_members')
+      .select('tournament_id')
+      .eq('user_id', userId)
+      .eq('status', 'approved')
+    const tournamentIds = memberships?.map((m: any) => m.tournament_id) || [tournament.id]
+
+    for (const tid of tournamentIds) {
+      const payload = { tournament_id: tid, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: topScorer, updated_at: new Date().toISOString() }
+      const { data: ex } = await supabase.from('tournament_tips').select('id').eq('tournament_id', tid).eq('user_id', userId).maybeSingle()
+      if (ex?.id) await supabase.from('tournament_tips').update(payload).eq('id', ex.id)
+      else await supabase.from('tournament_tips').insert(payload)
+    }
     setSaved(true); setTimeout(() => setSaved(false), 2000)
     setSaving(false); onSave()
   }
