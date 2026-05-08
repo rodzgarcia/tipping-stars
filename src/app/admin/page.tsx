@@ -7,7 +7,7 @@ import { ChevronLeft, Plus, Check, X, Settings, Users, Trophy, Calendar } from '
 import { format } from 'date-fns'
 import { useLang } from '../LanguageContext'
 
-type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard' | 'pending' | 'backup'
+type AdminTab = 'tournaments' | 'members' | 'matches' | 'results' | 'leaderboard' | 'pending' | 'backup' | 'notify'
 
 function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
@@ -732,6 +732,131 @@ function BackupPanel({ supabase, tournaments }: any) {
 }
 
 
+function NotifyPanel({ tournamentId, supabase, tournaments }: any) {
+  const [matches, setMatches] = useState<any[]>([])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [lang, setLang] = useState<'en'|'pt'>('en')
+
+  useEffect(() => {
+    supabase.from('matches').select('*')
+      .eq('tournament_id', tournamentId)
+      .eq('status', 'upcoming')
+      .order('kickoff_at')
+      .then(({ data }: any) => setMatches(data || []))
+  }, [tournamentId])
+
+  function toggleAll() {
+    if (selected.size === matches.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(matches.map((m: any) => m.id)))
+    }
+  }
+
+  async function sendNotifications() {
+    if (selected.size === 0) return alert('Select at least one match')
+    setSending(true)
+    setResult(null)
+    try {
+      const res = await fetch('/api/notify-matches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matchIds: Array.from(selected),
+          tournamentId,
+          lang,
+        }),
+      })
+      const data = await res.json()
+      setResult(data)
+    } catch (e: any) {
+      setResult({ error: e.message })
+    }
+    setSending(false)
+  }
+
+  const ROUND: Record<string, string> = {
+    group: 'Group', r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', final: 'Final'
+  }
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', marginBottom: '0.35rem', color: 'rgba(255,255,255,0.5)' }}>
+        📧 NOTIFY PLAYERS
+      </h2>
+      <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', marginBottom: '1.25rem' }}>
+        Select upcoming matches to include in the notification email. One email per player with all selected matches.
+      </p>
+
+      {/* Lang selector */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center' }}>
+        <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)' }}>Email language:</span>
+        <button onClick={() => setLang('en')} style={{ padding: '0.25rem 0.75rem', borderRadius: 6, fontSize: '0.78rem', cursor: 'pointer', border: `1px solid ${lang==='en' ? '#4ade80' : 'rgba(255,255,255,0.12)'}`, background: lang==='en' ? 'rgba(74,222,128,0.1)' : 'transparent', color: lang==='en' ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>🇦🇺 English</button>
+        <button onClick={() => setLang('pt')} style={{ padding: '0.25rem 0.75rem', borderRadius: 6, fontSize: '0.78rem', cursor: 'pointer', border: `1px solid ${lang==='pt' ? '#4ade80' : 'rgba(255,255,255,0.12)'}`, background: lang==='pt' ? 'rgba(74,222,128,0.1)' : 'transparent', color: lang==='pt' ? '#4ade80' : 'rgba(255,255,255,0.4)' }}>🇧🇷 Português</button>
+      </div>
+
+      {/* Select all */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <button onClick={toggleAll} className="btn btn-ghost" style={{ fontSize: '0.78rem' }}>
+          {selected.size === matches.length ? 'Deselect all' : 'Select all'}
+        </button>
+        <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)' }}>{selected.size} of {matches.length} selected</span>
+      </div>
+
+      {/* Match list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.25rem', maxHeight: 400, overflowY: 'auto' }}>
+        {matches.map((m: any) => {
+          const isSelected = selected.has(m.id)
+          const kickoff = new Date(m.kickoff_at).toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Australia/Sydney' })
+          return (
+            <div key={m.id} onClick={() => {
+              const next = new Set(selected)
+              isSelected ? next.delete(m.id) : next.add(m.id)
+              setSelected(next)
+            }} style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              padding: '0.7rem 1rem', borderRadius: 8, cursor: 'pointer',
+              background: isSelected ? 'rgba(74,222,128,0.08)' : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${isSelected ? 'rgba(74,222,128,0.25)' : 'rgba(255,255,255,0.06)'}`,
+            }}>
+              <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${isSelected ? '#4ade80' : 'rgba(255,255,255,0.2)'}`, background: isSelected ? '#4ade80' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {isSelected && <span style={{ color: '#0a0f0d', fontSize: '0.7rem', fontWeight: 900 }}>✓</span>}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{m.home_team} vs {m.away_team}</div>
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)' }}>{kickoff} AEST · {ROUND[m.round] || m.round}</div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Send button */}
+      <button
+        onClick={sendNotifications}
+        disabled={sending || selected.size === 0}
+        className="btn btn-primary"
+        style={{ width: '100%', justifyContent: 'center', opacity: selected.size === 0 ? 0.5 : 1 }}
+      >
+        {sending ? '⏳ Sending...' : `📧 Send to all players (${selected.size} match${selected.size !== 1 ? 'es' : ''})`}
+      </button>
+
+      {/* Result */}
+      {result && (
+        <div style={{ marginTop: '1rem', padding: '0.875rem 1.25rem', borderRadius: 8, background: result.error ? 'rgba(239,68,68,0.08)' : 'rgba(74,222,128,0.08)', border: `1px solid ${result.error ? 'rgba(239,68,68,0.2)' : 'rgba(74,222,128,0.2)'}` }}>
+          {result.error
+            ? <span style={{ color: '#f87171', fontSize: '0.85rem' }}>❌ Error: {result.error}</span>
+            : <span style={{ color: '#4ade80', fontSize: '0.85rem' }}>✅ Sent to {result.sent} player{result.sent !== 1 ? 's' : ''}{result.failed > 0 ? ` (${result.failed} failed)` : ''}</span>
+          }
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 export default function AdminPage() {
   const { t } = useLang()
   const router = useRouter()
@@ -907,6 +1032,7 @@ export default function AdminPage() {
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>🏆 Leaderboard</button>
           <button className={`tab-btn ${tab === 'pending' ? 'active' : ''}`} onClick={() => setTab('pending')}>⏳ Pending Tips</button>
           <button className={`tab-btn ${tab === 'backup' ? 'active' : ''}`} onClick={() => setTab('backup')}>💾 Backup</button>
+          <button className={`tab-btn ${tab === 'notify' ? 'active' : ''}`} onClick={() => setTab('notify')}>📧 Notify</button>
         </div>
 
         {/* Tournament Setup */}
@@ -994,6 +1120,10 @@ export default function AdminPage() {
 
         {tab === 'backup' && (
           <BackupPanel supabase={supabase} tournaments={tournaments} />
+        )}
+
+        {tab === 'notify' && selectedTournament && (
+          <NotifyPanel tournamentId={selectedTournament} supabase={supabase} tournaments={tournaments} />
         )}
 
 
