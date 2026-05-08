@@ -410,7 +410,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
       supabase.from('tournament_members').select('user_id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('matches').select('id, home_team, away_team, kickoff_at, round, status, tip_lock_override').eq('tournament_id', tournamentId).order('kickoff_at'),
       supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId),
-      supabase.from('tournament_tips').select('user_id, p_a1').eq('tournament_id', tournamentId),
+      supabase.from('tournament_tips').select('user_id, p_a1, tip_group_a_1').eq('tournament_id', tournamentId),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url'),
     ]).then(([membRes, matchRes, tipRes, ttRes, profRes]: any) => {
       setMembers(membRes.data || [])
@@ -554,7 +554,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
             {(() => {
-              const submittedIds = new Set(qualifierTips.filter((qt: any) => qt.p_a1).map((qt: any) => qt.user_id))
+              const submittedIds = new Set(qualifierTips.filter((qt: any) => qt.tip_group_a_1 || qt.p_a1).map((qt: any) => qt.user_id))
               const missing = members.filter((m: any) => !submittedIds.has(m.user_id))
               if (missing.length === 0) return <span style={{ fontSize: '0.8rem', color: '#4ade80' }}>✅ Everyone submitted qualifier picks!</span>
               return missing.map((m: any) => {
@@ -1342,6 +1342,7 @@ function TournamentResultsEntry({ tournament, tournamentId, supabase, onSave }: 
 
 function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
   const [form, setForm] = useState(tournament ? { ...tournament } : {})
+  useEffect(() => { setForm(tournament ? { ...tournament } : {}) }, [tournament?.id])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [creating, setCreating] = useState(false)
@@ -1446,7 +1447,7 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <div>
             <label className="label">1st place %</label>
-            <input type="number" className="input" min={0} max={100} value={form.prize_split_1st ?? 60}
+            <input type="number" className="input" min={0} max={100} value={form.prize_split_1st ?? form.prize_split_1st === 0 ? 0 : 60}
               onChange={e => setForm({ ...form, prize_split_1st: Number(e.target.value) })} />
           </div>
           <div>

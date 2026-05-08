@@ -28,6 +28,7 @@ const TEAM_FLAGS: Record<string, string> = {
   'Cape Verde':'cv',  'Curacao':'cw',  'DR Congo':'cd',  'Haiti':'ht',
   'Iraq':'iq',  'Jordan':'jo',  'Norway':'no',  'Sweden':'se',
   'Uzbekistan':'uz',  'Ivory Coast':'ci',  'Cameroon':'cm',
+  'Algeria':'dz',  'Iran':'ir',  'IR Iran':'ir',
 }
 
 const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','SS']
@@ -641,6 +642,17 @@ export default function TournamentPage() {
 
   useEffect(() => { loadAll() }, [tournamentId])
 
+  // Auto-refresh tournament data when admin updates settings (prize splits etc)
+  useEffect(() => {
+    if (!tournamentId) return
+    const ch = supabase
+      .channel('tournament_update_' + tournamentId)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tournaments', filter: 'id=eq.' + tournamentId },
+        ({ new: updated }) => { if (updated) setTournament(updated) })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [tournamentId])
+
   // Auto-refresh matches when admin locks/unlocks a match
   useEffect(() => {
     if (!tournamentId) return
@@ -740,13 +752,17 @@ export default function TournamentPage() {
       <header style={{ borderBottom: '1px solid var(--dark-border)', background: 'rgba(10,15,13,0.9)', backdropFilter: 'blur(12px)', position: 'sticky', top: 0, zIndex: 50 }}>
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/" style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center' }}><ChevronLeft size={18} /></Link>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', letterSpacing: '0.06em' }}>{tournament.name}</div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tournament.name}</div>
             <a href="/global" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.68rem', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 6, padding: '0.15rem 0.5rem', textDecoration: 'none', background: 'rgba(96,165,250,0.06)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              🌍 Global
+              🌍 {t.lang === 'pt' ? 'Global' : 'Global'}
             </a>
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{profile?.display_name}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+            <Link href="/standings" style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textDecoration: 'none', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? 'Classificação' : 'Standings'}</Link>
+            <Link href="/profile" style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>👤</Link>
+            <LangSwitcher />
+          </div>
         </div>
       </header>
 
@@ -765,7 +781,7 @@ export default function TournamentPage() {
           <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '🗂️ Grupos' : '🗂️ Groups'}</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '🏆 Previsões' : '🏆 Predict'}</button>
           <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📊 Ranking' : '📊 Board'}</button>
-          <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => setTab('tips_reveal')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '👁 Palpites' : '👁 All Tips'}</button>
+          <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => setTab('tips_reveal')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '👁 Todos Palpites' : '👁 All Tips'}</button>
           <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📈 Stats' : '📈 Stats'}</button>
           <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📋 Regras' : '📋 Rules'}</button>
         </div>
@@ -2289,7 +2305,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 220, flex: 1 }}>
       {/* Round Heroes */}
       <div className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(251,191,36,0.15)' }}>
-        <Label color="#fbbf24">{hasToday ? (t.lang === 'pt' ? '⭐ HERÓIS DO DIA' : '⭐ HEROES OF THE DAY') : (t.lang === 'pt' ? '⭐ MELHORES PALPITEIROS' : '⭐ TOP TIPPERS')}</Label>
+        <Label color="#fbbf24">{hasToday ? (t.lang === 'pt' ? '⭐ BOLA CHEIA' : '⭐ HEROES OF THE DAY') : (t.lang === 'pt' ? '⭐ BOLA CHEIA' : '⭐ TOP TIPPERS')}</Label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           {top3.map((row: any, i: number) => {
             const pts = ptsMap[row.user_id] || 0
@@ -2471,7 +2487,7 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t, leaderb
           {/* Top badge */}
           {(isGold || isGrey) && (
             <div style={{ textAlign: 'center', padding: '5px 0 0', fontSize: '7px', fontWeight: 700, letterSpacing: '0.13em', color: isGold ? '#c9a227' : '#555' }}>
-              {isGold ? (t.lang === 'pt' ? '⭐ PALPITEIRO DO DIA ⭐' : '⭐ TIPPER OF THE DAY ⭐') : (t.lang === 'pt' ? '😩 BOLA MURCHA 😩' : '😩 DEFLATED BALL 😩')}
+              {isGold ? (t.lang === 'pt' ? '⭐ BOLA CHEIA ⭐' : '⭐ TIPPER OF THE DAY ⭐') : (t.lang === 'pt' ? '😩 BOLA MURCHA 😩' : '😩 DEFLATED BALL 😩')}
             </div>
           )}
 
@@ -2611,7 +2627,7 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
             avatarUrl={avatars[tipperRow.user_id]}
             profile={profilesMap[tipperRow.user_id]}
             variant="gold"
-            label={t.lang === 'pt' ? '⭐ TIPPER DO DIA' : '⭐ TIPPER OF THE DAY'}
+            label={t.lang === 'pt' ? '⭐ BOLA CHEIA' : '⭐ TIPPER OF THE DAY'}
             leaderboard={leaderboard}
             t={t}
           />
