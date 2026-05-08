@@ -1447,18 +1447,21 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <div>
             <label className="label">1st place %</label>
-            <input type="number" className="input" min={0} max={100} value={form.prize_split_1st ?? form.prize_split_1st === 0 ? 0 : 60}
-              onChange={e => setForm({ ...form, prize_split_1st: Number(e.target.value) })} />
+            <input type="number" className="input" min={0} max={100}
+              value={form.prize_split_1st !== undefined && form.prize_split_1st !== null ? form.prize_split_1st : 60}
+              onChange={e => setForm({ ...form, prize_split_1st: e.target.value === '' ? '' : Number(e.target.value) })} />
           </div>
           <div>
             <label className="label">2nd place %</label>
-            <input type="number" className="input" min={0} max={100} value={form.prize_split_2nd ?? 30}
-              onChange={e => setForm({ ...form, prize_split_2nd: Number(e.target.value) })} />
+            <input type="number" className="input" min={0} max={100}
+              value={form.prize_split_2nd !== undefined && form.prize_split_2nd !== null ? form.prize_split_2nd : 30}
+              onChange={e => setForm({ ...form, prize_split_2nd: e.target.value === '' ? '' : Number(e.target.value) })} />
           </div>
           <div>
             <label className="label">3rd place %</label>
-            <input type="number" className="input" min={0} max={100} value={form.prize_split_3rd ?? 10}
-              onChange={e => setForm({ ...form, prize_split_3rd: Number(e.target.value) })} />
+            <input type="number" className="input" min={0} max={100}
+              value={form.prize_split_3rd !== undefined && form.prize_split_3rd !== null ? form.prize_split_3rd : 10}
+              onChange={e => setForm({ ...form, prize_split_3rd: e.target.value === '' ? '' : Number(e.target.value) })} />
           </div>
         </div>
         {(() => {
