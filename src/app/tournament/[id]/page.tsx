@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Star, Trophy, ChevronLeft, Lock, Clock } from 'lucide-react'
-import { useLang, LangSwitcher } from '../../LanguageContext'
+import { useLang } from '../../LanguageContext'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 const TEAM_FLAGS: Record<string, string> = {
@@ -28,7 +28,7 @@ const TEAM_FLAGS: Record<string, string> = {
   'Cape Verde':'cv',  'Curacao':'cw',  'DR Congo':'cd',  'Haiti':'ht',
   'Iraq':'iq',  'Jordan':'jo',  'Norway':'no',  'Sweden':'se',
   'Uzbekistan':'uz',  'Ivory Coast':'ci',  'Cameroon':'cm',
-  'Algeria':'dz',  'Iran':'ir',
+  'Algeria':'dz',  'Iran':'ir',  'IR Iran':'ir',
 }
 
 const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','SS']
@@ -2283,7 +2283,34 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
   })
 
   const hasToday = Object.keys(todayPtsMap).length > 0
-  const ptsMap = hasToday ? todayPtsMap : leaderboard.reduce((acc: any, r: any) => {
+
+  // If no matches today, find the latest day that had completed matches
+  let latestDayPtsMap: Record<string, number> = {}
+  let latestDayLabel = ''
+  if (!hasToday) {
+    const completedTips = allTips.filter((tip: any) => Number(tip.pts_with_multiplier) > 0 && tip.match?.kickoff_at)
+    if (completedTips.length > 0) {
+      // Find the most recent day with results
+      const days = completedTips.map((tip: any) => {
+        const d = new Date(tip.match.kickoff_at)
+        d.setHours(0,0,0,0)
+        return d.getTime()
+      })
+      const latestDay = new Date(Math.max(...days))
+      latestDay.setHours(0,0,0,0)
+      const nextDay = new Date(latestDay.getTime() + 86400000)
+      completedTips.forEach((tip: any) => {
+        const kickoff = new Date(tip.match.kickoff_at)
+        if (kickoff >= latestDay && kickoff < nextDay) {
+          latestDayPtsMap[tip.user_id] = (latestDayPtsMap[tip.user_id] || 0) + Number(tip.pts_with_multiplier)
+        }
+      })
+      latestDayLabel = latestDay.toLocaleDateString(t.lang === 'pt' ? 'pt-BR' : 'en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+    }
+  }
+
+  const hasLatestDay = Object.keys(latestDayPtsMap).length > 0
+  const ptsMap = hasToday ? todayPtsMap : hasLatestDay ? latestDayPtsMap : leaderboard.reduce((acc: any, r: any) => {
     acc[r.user_id] = Number(r.total_points); return acc
   }, {} as Record<string, number>)
 
@@ -2305,7 +2332,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 220, flex: 1 }}>
       {/* Round Heroes */}
       <div className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(251,191,36,0.15)' }}>
-        <Label color="#fbbf24">{hasToday ? (t.lang === 'pt' ? '⭐ BOLA CHEIA' : '⭐ HEROES OF THE DAY') : (t.lang === 'pt' ? '⭐ BOLA CHEIA' : '⭐ TOP TIPPERS')}</Label>
+        <Label color="#fbbf24">{hasToday ? hasToday ? (t.lang === 'pt' ? '⭐ BOLA CHEIA DO DIA' : '⭐ HEROES OF THE DAY') : hasLatestDay ? (t.lang === 'pt' ? `⭐ BOLA CHEIA — ${latestDayLabel}` : `⭐ TOP — ${latestDayLabel}`) : (t.lang === 'pt' ? '⭐ MELHORES PALPITEIROS' : '⭐ TOP TIPPERS')}</Label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
           {top3.map((row: any, i: number) => {
             const pts = ptsMap[row.user_id] || 0
@@ -2326,7 +2353,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
       {/* Round Zeroes */}
       {leaderboard.length > 1 && (
         <div className="card" style={{ padding: '1rem 1.25rem', border: '1px solid rgba(248,113,113,0.15)' }}>
-          <Label color="#f87171">{hasToday ? (t.lang === 'pt' ? '💀 DESASTRES DO DIA' : '💀 DISASTERS OF THE DAY') : (t.lang === 'pt' ? '💀 PIORES PALPITEIROS' : '💀 BOTTOM TIPPERS')}</Label>
+          <Label color="#f87171">{hasToday ? hasToday ? (t.lang === 'pt' ? '💀 DESASTRES DO DIA' : '💀 DISASTERS OF THE DAY') : hasLatestDay ? (t.lang === 'pt' ? `💀 DESASTRES — ${latestDayLabel}` : `💀 BOTTOM — ${latestDayLabel}`) : (t.lang === 'pt' ? '💀 PIORES PALPITEIROS' : '💀 BOTTOM TIPPERS')}</Label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             {bottom3.map((row: any, i: number) => {
               const pts = ptsMap[row.user_id] || 0
@@ -2591,8 +2618,27 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
     todayPtsMap[tip.user_id] = (todayPtsMap[tip.user_id] || 0) + Number(tip.pts_with_multiplier)
   })
 
-  // If no today tips, use all time best/worst
-  const ptsMap = Object.keys(todayPtsMap).length > 0 ? todayPtsMap : leaderboard.reduce((acc: any, r: any) => {
+  // If no today tips, find latest day with results
+  const hasTodayCards = Object.keys(todayPtsMap).length > 0
+  let latestCardPtsMap: Record<string, number> = {}
+  let latestCardLabel = ''
+  if (!hasTodayCards) {
+    const completedTips = allTips.filter((tip: any) => Number(tip.pts_with_multiplier) > 0 && tip.match?.kickoff_at)
+    if (completedTips.length > 0) {
+      const days = completedTips.map((tip: any) => { const d = new Date(tip.match.kickoff_at); d.setHours(0,0,0,0); return d.getTime() })
+      const latestDay = new Date(Math.max(...days)); latestDay.setHours(0,0,0,0)
+      const nextDay = new Date(latestDay.getTime() + 86400000)
+      completedTips.forEach((tip: any) => {
+        const kickoff = new Date(tip.match.kickoff_at)
+        if (kickoff >= latestDay && kickoff < nextDay) {
+          latestCardPtsMap[tip.user_id] = (latestCardPtsMap[tip.user_id] || 0) + Number(tip.pts_with_multiplier)
+        }
+      })
+      latestCardLabel = latestDay.toLocaleDateString(t.lang === 'pt' ? 'pt-BR' : 'en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+    }
+  }
+  const hasLatestCards = Object.keys(latestCardPtsMap).length > 0
+  const ptsMap = hasTodayCards ? todayPtsMap : hasLatestCards ? latestCardPtsMap : leaderboard.reduce((acc: any, r: any) => {
     acc[r.user_id] = Number(r.total_points); return acc
   }, {} as Record<string, number>)
 
@@ -2605,7 +2651,7 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
   return (
     <div style={{ marginBottom: '2rem' }}>
       <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }}>
-        ⚽ {t.lang === 'pt' ? 'CARTÕES DO DIA' : 'CARDS OF THE DAY'}
+        ⚽ {hasTodayCards ? (t.lang === 'pt' ? 'CARTÕES DO DIA' : 'CARDS OF THE DAY') : hasLatestCards ? (t.lang === 'pt' ? `CARTÕES — ${latestCardLabel}` : `CARDS — ${latestCardLabel}`) : (t.lang === 'pt' ? 'DESTAQUES DO TORNEIO' : 'TOURNAMENT HIGHLIGHTS')}
       </h3>
       <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
         {myRow && (
@@ -2627,7 +2673,7 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
             avatarUrl={avatars[tipperRow.user_id]}
             profile={profilesMap[tipperRow.user_id]}
             variant="gold"
-            label={t.lang === 'pt' ? '⭐ BOLA CHEIA' : '⭐ TIPPER OF THE DAY'}
+            label={hasTodayCards ? (t.lang === 'pt' ? '⭐ BOLA CHEIA DO DIA' : '⭐ TIPPER OF THE DAY') : hasLatestCards ? (t.lang === 'pt' ? `⭐ BOLA CHEIA — ${latestCardLabel}` : `⭐ TOP — ${latestCardLabel}`) : (t.lang === 'pt' ? '⭐ MELHOR PALPITEIRO' : '⭐ TOP TIPPER')}
             leaderboard={leaderboard}
             t={t}
           />
@@ -2639,7 +2685,7 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
             avatarUrl={avatars[deflatedRow.user_id]}
             profile={profilesMap[deflatedRow.user_id]}
             variant="grey"
-            label={t.lang === 'pt' ? '😩 BOLA MURCHA' : '😩 DEFLATED BALL'}
+            label={hasTodayCards ? (t.lang === 'pt' ? '😩 BOLA MURCHA DO DIA' : '😩 DEFLATED BALL TODAY') : hasLatestCards ? (t.lang === 'pt' ? `😩 BOLA MURCHA — ${latestCardLabel}` : `😩 DEFLATED — ${latestCardLabel}`) : (t.lang === 'pt' ? '😩 BOLA MURCHA' : '😩 LOWEST TIPPER')}
             leaderboard={leaderboard}
             t={t}
           />
