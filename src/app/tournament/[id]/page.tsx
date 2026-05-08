@@ -28,7 +28,7 @@ const TEAM_FLAGS: Record<string, string> = {
   'Cape Verde':'cv',  'Curacao':'cw',  'DR Congo':'cd',  'Haiti':'ht',
   'Iraq':'iq',  'Jordan':'jo',  'Norway':'no',  'Sweden':'se',
   'Uzbekistan':'uz',  'Ivory Coast':'ci',  'Cameroon':'cm',
-  'Algeria':'dz',  'Iran':'ir',  'IR Iran':'ir',
+  'Algeria':'dz',  'Iran':'ir',
 }
 
 const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','SS']
