@@ -929,8 +929,15 @@ export default function TournamentPage() {
                     <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{winners}</div>
                     <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: gd > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{gd}</div>
                     <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: exact > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{exact}</div>
-                    <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)' }}>
+                    <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.9rem' }}>
                       {(() => {
+                        // First try qualifier_points from leaderboard
+                        const qPts = row.qualifier_points ?? row.qualifier_correct ?? null
+                        if (qPts !== null && qPts !== undefined) {
+                          const val = Number(qPts)
+                          return <span style={{ color: val > 0 ? '#a78bfa' : 'rgba(255,255,255,0.2)' }}>{val}</span>
+                        }
+                        // Fall back to calculating from result_groups
                         const tt = allTournamentTips.find((tp: any) => tp.user_id === row.user_id)
                         const groups = tournament?.result_groups
                         if (!tt || !groups) return <span style={{ color: 'rgba(255,255,255,0.2)' }}>–</span>
