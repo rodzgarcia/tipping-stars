@@ -893,10 +893,10 @@ export default function TournamentPage() {
                   <div></div>
                   <div></div>
                   <div>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
-                  <div style={{ textAlign: 'center' }} title="Exact scores">🎯</div>
-                  <div style={{ textAlign: 'center' }} title="Goal diff only">⚖️</div>
-                  <div style={{ textAlign: 'center' }} title="Winner only">✅</div>
-                  <div style={{ textAlign: 'center' }} title="Tips submitted">📝</div>
+                  <div style={{ textAlign: 'center' }} title={t.lang === 'pt' ? 'Vencedor correto' : 'Correct winner'}>✅</div>
+                  <div style={{ textAlign: 'center' }} title={t.lang === 'pt' ? 'Saldo de gols correto' : 'Correct goal difference'}>⚖️</div>
+                  <div style={{ textAlign: 'center' }} title={t.lang === 'pt' ? 'Placar exato' : 'Exact score'}>🎯</div>
+                  <div style={{ textAlign: 'center' }} title={t.lang === 'pt' ? 'Classificados corretos' : 'Correct qualifiers'}>🗂️</div>
                   <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>PTS</div>
                 </div>
                 {leaderboard.length === 0 ? (
@@ -926,10 +926,27 @@ export default function TournamentPage() {
                         </div>
                       )}
                     </div>
-                    <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: exact > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{exact}</div>
-                    <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: gd > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{gd}</div>
                     <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{winners}</div>
-                    <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)' }}>{row.tips_submitted ?? 0}</div>
+                    <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: gd > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{gd}</div>
+                    <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: exact > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{exact}</div>
+                    <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)' }}>
+                      {(() => {
+                        const tt = allTournamentTips.find((tp: any) => tp.user_id === row.user_id)
+                        const groups = tournament?.result_groups
+                        if (!tt || !groups) return <span style={{ color: 'rgba(255,255,255,0.2)' }}>–</span>
+                        let count = 0
+                        Object.entries(groups).forEach(([g, res]: any) => {
+                          const pick1 = tt[`tip_group_${g.toLowerCase()}_1`]
+                          const pick2 = tt[`tip_group_${g.toLowerCase()}_2`]
+                          if (pick1 === res.first) count += 1
+                          else if (pick1 === res.second) count += 0.5
+                          if (pick2 === res.second) count += 1
+                          else if (pick2 === res.first) count += 0.5
+                        })
+                        const display = count % 1 === 0 ? String(count) : count.toFixed(1)
+                        return <span style={{ color: count > 0 ? '#a78bfa' : 'rgba(255,255,255,0.2)' }}>{display}</span>
+                      })()}
+                    </div>
                     <div style={{ textAlign: 'right', paddingRight: '0.5rem', fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
                       {row.total_points}
                     </div>
