@@ -972,7 +972,7 @@ export default function TournamentPage() {
                       return <span style={{ color: count > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{display}</span>
                     })()}
                   </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee' }}>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee', minWidth: '3.5rem', flexShrink: 0 }}>
                     {row.total_points}
                   </div>
                 </div>
@@ -1088,7 +1088,7 @@ export default function TournamentPage() {
               YOUR TIPPING IDENTITY
             </div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', letterSpacing: '0.05em', marginBottom: '0.25rem', color: '#fbbf24' }}>
-              {POSITION_NAMES[myProfile.tip_position] || myProfile.tip_position}
+              {(t.lang === 'pt' ? POSITION_NAMES_PT : POSITION_NAMES_EN)[myProfile.tip_position] || myProfile.tip_position}
             </h2>
             <div style={{ fontSize: '1.1rem', color: '#e8f5ee', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               <span>from</span>
@@ -2527,7 +2527,7 @@ function FIFACard({ row, allTips, avatarUrl, profile, variant, label, t, leaderb
           {/* Rating + position + flag */}
           <div style={{ padding: isGold || isGrey ? '2px 12px 0' : '7px 12px 0' }}>
             <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 0.88, letterSpacing: -2, color: textColor }}>{rating}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: subColor, marginTop: 2 }}>{POSITION_NAMES[position] || position}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: subColor, marginTop: 2 }}>{(t?.lang === 'pt' ? POSITION_NAMES_PT : POSITION_NAMES_EN)[position] || position}</div>
             <div style={{ width: 28, height: 20, borderRadius: 3, overflow: 'hidden', marginTop: 4, border: `1px solid ${borderColor}` }}>
               {flagUrl
                 ? <img src={flagUrl} alt={team} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -3330,6 +3330,12 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
               <Clock size={11} style={{ display: 'inline', marginRight: 3 }} />
               {formatLocalTime(match.kickoff_at, t.lang)}
             </span>
+            {match.round && (() => {
+              const rl: Record<string,string> = t.lang === 'pt'
+                ? { group: 'Fase de Grupos', r32: 'Oitavas', r16: 'Quartas', qf: 'Quartas de Final', sf: 'Semifinal', third_place: '3º Lugar', final: 'Final' }
+                : { group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16', qf: 'Quarter-Final', sf: 'Semi-Final', third_place: '3rd Place', final: 'Final' }
+              return <span className="badge badge-grey" style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}>{rl[match.round] || match.round}</span>
+            })()}
             {match.group_name && <span className="badge badge-grey">{match.group_name}</span>}
             {match.status === 'completed' && match.home_score !== null && (
               <span className="badge badge-green">Result: {match.home_score ?? 0}–{match.away_score ?? 0}</span>
