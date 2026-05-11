@@ -29,6 +29,15 @@ export default function HomePage() {
       const tourIds = members.map((m: any) => m.tournament_id)
       if (tourIds.length > 0) {
         const { data: tours } = await supabase.from('tournaments').select('*').in('id', tourIds)
+        // Check if any match is locked per tournament
+        const { data: lockedMatches } = await supabase
+          .from('matches')
+          .select('tournament_id')
+          .in('tournament_id', tourIds)
+          .or('tip_lock_override.eq.true,status.in.(live,completed)')
+          .limit(100)
+        const lockedTourIds = new Set((lockedMatches || []).map((m: any) => m.tournament_id))
+        tours?.forEach((t: any) => { if (lockedTourIds.has(t.id)) t._has_started = true })
         const toursMap: Record<string, any> = {}
         tours?.forEach((t: any) => { toursMap[t.id] = t })
         setMyMemberships(members.map((m: any) => ({ ...m, tournament: toursMap[m.tournament_id] })))
@@ -132,8 +141,8 @@ export default function HomePage() {
                       <div style={{ flex: 1 }}>
                         <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: '0.5rem' }}>
                           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', letterSpacing: '0.05em', color: '#e8f5ee' }}>{t.name}</h3>
-                          <span className={`badge ${t.status === 'active' ? 'badge-green' : t.status === 'completed' ? 'badge-grey' : 'badge-gold'}`}>
-                            {t.status === 'active' ? (isPt ? 'Ativo' : 'Active') : t.status === 'completed' ? (isPt ? 'Encerrado' : 'Completed') : (isPt ? 'Em breve' : 'Upcoming')}
+                          <span className={`badge ${t.status === 'completed' ? 'badge-grey' : (t.status === 'active' || t._has_started) ? 'badge-green' : 'badge-gold'}`}>
+                            {t.status === 'completed' ? (isPt ? 'Encerrado' : 'Completed') : (t.status === 'active' || t._has_started) ? (isPt ? 'ESTA VALEEEEENDO! 🎉' : "IT'S ON! 🎉") : (isPt ? 'Em breve' : 'Upcoming')}
                           </span>
                         </div>
                         {t.description && <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{t.description}</p>}

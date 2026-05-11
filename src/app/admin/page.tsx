@@ -410,7 +410,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
       supabase.from('tournament_members').select('user_id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('matches').select('id, home_team, away_team, kickoff_at, round, status, tip_lock_override').eq('tournament_id', tournamentId).order('kickoff_at'),
       supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId),
-      supabase.from('tournament_tips').select('user_id, p_a1, tip_group_a_1').eq('tournament_id', tournamentId),
+      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url'),
     ]).then(([membRes, matchRes, tipRes, ttRes, profRes]: any) => {
       setMembers(membRes.data || [])
@@ -554,7 +554,10 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
             {(() => {
-              const submittedIds = new Set(qualifierTips.filter((qt: any) => qt.tip_group_a_1 || qt.p_a1).map((qt: any) => qt.user_id))
+              const submittedIds = new Set(qualifierTips.filter((qt: any) => 
+                qt.tip_group_a_1 || qt.p_a1 || qt.tip_group_a1 ||
+                Object.keys(qt).some(k => k.startsWith('tip_group_') && qt[k])
+              ).map((qt: any) => qt.user_id))
               const missing = members.filter((m: any) => !submittedIds.has(m.user_id))
               if (missing.length === 0) return <span style={{ fontSize: '0.8rem', color: '#4ade80' }}>✅ Everyone submitted qualifier picks!</span>
               return missing.map((m: any) => {
