@@ -888,7 +888,7 @@ export default function TournamentPage() {
             </div>
             <div className="card" style={{ overflow: 'hidden' }}>
               {/* Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'clamp(1.5rem,2rem,2rem) 2.5rem 1fr repeat(4, clamp(2.5rem,3.5rem,3.5rem)) clamp(3rem,4.5rem,4.5rem)', gap: '0.25rem', padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
                 <div></div>
                 <div></div>
                 <div>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
@@ -906,7 +906,7 @@ export default function TournamentPage() {
                   return b.correct_goal_diff - a.correct_goal_diff
                 }).map((row: any, i: number) => (
                 <div key={row.user_id}
-                  style={{ display: 'grid', gridTemplateColumns: '2rem 2.5rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem 4rem', gap: '0.4rem', alignItems: 'center', padding: '0.9rem 1.25rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
+                  style={{ display: 'grid', gridTemplateColumns: 'clamp(1.5rem,2rem,2rem) 2.5rem 1fr repeat(4, clamp(2.5rem,3.5rem,3.5rem)) clamp(3rem,4.5rem,4.5rem)', gap: '0.25rem', alignItems: 'center', padding: '0.9rem 0.75rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
                   <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}
                   </div>
@@ -972,7 +972,7 @@ export default function TournamentPage() {
                       return <span style={{ color: count > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{display}</span>
                     })()}
                   </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee', minWidth: '3.5rem', flexShrink: 0 }}>
+                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: 'clamp(1rem, 4vw, 1.5rem)', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee', minWidth: 0, overflow: 'hidden' }}>
                     {row.total_points}
                   </div>
                 </div>
