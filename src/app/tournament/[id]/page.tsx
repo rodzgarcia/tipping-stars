@@ -32,11 +32,17 @@ const TEAM_FLAGS: Record<string, string> = {
 }
 
 const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','SS']
-const POSITION_NAMES: Record<string, string> = {
+const POSITION_NAMES_EN: Record<string, string> = {
   ST: 'Striker', CF: 'Centre Forward', LW: 'Left Winger', RW: 'Right Winger',
   CAM: 'Attacking Mid', CM: 'Central Mid', CDM: 'Defensive Mid',
   LB: 'Left Back', RB: 'Right Back', CB: 'Centre Back', GK: 'Goalkeeper', SS: 'Second Striker'
 }
+const POSITION_NAMES_PT: Record<string, string> = {
+  ST: 'Atacante', CF: 'Centroavante', LW: 'Ponta Esquerda', RW: 'Ponta Direita',
+  CAM: 'Meia Atacante', CM: 'Meia', CDM: 'Volante',
+  LB: 'Lateral Esquerdo', RB: 'Lateral Direito', CB: 'Zagueiro', GK: 'Goleiro', SS: 'Segundo Atacante'
+}
+const POSITION_NAMES = POSITION_NAMES_EN
 const POSITION_EMOJI: Record<string, string> = {
   ST: '⚽', CF: '🎯', LW: '💨', RW: '💨', CAM: '🪄',
   CM: '🔄', CDM: '🛡️', LB: '🏃', RB: '🏃', CB: '🧱', GK: '🧤', SS: '⚡'
