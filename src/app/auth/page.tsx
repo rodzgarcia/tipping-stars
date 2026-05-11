@@ -49,7 +49,7 @@ function AuthForm() {
         setError(signUpError.message)
       } else if (data.user) {
         const WC_TEAMS = ['Argentina','France','England','Spain','Brazil','Portugal','Netherlands','Germany','Italy','Morocco','Croatia','United States','Mexico','Japan','Uruguay','Colombia','Senegal','Switzerland','South Korea','Ecuador','Canada','Australia','Turkey','Poland','Serbia','Scotland','Belgium','Egypt','Iran','New Zealand']
-        const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK']
+        const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','WB','WB']
         const randomTeam = WC_TEAMS[Math.floor(Math.random() * WC_TEAMS.length)]
         const randomPosition = POSITIONS[Math.floor(Math.random() * POSITIONS.length)]
         let attempts = 0
