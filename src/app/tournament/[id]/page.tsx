@@ -931,11 +931,13 @@ export default function TournamentPage() {
                     <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: exact > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{exact}</div>
                     <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.9rem' }}>
                       {(() => {
-                        // First try qualifier_points from leaderboard
-                        const qPts = row.qualifier_points ?? row.qualifier_correct ?? null
-                        if (qPts !== null && qPts !== undefined) {
-                          const val = Number(qPts)
-                          return <span style={{ color: val > 0 ? '#a78bfa' : 'rgba(255,255,255,0.2)' }}>{val}</span>
+                        const qPts = Number(row.qualifier_points ?? 0)
+                        const ptsEach = Number(tournament?.pts_qualify || 20)
+                        // Calculate count from points (1 = full, 0.5 = wrong position)
+                        if (qPts > 0 && ptsEach > 0) {
+                          const count = qPts / ptsEach
+                          const display = count % 1 === 0 ? String(count) : count.toFixed(1)
+                          return <span style={{ color: '#a78bfa' }}>{display}</span>
                         }
                         // Fall back to calculating from result_groups
                         const tt = allTournamentTips.find((tp: any) => tp.user_id === row.user_id)
