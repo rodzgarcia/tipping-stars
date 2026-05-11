@@ -887,16 +887,12 @@ export default function TournamentPage() {
               </a>
             </div>
             <div className="card" style={{ overflow: 'hidden' }}>
-              {/* Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'clamp(1.5rem,2rem,2rem) 2.5rem 1fr repeat(4, clamp(2.5rem,3.5rem,3.5rem)) clamp(3rem,4.5rem,4.5rem)', gap: '0.25rem', padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
-                <div></div>
-                <div></div>
-                <div>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
-                <div style={{ textAlign: 'center' }} title="Exact scores">🎯</div>
-                <div style={{ textAlign: 'center' }} title="Correct goal difference only (not exact score)">⚖️</div>
-                <div style={{ textAlign: 'center' }} title="Correct winner only (not goal diff or exact score)">✅</div>
-                <div style={{ textAlign: 'center' }} title="Qualifier teams correct">🏟️</div>
-                <div style={{ textAlign: 'center' }}>{t.lang === 'pt' ? 'PTS' : 'PTS'}</div>
+              {/* Header - simple, just rank/name/pts */}
+              <div style={{ display: 'flex', padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+                <div style={{ width: '2rem', flexShrink: 0 }}></div>
+                <div style={{ width: '2.5rem', flexShrink: 0 }}></div>
+                <div style={{ flex: 1 }}>{t.lang === 'pt' ? 'NOME' : 'NAME'}</div>
+                <div style={{ width: '3.5rem', textAlign: 'right', flexShrink: 0 }}>{t.lang === 'pt' ? 'PTS' : 'PTS'}</div>
               </div>
               {leaderboard.length === 0 ? (
                 <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>{t.lang === 'pt' ? 'Nenhuma pontuação ainda — resultados aparecerão após os jogos.' : 'No scores yet — results will appear after matches are played.'}</div>
@@ -904,25 +900,39 @@ export default function TournamentPage() {
                   if (b.total_points !== a.total_points) return b.total_points - a.total_points
                   if (b.exact_scores !== a.exact_scores) return b.exact_scores - a.exact_scores
                   return b.correct_goal_diff - a.correct_goal_diff
-                }).map((row: any, i: number) => (
+                }).map((row: any, i: number) => {
+                const exact = row.exact_scores ?? 0
+                const gd = Math.max(0, (row.correct_goal_diff ?? 0) - exact)
+                const winners = Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))
+                return (
                 <div key={row.user_id}
-                  style={{ display: 'grid', gridTemplateColumns: 'clamp(1.5rem,2rem,2rem) 2.5rem 1fr repeat(4, clamp(2.5rem,3.5rem,3.5rem)) clamp(3rem,4.5rem,4.5rem)', gap: '0.25rem', alignItems: 'center', padding: '0.9rem 0.75rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 0.75rem', borderBottom: i < leaderboard.length-1 ? '1px solid var(--dark-border)' : 'none', background: row.user_id === user.id ? 'rgba(34,197,94,0.06)' : undefined }}>
+                  {/* Rank */}
+                  <div style={{ width: '2rem', flexShrink: 0, textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
                     {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}
                   </div>
-                  <Avatar userId={row.user_id} avatars={avatars} size={34} />
-                  <div style={{ minWidth: 0 }}>
+                  {/* Avatar */}
+                  <div style={{ flexShrink: 0 }}>
+                    <Avatar userId={row.user_id} avatars={avatars} size={34} />
+                  </div>
+                  {/* Name + stats inline */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: '0.88rem', color: row.user_id === user.id ? '#4ade80' : '#e8f5ee', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {profilesMap[row.user_id]?.nickname || row.display_name}
-                      {row.user_id === user.id && <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>({t.you})</span>}
+                      {row.user_id === user.id && <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', marginLeft: 4 }}>({t.you})</span>}
                     </div>
                     {profilesMap[row.user_id]?.nickname && (
-                      <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {row.display_name}
                       </div>
                     )}
-                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.2)', marginTop: profilesMap[row.user_id]?.nickname ? '0' : '0.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                      <span>{t.lang === 'pt' ? `${row.tips_submitted} palpites` : `${row.tips_submitted} tips`}</span>
+                    {/* Stats row - inline under name */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem', flexWrap: 'nowrap' }}>
+                      <span style={{ fontSize: '0.68rem', color: exact > 0 ? '#fbbf24' : 'rgba(255,255,255,0.2)' }}>🎯{exact}</span>
+                      <span style={{ fontSize: '0.68rem', color: gd > 0 ? '#60a5fa' : 'rgba(255,255,255,0.2)' }}>⚖️{gd}</span>
+                      <span style={{ fontSize: '0.68rem', color: winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.2)' }}>✅{winners}</span>
+                      <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)' }}>{t.lang === 'pt' ? `${row.tips_submitted}p` : `${row.tips_submitted}t`}</span>
+                      {/* Form guide */}
                       {(() => {
                         const userTips = allTips
                           .filter((tp: any) => tp.user_id === row.user_id && tp.match?.status === 'completed')
@@ -930,53 +940,22 @@ export default function TournamentPage() {
                           .slice(0, 5)
                         if (userTips.length === 0) return null
                         const form = userTips.map((tp: any) => {
-                          if (Number(tp.pts_exact_score) > 0) return { icon: '🎯', title: 'Exact score' }
-                          if (Number(tp.pts_goal_diff) > 0) return { icon: '⚖️', title: 'Goal diff' }
-                          if (Number(tp.pts_winner) > 0) return { icon: '✅', title: 'Correct winner' }
-                          return { icon: '❌', title: 'Wrong' }
+                          if (Number(tp.pts_exact_score) > 0) return '🎯'
+                          if (Number(tp.pts_goal_diff) > 0) return '⚖️'
+                          if (Number(tp.pts_winner) > 0) return '✅'
+                          return '❌'
                         }).reverse()
-                        return (
-                          <span style={{ display: 'flex', gap: 2 }} title="Last 5 results">
-                            {form.map((f: any, i: number) => (
-                              <span key={i} title={f.title} style={{ fontSize: '0.75rem' }}>{f.icon}</span>
-                            ))}
-                          </span>
-                        )
+                        return <span style={{ fontSize: '0.65rem', letterSpacing: '-1px' }}>{form.join('')}</span>
                       })()}
                     </div>
+                    <AchievementBadges row={row} allTips={allTips} leaderboard={leaderboard} compact={true} />
                   </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: row.exact_scores > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>
-                    {row.exact_scores ?? 0}
-                  </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: (row.correct_goal_diff - row.exact_scores) > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>
-                    {Math.max(0, (row.correct_goal_diff ?? 0) - (row.exact_scores ?? 0))}
-                  </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: (row.correct_winners - row.correct_goal_diff) > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>
-                    {Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))}
-                  </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)' }}>
-                    {(() => {
-                      const tt = allTournamentTips.find((tp: any) => tp.user_id === row.user_id)
-                      const groups = tournament?.result_groups
-                      if (!tt || !groups) return <span style={{ color: 'rgba(255,255,255,0.2)' }}>–</span>
-                      let count = 0
-                      Object.entries(groups).forEach(([g, res]: any) => {
-                        const pick1 = tt[`tip_group_${g.toLowerCase()}_1`]
-                        const pick2 = tt[`tip_group_${g.toLowerCase()}_2`]
-                        if (pick1 === res.first) count += 1
-                        else if (pick1 === res.second) count += 0.5
-                        if (pick2 === res.second) count += 1
-                        else if (pick2 === res.first) count += 0.5
-                      })
-                      const display = count % 1 === 0 ? count : count.toFixed(1)
-                      return <span style={{ color: count > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{display}</span>
-                    })()}
-                  </div>
-                  <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: 'clamp(1rem, 4vw, 1.5rem)', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee', minWidth: 0, overflow: 'hidden' }}>
+                  {/* Points */}
+                  <div style={{ flexShrink: 0, textAlign: 'right', fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : row.user_id === user.id ? '#4ade80' : '#e8f5ee', minWidth: '3.5rem' }}>
                     {row.total_points}
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
             <LeaderboardBanter
               leaderboard={leaderboard}
