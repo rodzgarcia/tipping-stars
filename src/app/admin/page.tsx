@@ -400,7 +400,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
   const [tournamentTips, setTournamentTips] = useState<any[]>([])
   const [profiles, setProfiles] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'matches' | 'predictions'>('matches')
+  const [view, setView] = useState<'matches' | 'predictions' | 'qualifiers'>('matches')
   const tournament = tournaments.find((t: any) => t.id === tournamentId)
 
   useEffect(() => {
@@ -452,6 +452,12 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
   const predictedIds = new Set(tournamentTips.map((t: any) => t.user_id))
   const missingPredictions = memberIds.filter(uid => !predictedIds.has(uid))
 
+  // Who hasn't submitted qualifier picks
+  const submittedQualifierIds = new Set(qualifierTips.filter((qt: any) =>
+    Object.keys(qt).some(k => k.startsWith('tip_group_') && qt[k])
+  ).map((qt: any) => qt.user_id))
+  const missingQualifiers = memberIds.filter(uid => !submittedQualifierIds.has(uid))
+
   const roundLabel: Record<string, string> = {
     group: 'Group', r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third_place: '3rd', final: 'Final'
   }
@@ -466,13 +472,24 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
 
       {/* Sub tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
-        {([['matches', `⚽ Match Tips`], ['predictions', `🏆 Predictions`]] as const).map(([v, label]) => (
+        {([
+          ['matches', `⚽ Match Tips`],
+          ['qualifiers', `🗂️ Qualifiers`],
+          ['predictions', `🏆 Predictions`]
+        ] as const).map(([v, label]) => (
           <button key={v} onClick={() => setView(v)} style={{
             padding: '0.4rem 1rem', borderRadius: 20, fontSize: '0.78rem', cursor: 'pointer',
             border: `1px solid ${view === v ? 'var(--green)' : 'rgba(255,255,255,0.15)'}`,
             background: view === v ? 'rgba(74,222,128,0.1)' : 'transparent',
             color: view === v ? '#4ade80' : 'rgba(255,255,255,0.5)',
-          }}>{label}</button>
+          }}>
+            {label}
+            {v === 'qualifiers' && missingQualifiers.length > 0 && (
+              <span style={{ marginLeft: 5, background: '#f87171', color: '#0a0f0d', borderRadius: 10, fontSize: '0.65rem', padding: '0 5px', fontWeight: 700 }}>
+                {missingQualifiers.length}
+              </span>
+            )}
+          </button>
         ))}
       </div>
 
@@ -546,27 +563,29 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
         </div>
       )}
 
-      {/* Missing qualifier picks */}
-      {members.length > 0 && (
-        <div className="card" style={{ padding: '1rem 1.25rem', marginTop: '1.5rem', background: 'rgba(251,191,36,0.04)', border: '1px solid rgba(251,191,36,0.12)' }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.8rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: '0.6rem' }}>
-            🗂️ MISSING QUALIFIER PICKS
+
+      {view === 'qualifiers' && (
+        <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '0.88rem', fontWeight: 600 }}>🗂️ Group Qualifier Picks</h3>
+            <span style={{ fontSize: '0.78rem', color: missingQualifiers.length > 0 ? '#f87171' : '#4ade80' }}>
+              {memberIds.length - missingQualifiers.length}/{memberIds.length} submitted
+            </span>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            {(() => {
-              const submittedIds = new Set(qualifierTips.filter((qt: any) => 
-                qt.tip_group_a_1 || qt.p_a1 || qt.tip_group_a1 ||
-                Object.keys(qt).some(k => k.startsWith('tip_group_') && qt[k])
-              ).map((qt: any) => qt.user_id))
-              const missing = members.filter((m: any) => !submittedIds.has(m.user_id))
-              if (missing.length === 0) return <span style={{ fontSize: '0.8rem', color: '#4ade80' }}>✅ Everyone submitted qualifier picks!</span>
-              return missing.map((m: any) => {
-                const prof = profiles[m.user_id]
-                const name = prof?.nickname || prof?.display_name || m.user_id.slice(0, 8)
-                return <span key={m.user_id} style={{ padding: '0.25rem 0.7rem', borderRadius: 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', fontSize: '0.78rem', color: '#f87171' }}>{name}</span>
-              })
-            })()}
-          </div>
+          {missingQualifiers.length === 0 ? (
+            <p style={{ color: '#4ade80', fontSize: '0.85rem' }}>✅ All members have submitted qualifier picks!</p>
+          ) : (
+            <>
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', marginBottom: '0.75rem' }}>Missing qualifier picks from:</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {missingQualifiers.map((uid: string) => (
+                  <span key={uid} style={{ fontSize: '0.78rem', padding: '0.25rem 0.75rem', borderRadius: 10, background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+                    {getName(uid)}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
