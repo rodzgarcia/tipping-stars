@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const tourName = tournament?.name || appName
 
     const ROUND_LABELS: Record<string, string> = isPt
-      ? { group: 'Fase de Grupos', r32: 'Oitavas de Final', r16: 'Oitavas', qf: 'Quartas de Final', sf: 'Semifinais', final: 'Final' }
+      ? { group: 'Fase de Grupos', r32: 'Rodada de 32', r16: 'Oitavas de Final', qf: 'Quartas de Final', sf: 'Semifinais', final: 'Final' }
       : { group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16', qf: 'Quarter-Finals', sf: 'Semi-Finals', final: 'Final' }
 
     const matchRows = matches.map((m: any) => {

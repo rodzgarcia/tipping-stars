@@ -3291,7 +3291,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             </span>
             {match.round && (() => {
               const rl: Record<string,string> = t.lang === 'pt'
-                ? { group: 'Fase de Grupos', r32: 'Oitavas', r16: 'Quartas', qf: 'Quartas de Final', sf: 'Semifinal', third_place: '3º Lugar', final: 'Final' }
+                ? { group: 'Fase de Grupos', r32: 'Rodada de 32', r16: 'Oitavas de Final', qf: 'Quartas de Final', sf: 'Semifinais', third_place: '3º Lugar', final: 'Final' }
                 : { group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16', qf: 'Quarter-Final', sf: 'Semi-Final', third_place: '3rd Place', final: 'Final' }
               return <span className="badge badge-grey" style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)' }}>{rl[match.round] || match.round}</span>
             })()}
