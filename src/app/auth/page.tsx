@@ -10,28 +10,36 @@ function AuthForm() {
   const { t } = useLang()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
+  const inviteCode = searchParams.get('invite') || ''
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [nickname, setNickname] = useState('')
+  const [manualCode, setManualCode] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [signedUp, setSignedUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const isPt = t.lang === 'pt'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(''); setSuccess(''); setLoading(true)
-
-    if (mode === 'signup' && !nickname.trim()) {
-      setError(t.nicknameRequired)
-      setLoading(false)
-      return
-    }
+    setError(''); setLoading(true)
 
     if (mode === 'signup') {
+      if (!nickname.trim()) {
+        setError(t.nicknameRequired)
+        setLoading(false)
+        return
+      }
+      if (!name.trim()) {
+        setError(isPt ? 'Nome é obrigatório.' : 'Name is required.')
+        setLoading(false)
+        return
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -40,28 +48,20 @@ function AuthForm() {
       if (signUpError) {
         setError(signUpError.message)
       } else if (data.user) {
-        // Random jersey team + position assignment
         const WC_TEAMS = ['Argentina','France','England','Spain','Brazil','Portugal','Netherlands','Germany','Italy','Morocco','Croatia','United States','Mexico','Japan','Uruguay','Colombia','Senegal','Switzerland','South Korea','Ecuador','Canada','Australia','Turkey','Poland','Serbia','Scotland','Belgium','Egypt','Iran','New Zealand']
         const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK']
         const randomTeam = WC_TEAMS[Math.floor(Math.random() * WC_TEAMS.length)]
         const randomPosition = POSITIONS[Math.floor(Math.random() * POSITIONS.length)]
-
-        // Retry saving profile since Supabase trigger takes a moment
         let attempts = 0
         const saveProfile = async () => {
           attempts++
-          const updateData: any = { jersey_team: randomTeam, tip_position: randomPosition }
-          if (nickname.trim()) updateData.nickname = nickname.trim()
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update(updateData)
+          const { error: updateError } = await supabase.from('profiles')
+            .update({ jersey_team: randomTeam, tip_position: randomPosition, nickname: nickname.trim(), display_name: name.trim() })
             .eq('id', data.user!.id)
-          if (updateError && attempts < 5) {
-            setTimeout(saveProfile, 800)
-          }
+          if (updateError && attempts < 5) setTimeout(saveProfile, 800)
         }
         setTimeout(saveProfile, 600)
-        setSuccess(t.accountCreated)
+        setSignedUp(true)
       }
     } else {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
@@ -71,88 +71,129 @@ function AuthForm() {
     setLoading(false)
   }
 
+  async function joinWithCode() {
+    const code = manualCode.trim().toUpperCase()
+    if (!code) return
+    const { data: tour } = await supabase.from('tournaments').select('id').eq('invite_code', code).single()
+    if (!tour) {
+      setError(isPt ? 'Código inválido.' : 'Invalid code.')
+      return
+    }
+    router.push('/join/' + code)
+  }
+
+  // ── Success screen after signup ─────────────────────────────────────────────
+  if (signedUp) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}><LangSwitcher /></div>
+        <div style={{ width: '100%', maxWidth: 420, textAlign: 'center' }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📧</div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
+            {isPt ? 'VERIFIQUE SEU E-MAIL' : 'CHECK YOUR EMAIL'}
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '2rem', lineHeight: 1.6 }}>
+            {isPt
+              ? `Enviamos um link de confirmação para ${email}. Clique no link para ativar sua conta e entrar no bolão.`
+              : `We sent a confirmation link to ${email}. Click the link to activate your account and join the competition.`}
+          </p>
+          <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem', background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.15)' }}>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+              {isPt ? '💡 Após confirmar o e-mail, você será redirecionado automaticamente para o torneio.' : '💡 After confirming your email, you\'ll be redirected automatically to the tournament.'}
+            </p>
+          </div>
+          <button onClick={() => { setSignedUp(false); setMode('signin') }} className="btn btn-ghost" style={{ width: '100%' }}>
+            {isPt ? 'Já confirmei → Entrar' : 'Already confirmed → Sign in'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div style={{ width: '100%', maxWidth: 420 }}>
-        <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
-          <LangSwitcher />
-        </div>
+        <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}><LangSwitcher /></div>
         <div className="text-center" style={{ marginBottom: '2.5rem' }}>
-          <div style={{ width: 52, height: 52, background: 'var(--green)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, background: 'var(--green)', borderRadius: 16, marginBottom: '1rem' }}>
             <Star size={24} fill="white" color="white" />
           </div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', letterSpacing: '0.08em' }}>TIPPING STARS</div>
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.85rem', marginTop: '0.3rem' }}>FIFA World Cup 2026</p>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', letterSpacing: '0.08em' }}>
+            {isPt ? 'BOLÃO DAS ESTRELAS' : 'TIPPING STARS'}
+          </h1>
         </div>
 
         <div className="card" style={{ padding: '2rem' }}>
-          <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
-            <button className={`tab-btn ${mode === 'signin' ? 'active' : ''}`} onClick={() => setMode('signin')}>{t.logIn}</button>
-            <button className={`tab-btn ${mode === 'signup' ? 'active' : ''}`} onClick={() => setMode('signup')}>{t.createAccount}</button>
+          {/* Mode toggle */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            {(['signin','signup'] as const).map(m => (
+              <button key={m} onClick={() => { setMode(m); setError('') }} style={{
+                flex: 1, padding: '0.6rem', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem',
+                background: mode === m ? 'var(--green)' : 'transparent',
+                color: mode === m ? '#0a0f0d' : 'rgba(255,255,255,0.5)',
+                border: mode === m ? 'none' : '1px solid rgba(255,255,255,0.12)',
+              }}>
+                {m === 'signin' ? (isPt ? 'Entrar' : 'Sign in') : (isPt ? 'Criar conta' : 'Sign up')}
+              </button>
+            ))}
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {mode === 'signup' && (
               <>
                 <div>
-                  <label className="label">{t.displayName}</label>
+                  <label className="label">{t.displayName} <span style={{ color: '#f87171' }}>*</span></label>
                   <input className="input" type="text" placeholder={t.displayNamePlaceholder} value={name} onChange={e => setName(e.target.value)} required />
                 </div>
                 <div>
                   <label className="label">
-                    {t.nickname}
-                    <span style={{ color: '#f87171', marginLeft: '0.25rem' }}>*</span>
-                    <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 400, marginLeft: '0.4rem', fontSize: '0.78rem' }}>
-                      {t.nicknameHint}
-                    </span>
+                    {t.nickname} <span style={{ color: '#f87171' }}>*</span>
+                    <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.35)', marginLeft: '0.4rem' }}>{t.nicknameHint}</span>
                   </label>
-                  <input
-                    className="input"
-                    type="text"
-                    placeholder={t.nicknamePlaceholder}
-                    value={nickname}
-                    onChange={e => setNickname(e.target.value)}
-                    maxLength={20}
-                    required
-                  />
+                  <input className="input" type="text" placeholder={t.nicknamePlaceholder} value={nickname}
+                    onChange={e => setNickname(e.target.value.slice(0, 20))} required maxLength={20} />
                   {nickname.length > 0 && (
-                    <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
-                      {20 - nickname.length} {t.lang === 'pt' ? 'caracteres restantes' : 'characters remaining'}
-                    </p>
+                    <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
+                      {20 - nickname.length} {isPt ? 'caracteres restantes' : 'characters remaining'}
+                    </div>
                   )}
                 </div>
               </>
             )}
+
             <div>
               <label className="label">{t.email}</label>
-              <input className="input" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
+              <input className="input" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
+
             <div>
               <label className="label">{t.password}</label>
-              <input className="input" type="password"
-                placeholder={mode === 'signup' ? (t.lang === 'pt' ? 'Minimo 8 caracteres' : 'At least 8 characters') : '........'}
-                value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
+              <input className="input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
             </div>
 
-            {error && <p style={{ color: '#f87171', fontSize: '0.85rem', background: 'rgba(239,68,68,0.1)', padding: '0.6rem 0.9rem', borderRadius: 8 }}>{error}</p>}
-            {success && <p style={{ color: '#4ade80', fontSize: '0.85rem', background: 'rgba(34,197,94,0.1)', padding: '0.6rem 0.9rem', borderRadius: 8 }}>{success}</p>}
+            {error && <div style={{ color: '#f87171', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(239,68,68,0.1)', borderRadius: 8 }}>{error}</div>}
 
-            <button type="submit" disabled={loading} className="btn btn-primary" style={{ marginTop: '0.5rem', padding: '0.75rem' }}>
-              {loading ? (t.lang === 'pt' ? 'Aguarde...' : 'Please wait...') : mode === 'signup' ? t.createAccount : t.logIn}
+            <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}>
+              {loading ? (isPt ? 'Aguarde...' : 'Loading...') : mode === 'signup' ? (isPt ? 'Criar conta' : 'Create account') : (isPt ? 'Entrar' : 'Sign in')}
             </button>
           </form>
 
-          {mode === 'signup' && (
-            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: '1rem' }}>
-              {t.lang === 'pt'
-                ? 'Apos o cadastro, o administrador aprovara sua conta antes de voce comecar a apostar.'
-                : 'After signing up, the tournament admin will approve your account before you can start tipping.'}
-            </p>
+          {/* Manual invite code entry */}
+          {mode === 'signin' && (
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--dark-border)' }}>
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', marginBottom: '0.6rem' }}>
+                {isPt ? '🔑 Tem um código de convite?' : '🔑 Have an invite code?'}
+              </p>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input className="input" type="text" placeholder={isPt ? 'Digite o código...' : 'Enter code...'}
+                  value={manualCode} onChange={e => setManualCode(e.target.value.toUpperCase())}
+                  style={{ flex: 1, textTransform: 'uppercase', letterSpacing: '0.1em' }} maxLength={12} />
+                <button onClick={joinWithCode} className="btn btn-ghost" style={{ flexShrink: 0 }}>
+                  {isPt ? 'Entrar' : 'Join'}
+                </button>
+              </div>
+            </div>
           )}
-        </div>
-
-        <div className="text-center" style={{ marginTop: '1.5rem' }}>
-          <Link href="/" style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>{t.backToHome}</Link>
         </div>
       </div>
     </div>
@@ -160,9 +201,5 @@ function AuthForm() {
 }
 
 export default function AuthPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div style={{ color: 'var(--green-light)' }}>LOADING...</div></div>}>
-      <AuthForm />
-    </Suspense>
-  )
+  return <Suspense><AuthForm /></Suspense>
 }
