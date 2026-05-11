@@ -41,19 +41,24 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
         <p style={{ color: 'rgba(255,255,255,0.3)' }}>No scores yet.</p>
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 4rem 4rem 4rem 4rem 5rem', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem 4rem 5rem', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
             <div>#</div><div>PLAYER</div>
             <div style={{ textAlign: 'center' }}>🎯</div>
+            <div style={{ textAlign: 'center' }}>⚖️</div>
             <div style={{ textAlign: 'center' }}>✅</div>
-            <div style={{ textAlign: 'center' }}>🏟️</div>
+            <div style={{ textAlign: 'center' }}>🗂️</div>
             <div style={{ textAlign: 'center' }}>MATCH</div>
             <div style={{ textAlign: 'center' }}>TOTAL</div>
           </div>
           {leaderboard.map((row: any, i: number) => {
             const prof = profiles[row.user_id]
             const name = prof?.nickname || prof?.display_name || row.display_name
+            const exact = row.exact_scores ?? 0
+            const gd = Math.max(0, (row.correct_goal_diff ?? 0) - exact)
+            const winners = Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))
+            const qualifiers = row.qualifier_correct ?? row.qualifier_points ?? 0
             return (
-              <div key={row.user_id} style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 4rem 4rem 4rem 4rem 5rem', gap: '0.5rem', alignItems: 'center', padding: '0.75rem 1.25rem', borderBottom: i < leaderboard.length - 1 ? '1px solid var(--dark-border)' : 'none' }}>
+              <div key={row.user_id} style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem 4rem 5rem', gap: '0.5rem', alignItems: 'center', padding: '0.75rem 1.25rem', borderBottom: i < leaderboard.length - 1 ? '1px solid var(--dark-border)' : 'none' }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                 </div>
@@ -62,9 +67,10 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
                   {prof?.nickname && <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>{prof.display_name}</div>}
                   <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)' }}>{row.tips_submitted} tips</div>
                 </div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: row.exact_scores > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{row.exact_scores ?? 0}</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: row.correct_winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{row.correct_winners ?? 0}</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: (row.qualifier_points ?? 0) > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{row.qualifier_points ?? 0}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: exact > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{exact}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: gd > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{gd}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{winners}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: qualifiers > 0 ? '#a78bfa' : 'rgba(255,255,255,0.25)' }}>{qualifiers}</div>
                 <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: 'rgba(255,255,255,0.6)' }}>{row.match_points ?? 0}</div>
                 <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : '#e8f5ee' }}>{row.total_points}</div>
               </div>
@@ -73,7 +79,7 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
         </div>
       )}
       <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.75rem' }}>
-        🎯 Exact scores · ✅ Correct winners · 🏟️ Qualifier pts · MATCH = match tip pts only
+        🎯 Exact · ⚖️ Goal diff only · ✅ Winner only · 🗂️ Qualifiers correct · MATCH = match pts only
       </p>
     </div>
   )
