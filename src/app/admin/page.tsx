@@ -41,12 +41,15 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
         <p style={{ color: 'rgba(255,255,255,0.3)' }}>No scores yet.</p>
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem 4rem 5rem', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 3rem 3rem 3rem 3rem 3rem 3rem 3rem 4rem', gap: '0.4rem', padding: '0.6rem 1rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em', minWidth: 520 }}>
             <div>#</div><div>PLAYER</div>
-            <div style={{ textAlign: 'center' }}>🎯</div>
-            <div style={{ textAlign: 'center' }}>⚖️</div>
-            <div style={{ textAlign: 'center' }}>✅</div>
-            <div style={{ textAlign: 'center' }}>🗂️</div>
+            <div style={{ textAlign: 'center' }} title='Exact scores'>🎯</div>
+            <div style={{ textAlign: 'center' }} title='Goal diff only'>⚖️</div>
+            <div style={{ textAlign: 'center' }} title='Correct winners'>✅</div>
+            <div style={{ textAlign: 'center' }} title='Qualifier pts'>🗂️pts</div>
+            <div style={{ textAlign: 'center' }} title='Qualifier count'>🗂️#</div>
+            <div style={{ textAlign: 'center' }} title='Prediction points'>🔮</div>
             <div style={{ textAlign: 'center' }}>MATCH</div>
             <div style={{ textAlign: 'center' }}>TOTAL</div>
           </div>
@@ -56,7 +59,10 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
             const exact = row.exact_scores ?? 0
             const gd = Math.max(0, (row.correct_goal_diff ?? 0) - exact)
             const winners = Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))
-            const qualifiers = row.qualifier_correct ?? row.qualifier_points ?? 0
+            const qPts = row.qualifier_points ?? 0
+            const ptsEach = row.pts_qualify ?? 20
+            const qCount = qPts > 0 && ptsEach > 0 ? (() => { const c = qPts / ptsEach; return c % 1 === 0 ? String(c) : c.toFixed(1) })() : '–'
+            const predPts = row.prediction_points ?? null
             return (
               <div key={row.user_id} style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 3rem 3rem 3rem 3rem 3rem 3rem 3rem 4rem', gap: '0.4rem', alignItems: 'center', padding: '0.65rem 1rem', borderBottom: i < leaderboard.length - 1 ? '1px solid var(--dark-border)' : 'none', minWidth: 520 }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
@@ -67,18 +73,20 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
                   {prof?.nickname && <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>{prof.display_name}</div>}
                   <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)' }}>{row.tips_submitted} tips</div>
                 </div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: exact > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{exact}</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: gd > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{gd}</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{winners}</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: qualifiers > 0 ? '#a78bfa' : 'rgba(255,255,255,0.25)' }}>{qualifiers}</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', color: 'rgba(255,255,255,0.6)' }}>{row.match_points ?? 0}</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : '#e8f5ee' }}>{row.total_points}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: exact > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{exact}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: gd > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{gd}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{winners}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: qPts > 0 ? '#a78bfa' : 'rgba(255,255,255,0.25)' }}>{qPts}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: qPts > 0 ? '#a78bfa' : 'rgba(255,255,255,0.25)' }}>{qCount}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: predPts ? '#f0abfc' : 'rgba(255,255,255,0.2)' }}>{predPts ?? '–'}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>{row.match_points ?? 0}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : '#e8f5ee' }}>{row.total_points}</div>
               </div>
             )
           })}
+          </div>
         </div>
       )}
-      </div>
       <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.75rem' }}>
         🎯 Exact · ⚖️ GD · ✅ Win · 🗂️pts Qual pts · 🗂️# Qual count · 🔮 Predictions · MATCH pts
       </p>
