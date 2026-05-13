@@ -263,6 +263,7 @@ function CountdownBar({ matches, myTips, tournament, t }: any) {
 
 // ── Head to Head ──────────────────────────────────────────────────────────────
 function HeadToHead({ leaderboard, allTips, profilesMap, userId, matches }: any) {
+  const { t } = useLang()
   const [opponent, setOpponent] = useState('')
   
   const me = leaderboard.find((r: any) => r.user_id === userId)
