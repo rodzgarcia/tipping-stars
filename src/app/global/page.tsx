@@ -134,14 +134,15 @@ export default function GlobalLeaderboard() {
           <div style={{ padding: '3rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>No results yet.</div>
         ) : (
           <div className="card" style={{ overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2.5rem 1fr 4rem 3rem 3rem 3rem 3rem', gap: '0.5rem', padding: '0.6rem 1.25rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 3.5rem 3rem 3rem 3rem 3rem', gap: '0.4rem', padding: '0.6rem 1rem', borderBottom: '1px solid var(--dark-border)', fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', fontWeight: 600, letterSpacing: '0.05em', minWidth: 380 }}>
               <div>#</div>
               <div>PLAYER · TOURNAMENT</div>
-              <div style={{ textAlign: 'center' }}>SCORE%</div>
+              <div style={{ textAlign: 'center' }}>%</div>
               <div style={{ textAlign: 'center' }}>🎯</div>
               <div style={{ textAlign: 'center' }}>⚖️</div>
               <div style={{ textAlign: 'center' }}>✅</div>
-              <div style={{ textAlign: 'center' }}>🏟️</div>
+              <div style={{ textAlign: 'center' }}>🗂️</div>
             </div>
 
             {rows.map((row: any, i: number) => {
@@ -150,12 +151,12 @@ export default function GlobalLeaderboard() {
               const isMe = row.user_id === user?.id
               return (
                 <div key={`${row.user_id}-${row.tournament_id}`} style={{
-                  display: 'grid', gridTemplateColumns: '2.5rem 2.5rem 1fr 4rem 3rem 3rem 3rem 3rem',
-                  gap: '0.5rem', alignItems: 'center', padding: '0.75rem 1rem', minWidth: 420,
+                  display: 'grid', gridTemplateColumns: '2rem 1fr 3.5rem 3rem 3rem 3rem 3rem',
+                  gap: '0.4rem', alignItems: 'center', padding: '0.75rem 1rem', minWidth: 380,
                   borderBottom: i < rows.length - 1 ? '1px solid var(--dark-border)' : 'none',
                   background: isMe ? 'rgba(34,197,94,0.05)' : undefined,
                 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', color: i < 3 ? '#fbbf24' : 'rgba(255,255,255,0.25)', textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: i < 3 ? '#fbbf24' : 'rgba(255,255,255,0.25)', textAlign: 'center' }}>
                     {i < 3 ? MEDAL[i] : i + 1}
                   </div>
 
@@ -197,6 +198,7 @@ export default function GlobalLeaderboard() {
                 </div>
               )
             })}
+            </div>
           </div>
         )}
 
