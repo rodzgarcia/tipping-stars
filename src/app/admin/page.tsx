@@ -58,7 +58,7 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
             const winners = Math.max(0, (row.correct_winners ?? 0) - (row.correct_goal_diff ?? 0))
             const qualifiers = row.qualifier_correct ?? row.qualifier_points ?? 0
             return (
-              <div key={row.user_id} style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 3.5rem 3.5rem 3.5rem 3.5rem 4rem 5rem', gap: '0.5rem', alignItems: 'center', padding: '0.75rem 1.25rem', borderBottom: i < leaderboard.length - 1 ? '1px solid var(--dark-border)' : 'none' }}>
+              <div key={row.user_id} style={{ display: 'grid', gridTemplateColumns: '2rem 1fr 3rem 3rem 3rem 3rem 3rem 3rem 3rem 4rem', gap: '0.4rem', alignItems: 'center', padding: '0.65rem 1rem', borderBottom: i < leaderboard.length - 1 ? '1px solid var(--dark-border)' : 'none', minWidth: 520 }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: i === 0 ? '#fbbf24' : i === 1 ? '#9ca3af' : i === 2 ? '#b87333' : 'rgba(255,255,255,0.3)' }}>
                   {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
                 </div>
@@ -78,15 +78,28 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
           })}
         </div>
       )}
+      </div>
       <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', marginTop: '0.75rem' }}>
-        🎯 Exact · ⚖️ Goal diff only · ✅ Winner only · 🗂️ Qualifiers correct · MATCH = match pts only
+        🎯 Exact · ⚖️ GD · ✅ Win · 🗂️pts Qual pts · 🗂️# Qual count · 🔮 Predictions · MATCH pts
       </p>
     </div>
   )
 }
 
 
-const WC_TEAMS = ["TBD","Albania","Algeria","Argentina","Australia","Austria","Belgium","Bolivia","Bosnia and Herzegovina","Brazil","Canada","Cape Verde","Chile","Colombia","Costa Rica","Croatia","Curacao","Czech Republic","DR Congo","Ecuador","Egypt","England","France","Germany","Ghana","Greece","Haiti","Honduras","Hungary","IR Iran","Iraq","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kenya","Mali","Mexico","Morocco","Netherlands","New Zealand","Nigeria","Norway","Panama","Paraguay","Peru","Poland","Portugal","Qatar","Saudi Arabia","Scotland","Senegal","Serbia","Slovakia","Slovenia","South Africa","South Korea","Spain","Sweden","Switzerland","Trinidad and Tobago","Tunisia","Turkey","Ukraine","United States","Uruguay","Uzbekistan","Venezuela","Wales"]
+const WC_TEAMS = [
+  "TBD",
+  "Argentina","Australia","Belgium","Bolivia","Bosnia and Herzegovina",
+  "Brazil","Cameroon","Canada","Cape Verde","Colombia","Costa Rica",
+  "Croatia","Curacao","DR Congo","Ecuador","Egypt","England","France",
+  "Germany","Ghana","Haiti","Honduras","Iran","Iraq","Ivory Coast",
+  "Jamaica","Japan","Jordan","Mali","Mexico","Morocco","Netherlands",
+  "New Zealand","Nigeria","Norway","Panama","Paraguay","Peru","Poland",
+  "Portugal","Qatar","Saudi Arabia","Scotland","Senegal","Serbia",
+  "Slovakia","Slovenia","South Africa","South Korea","Spain","Sweden",
+  "Switzerland","Trinidad and Tobago","Tunisia","Turkey","Ukraine",
+  "United States","Uruguay","Uzbekistan","Venezuela","Wales"
+]
 
 function KnockoutTemplates({ supabase, tournaments }: any) {
   const ROUNDS = [
@@ -406,7 +419,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
   const [tournamentTips, setTournamentTips] = useState<any[]>([])
   const [profiles, setProfiles] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'matches' | 'predictions' | 'qualifiers'>('matches')
+  const [view, setView] = useState<'matches' | 'knockout' | 'qualifiers' | 'predictions'>('matches')
   const tournament = tournaments.find((t: any) => t.id === tournamentId)
 
   useEffect(() => {
@@ -569,6 +582,51 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
         </div>
       )}
 
+
+      {view === 'knockout' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {upcomingMatches.filter((m: any) => m.round && m.round !== 'group').length === 0 ? (
+            <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
+              No upcoming knockout matches yet
+            </div>
+          ) : upcomingMatches.filter((m: any) => m.round && m.round !== 'group').map((m: any) => {
+            const missingUids = memberIds.filter(uid => !tippedMatchIds.has(uid + '-' + m.id))
+            if (missingUids.length === 0) return null
+            const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
+            const minsLeft = Math.round((lockTime.getTime() - new Date().getTime()) / 60000)
+            const hoursLeft = Math.floor(minsLeft / 60)
+            const daysLeft = Math.floor(hoursLeft / 24)
+            const timeStr = daysLeft > 0 ? daysLeft + 'd ' + (hoursLeft % 24) + 'h' : hoursLeft > 0 ? hoursLeft + 'h ' + (minsLeft % 60) + 'm' : minsLeft + 'm'
+            const isRed = minsLeft < 120
+            const ROUND: Record<string,string> = { r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third_place: '3rd', final: 'Final' }
+            return (
+              <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', borderLeft: `3px solid ${isRed ? '#f87171' : '#60a5fa'}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: '0.92rem' }}>{m.home_team} vs {m.away_team}</span>
+                    <span style={{ marginLeft: 8, fontSize: '0.72rem', color: '#60a5fa', background: 'rgba(96,165,250,0.1)', padding: '2px 6px', borderRadius: 4 }}>{ROUND[m.round] || m.round}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>
+                      {missingUids.length}/{memberIds.length} missing
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: isRed ? '#f87171' : '#fbbf24' }}>
+                      {timeStr}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  {missingUids.map(uid => (
+                    <span key={uid} style={{ padding: '0.2rem 0.6rem', borderRadius: 10, background: isRed ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)', border: `1px solid ${isRed ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.12)'}`, fontSize: '0.75rem', color: isRed ? '#f87171' : 'rgba(255,255,255,0.7)' }}>
+                      {getName(uid)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {view === 'qualifiers' && (
         <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
