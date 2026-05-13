@@ -47,8 +47,8 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
             <div style={{ textAlign: 'center' }} title='Exact scores'>🎯</div>
             <div style={{ textAlign: 'center' }} title='Goal diff only'>⚖️</div>
             <div style={{ textAlign: 'center' }} title='Correct winners'>✅</div>
-            <div style={{ textAlign: 'center' }} title='Qualifier pts'>🗂️pts</div>
             <div style={{ textAlign: 'center' }} title='Qualifier count'>🗂️#</div>
+            <div style={{ textAlign: 'center' }} title='Qualifier pts'>🗂️pts</div>
             <div style={{ textAlign: 'center' }} title='Prediction points'>🔮</div>
             <div style={{ textAlign: 'center' }}>MATCH</div>
             <div style={{ textAlign: 'center' }}>TOTAL</div>
@@ -76,8 +76,8 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
                 <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: exact > 0 ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>{exact}</div>
                 <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: gd > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{gd}</div>
                 <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{winners}</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: qPts > 0 ? '#a78bfa' : 'rgba(255,255,255,0.25)' }}>{qPts}</div>
                 <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: qPts > 0 ? '#a78bfa' : 'rgba(255,255,255,0.25)' }}>{qCount}</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: qPts > 0 ? '#a78bfa' : 'rgba(255,255,255,0.25)' }}>{qPts}</div>
                 <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: predPts ? '#f0abfc' : 'rgba(255,255,255,0.2)' }}>{predPts ?? '–'}</div>
                 <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>{row.match_points ?? 0}</div>
                 <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 700, color: i === 0 ? '#fbbf24' : '#e8f5ee' }}>{row.total_points}</div>
@@ -97,16 +97,17 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
 
 const WC_TEAMS = [
   "TBD",
-  "Argentina","Australia","Belgium","Bolivia","Bosnia and Herzegovina",
-  "Brazil","Cameroon","Canada","Cape Verde","Colombia","Costa Rica",
-  "Croatia","Curacao","DR Congo","Ecuador","Egypt","England","France",
-  "Germany","Ghana","Haiti","Honduras","Iran","Iraq","Ivory Coast",
-  "Jamaica","Japan","Jordan","Mali","Mexico","Morocco","Netherlands",
-  "New Zealand","Nigeria","Norway","Panama","Paraguay","Peru","Poland",
-  "Portugal","Qatar","Saudi Arabia","Scotland","Senegal","Serbia",
-  "Slovakia","Slovenia","South Africa","South Korea","Spain","Sweden",
-  "Switzerland","Trinidad and Tobago","Tunisia","Turkey","Ukraine",
-  "United States","Uruguay","Uzbekistan","Venezuela","Wales"
+  "Argentina","Australia","Brazil","Canada","Colombia","Costa Rica",
+  "Ecuador","Honduras","Jamaica","Mexico","Panama","Peru",
+  "Trinidad and Tobago","United States","Uruguay","Venezuela",
+  "Belgium","Croatia","England","France","Germany","Hungary",
+  "Italy","Netherlands","Poland","Portugal","Scotland","Serbia",
+  "Slovakia","Slovenia","Spain","Switzerland","Turkey","Ukraine","Wales",
+  "Cameroon","Cape Verde","DR Congo","Egypt","Ivory Coast","Mali",
+  "Morocco","Nigeria","Senegal","South Africa","Tunisia",
+  "Australia","Iran","Iraq","Japan","Jordan","Qatar",
+  "Saudi Arabia","South Korea","Uzbekistan",
+  "New Zealand","Bosnia and Herzegovina","Curacao","Ghana","Norway","Sweden","Haiti"
 ]
 
 function KnockoutTemplates({ supabase, tournaments }: any) {
@@ -500,7 +501,8 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
       {/* Sub tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
         {([
-          ['matches', `⚽ Match Tips`],
+          ['matches', `⚽ Group`],
+          ['knockout', `⚡ Knockout`],
           ['qualifiers', `🗂️ Qualifiers`],
           ['predictions', `🏆 Predictions`]
         ] as const).map(([v, label]) => (
@@ -1139,7 +1141,7 @@ export default function AdminPage() {
         </div>
 
         {/* Tabs */}
-        <div className="tab-nav" style={{ marginBottom: '1.5rem' }}>
+        <div className="tab-nav" style={{ marginBottom: '1.5rem', overflowX: 'auto', flexWrap: 'nowrap', WebkitOverflowScrolling: 'touch', paddingBottom: '2px' }}>
           <button className={`tab-btn ${tab === 'tournaments' ? 'active' : ''}`} onClick={() => setTab('tournaments')}><Settings size={13} style={{display:'inline',marginRight:4}}/>Setup</button>
           <button className={`tab-btn ${tab === 'members' ? 'active' : ''}`} onClick={() => setTab('members')}><Users size={13} style={{display:'inline',marginRight:4}}/>Members {pendingMembers.length > 0 && `(${pendingMembers.length})`}</button>
           <button className={`tab-btn ${tab === 'matches' ? 'active' : ''}`} onClick={() => setTab('matches')}><Calendar size={13} style={{display:'inline',marginRight:4}}/>Matches</button>
