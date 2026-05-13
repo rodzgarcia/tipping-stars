@@ -2108,8 +2108,11 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
                       <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f87171', display: 'inline-block' }} />
                       <span style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 600 }}>LIVE</span>
                     </div>
-                    <span style={{ fontWeight: 600 }}>{m.home_team} vs {m.away_team}</span>
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', marginLeft: '1rem', color: '#f87171' }}>{m.home_score ?? 0}–{m.away_score ?? 0}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 600 }}>{m.home_team} vs {m.away_team}</span>
+                      {m.round && (() => { const rl: Record<string,string> = { group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16', qf: 'Quarter-Final', sf: 'Semi-Final', third_place: '3rd Place', final: 'Final' }; return <span style={{ fontSize: '0.68rem', color: '#f87171', background: 'rgba(248,113,113,0.1)', padding: '0.1rem 0.45rem', borderRadius: 4 }}>{rl[m.round] || m.round}</span> })()}
+                    </div>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: '#f87171' }}>{m.home_score ?? 0}–{m.away_score ?? 0}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <input type="number" className="score-input" min={0} max={99} value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
@@ -2147,8 +2150,12 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
             return (
               <div key={m.id} className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontWeight: 500 }}>{m.home_team} vs {m.away_team}</span>
-                  <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem' }}>{new Date(m.kickoff_at).toLocaleString(undefined, {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.2rem' }}>
+                    <span style={{ fontWeight: 600 }}>{m.home_team} vs {m.away_team}</span>
+                    {m.round && (() => { const rl: Record<string,string> = { group: 'Group Stage', r32: 'Round of 32', r16: 'Round of 16', qf: 'Quarter-Final', sf: 'Semi-Final', third_place: '3rd Place', final: 'Final' }; return <span style={{ fontSize: '0.68rem', color: '#60a5fa', background: 'rgba(96,165,250,0.1)', padding: '0.1rem 0.45rem', borderRadius: 4, border: '1px solid rgba(96,165,250,0.2)' }}>{rl[m.round] || m.round}</span> })()}
+                    {m.group_name && <span style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.06)', padding: '0.1rem 0.4rem', borderRadius: 4 }}>{m.group_name}</span>}
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>{new Date(m.kickoff_at).toLocaleString(undefined, {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false})}</span>
                   {hasSavedScore && <span className="badge badge-grey" style={{ marginLeft: '0.5rem' }}>Draft: {m.home_score}–{m.away_score}</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
