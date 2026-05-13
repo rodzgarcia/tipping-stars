@@ -598,7 +598,8 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
               No upcoming knockout matches yet
             </div>
           ) : upcomingMatches.filter((m: any) => m.round && m.round !== 'group').map((m: any) => {
-            const missingUids = memberIds.filter(uid => !tippedMatchIds.has(uid + '-' + m.id))
+            const tippedSet = new Set(matchTips.filter((t: any) => t.match_id === m.id).map((t: any) => t.user_id))
+            const missingUids = memberIds.filter(uid => !tippedSet.has(uid))
             if (missingUids.length === 0) return null
             const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
             const minsLeft = Math.round((lockTime.getTime() - new Date().getTime()) / 60000)
