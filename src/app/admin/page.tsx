@@ -1133,17 +1133,35 @@ export default function AdminPage() {
 
   const currentTournament = tournaments.find((t: any) => t.id === selectedTournament)
   async function saveTournamentResults(results: { winner: string, second: string, third: string, top_scorer: string, group_results: Record<string, { first: string, second: string }> }) {
-    const pts = currentTournament?.pts_qualify || currentTournament?.pts_qualifying_teams || 10
-    await calculateGroupQualifierPoints(results.group_results, pts)
+    // Run across ALL tournaments so results are synced everywhere
+    const allTournamentIds = tournaments.map((t: any) => t.id)
+
+    // Qualifier points for each tournament
+    await Promise.all(allTournamentIds.map(async (tid: string) => {
+      const tour = tournaments.find((t: any) => t.id === tid)
+      const pts = tour?.pts_qualify || tour?.pts_qualifying_teams || 10
+      if (results.group_results && Object.keys(results.group_results).length > 0) {
+        await supabase.rpc('calculate_qualifier_points', {
+          p_tournament_id: tid,
+          p_pts_per_team: pts,
+          p_groups: results.group_results as any,
+        })
+      }
+    }))
+
+    // Prediction points for each tournament
     if (results.winner || results.second || results.third || results.top_scorer) {
-      await supabase.rpc('calculate_tournament_points', {
-        p_tournament_id: selectedTournament,
-        p_winner: results.winner || '',
-        p_second: results.second || '',
-        p_third: results.third || '',
-        p_top_scorer: results.top_scorer || '',
-      })
+      await Promise.all(allTournamentIds.map((tid: string) =>
+        supabase.rpc('calculate_tournament_points', {
+          p_tournament_id: tid,
+          p_winner: results.winner || '',
+          p_second: results.second || '',
+          p_third: results.third || '',
+          p_top_scorer: results.top_scorer || '',
+        })
+      ))
     }
+
     loadTournamentData()
   }
 
