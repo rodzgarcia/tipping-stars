@@ -97,17 +97,16 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
 
 const WC_TEAMS = [
   "TBD",
-  "Argentina","Australia","Brazil","Canada","Colombia","Costa Rica",
-  "Ecuador","Honduras","Jamaica","Mexico","Panama","Peru",
-  "Trinidad and Tobago","United States","Uruguay","Venezuela",
-  "Belgium","Croatia","England","France","Germany","Hungary",
-  "Italy","Netherlands","Poland","Portugal","Scotland","Serbia",
-  "Slovakia","Slovenia","Spain","Switzerland","Turkey","Ukraine","Wales",
-  "Cameroon","Cape Verde","DR Congo","Egypt","Ivory Coast","Mali",
-  "Morocco","Nigeria","Senegal","South Africa","Tunisia",
-  "Australia","Iran","Iraq","Japan","Jordan","Qatar",
-  "Saudi Arabia","South Korea","Uzbekistan",
-  "New Zealand","Bosnia and Herzegovina","Curacao","Ghana","Norway","Sweden","Haiti"
+  "Argentina","Australia","Belgium","Bosnia and Herzegovina","Brazil",
+  "Cameroon","Canada","Cape Verde","Colombia","Costa Rica","Croatia",
+  "Curacao","DR Congo","Ecuador","Egypt","England","France","Germany",
+  "Ghana","Haiti","Honduras","Iran","Iraq","Ivory Coast","Jamaica",
+  "Japan","Jordan","Mali","Mexico","Morocco","Netherlands","New Zealand",
+  "Nigeria","Norway","Panama","Peru","Poland","Portugal","Qatar",
+  "Saudi Arabia","Scotland","Senegal","Serbia","Slovakia","Slovenia",
+  "South Africa","South Korea","Spain","Sweden","Switzerland",
+  "Trinidad and Tobago","Tunisia","Turkey","Ukraine","United States",
+  "Uruguay","Uzbekistan","Venezuela","Wales"
 ]
 
 function KnockoutTemplates({ supabase, tournaments }: any) {
@@ -466,8 +465,8 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
     return new Date() < lockTime
   }).sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())
 
-  // For each upcoming match, find who hasn't tipped yet
-  const matchPending = upcomingMatches.map((m: any) => {
+  // Group stage pending only
+  const matchPending = upcomingMatches.filter((m: any) => !m.round || m.round === 'group').map((m: any) => {
     const tipped = new Set(matchTips.filter((t: any) => t.match_id === m.id).map((t: any) => t.user_id))
     const missing = memberIds.filter(uid => !tipped.has(uid))
     const kickoff = new Date(m.kickoff_at)
@@ -553,13 +552,19 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
                   <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2, marginBottom: '0.6rem' }}>
                     <div style={{ height: '100%', width: `${(tipped/total)*100}%`, background: '#4ade80', borderRadius: 2 }} />
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem' }}>
                     {missing.map((uid: string) => (
                       <span key={uid} style={{ fontSize: '0.72rem', padding: '0.15rem 0.5rem', borderRadius: 10, background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
                         {getName(uid)}
                       </span>
                     ))}
                   </div>
+                  <button onClick={() => {
+                    const text = `⚽ *${m.home_team} vs ${m.away_team}*\n🔒 Locks soon — missing tips:\n${missing.map((uid: string) => `• ${getName(uid)}`).join('\n')}\n\nTip now: https://tipping-stars.vercel.app`
+                    navigator.clipboard.writeText(text).then(() => alert('Copied! Paste in WhatsApp'))
+                  }} style={{ fontSize: '0.68rem', color: '#4ade80', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 6, padding: '0.2rem 0.6rem', cursor: 'pointer' }}>
+                    📋 Copy for WhatsApp
+                  </button>
                 </div>
               ))}
             </div>
@@ -626,13 +631,19 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
                     </span>
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem' }}>
                   {missingUids.map(uid => (
                     <span key={uid} style={{ padding: '0.2rem 0.6rem', borderRadius: 10, background: isRed ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)', border: `1px solid ${isRed ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.12)'}`, fontSize: '0.75rem', color: isRed ? '#f87171' : 'rgba(255,255,255,0.7)' }}>
                       {getName(uid)}
                     </span>
                   ))}
                 </div>
+                <button onClick={() => {
+                  const text = `⚡ *${m.home_team} vs ${m.away_team}* (${ROUND[m.round] || m.round})\n🔒 Locks soon — missing tips:\n${missingUids.map((uid: string) => `• ${getName(uid)}`).join('\n')}\n\nTip now: https://tipping-stars.vercel.app`
+                  navigator.clipboard.writeText(text).then(() => alert('Copied! Paste in WhatsApp'))
+                }} style={{ fontSize: '0.68rem', color: '#4ade80', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 6, padding: '0.2rem 0.6rem', cursor: 'pointer' }}>
+                  📋 Copy for WhatsApp
+                </button>
               </div>
             )
           })}
