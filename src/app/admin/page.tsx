@@ -497,6 +497,38 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
         ⏳ PENDING TIPS — {tournament?.name}
       </h2>
 
+      {/* Consolidated WhatsApp export */}
+      {(() => {
+        const allMissing: string[] = []
+        const lines: string[] = []
+        const pending = upcomingMatches.filter((m: any) => {
+          const tipped = new Set(matchTips.filter((t: any) => t.match_id === m.id).map((t: any) => t.user_id))
+          const missing = memberIds.filter((uid: string) => !tipped.has(uid))
+          if (missing.length === 0) return false
+          const ROUND: Record<string,string> = { group: 'Grupo', r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third_place: '3º', final: 'Final' }
+          const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
+          const minsLeft = Math.round((lockTime.getTime() - Date.now()) / 60000)
+          const h = Math.floor(minsLeft / 60), d = Math.floor(h / 24)
+          const timeStr = d > 0 ? d + 'd ' + (h%24) + 'h' : h > 0 ? h + 'h' : minsLeft + 'm'
+          lines.push(`⚽ *${m.home_team} vs ${m.away_team}* (${ROUND[m.round] || m.round}) — 🔒 ${timeStr}\n${missing.map((uid: string) => '• ' + getName(uid)).join('\n')}`)
+          return true
+        })
+        if (lines.length === 0) return null
+        return (
+          <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1rem', background: 'rgba(74,222,128,0.04)', border: '1px solid rgba(74,222,128,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)' }}>
+              📋 {pending.length} game{pending.length !== 1 ? 's' : ''} with pending tips
+            </span>
+            <button onClick={() => {
+              const text = `🏆 *PALPITES PENDENTES*\n\n${lines.join('\n\n')}\n\nTip now: https://tipping-stars.vercel.app`
+              navigator.clipboard.writeText(text).then(() => alert('Copied! Paste in WhatsApp'))
+            }} style={{ fontSize: '0.75rem', color: '#4ade80', background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 6, padding: '0.3rem 0.8rem', cursor: 'pointer', fontWeight: 600 }}>
+              📲 Copy all for WhatsApp
+            </button>
+          </div>
+        )
+      })()}
+
       {/* Sub tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
         {([

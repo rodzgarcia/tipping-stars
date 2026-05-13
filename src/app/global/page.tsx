@@ -150,8 +150,8 @@ export default function GlobalLeaderboard() {
               const isMe = row.user_id === user?.id
               return (
                 <div key={`${row.user_id}-${row.tournament_id}`} style={{
-                  display: 'grid', gridTemplateColumns: '2.5rem 1fr 4rem 3rem 3rem 3rem 3rem',
-                  gap: '0.5rem', alignItems: 'center', padding: '0.85rem 1.25rem',
+                  display: 'grid', gridTemplateColumns: '2.5rem 2.5rem 1fr 4rem 3rem 3rem 3rem 3rem',
+                  gap: '0.5rem', alignItems: 'center', padding: '0.75rem 1rem', minWidth: 420,
                   borderBottom: i < rows.length - 1 ? '1px solid var(--dark-border)' : 'none',
                   background: isMe ? 'rgba(34,197,94,0.05)' : undefined,
                 }}>
