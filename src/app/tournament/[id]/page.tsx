@@ -309,7 +309,7 @@ function HeadToHead({ leaderboard, allTips, profilesMap, userId, matches }: any)
 
       {!opponent ? (
         <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>
-          Pick someone to compare against
+          {t.lang === 'pt' ? 'Escolha alguém para comparar' : 'Pick someone to compare against'}
         </div>
       ) : (
         <>
@@ -2897,8 +2897,9 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
           </p>
           <div className="card" style={{ padding: '1.5rem' }}>
             <ResponsiveContainer width="100%" height={Math.max(200, barData.length * 55)}>
-              <BarChart data={barData} layout="vertical" margin={{ top: 5, right: 40, left: 10, bottom: 5 }}>
+              <BarChart data={barData} layout="vertical" margin={{ top: 5, right: 40, left: 10, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <Legend wrapperStyle={{ fontSize: '0.7rem', paddingTop: 10 }} />
                 <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
                 <YAxis type="category" dataKey="name" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 500 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} width={80} />
                 <Tooltip
@@ -2911,7 +2912,9 @@ function LeaderboardCharts({ leaderboard, allTips, t, sortKey, setSortKey, profi
                     <Bar dataKey="winner" stackId="a" fill="#4ade80" name={t.lang === 'pt' ? '✅ Vencedor' : '✅ Winner'} />
                     <Bar dataKey="goalDiff" stackId="a" fill="#60a5fa" name={t.lang === 'pt' ? '⚖️ Saldo de Gols' : '⚖️ Goal Diff'} />
                     <Bar dataKey="exact" stackId="a" fill="#fbbf24" name={t.lang === 'pt' ? '🎯 Exato' : '🎯 Exact'} />
-                    <Bar dataKey="bonus" stackId="a" fill="#f87171" name={t.lang === 'pt' ? '🚀 Bônus' : '🚀 Bonus'} radius={[0,4,4,0]} />
+                    <Bar dataKey="bonus" stackId="a" fill="#f87171" name={t.lang === 'pt' ? '🚀 Bônus' : '🚀 Bonus'} />
+                    <Bar dataKey="qualifier" stackId="a" fill="#a78bfa" name={t.lang === 'pt' ? '🗂️ Classificados' : '🗂️ Qualifiers'} />
+                    <Bar dataKey="prediction" stackId="a" fill="#f0abfc" name={t.lang === 'pt' ? '🔮 Previsões' : '🔮 Predictions'} radius={[0,4,4,0]} />
                   </>
                 ) : (
                   <Bar dataKey="value" fill={barColor[sortKey]} radius={[0,4,4,0]}
@@ -3082,15 +3085,25 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--dark-border)' }}>
                   <th style={{ padding: '0.6rem 1rem', textAlign: 'left', color: 'rgba(255,255,255,0.3)', fontWeight: 500, minWidth: 160, position: 'sticky', left: 0, background: 'var(--dark-card)' }}>
-                    {t.lang === 'pt' ? 'Jogador' : 'Player'}
+                    {t.lang === 'pt' ? 'JOGADOR' : 'PLAYER'}
                   </th>
-                  {lockedKnockout.map((m: any) => (
+                  {lockedKnockout.map((m: any) => {
+                    const hFlag = TEAM_FLAGS[m.home_team] ? `https://flagcdn.com/24x18/${TEAM_FLAGS[m.home_team]}.png` : null
+                    const aFlag = TEAM_FLAGS[m.away_team] ? `https://flagcdn.com/24x18/${TEAM_FLAGS[m.away_team]}.png` : null
+                    return (
                     <th key={m.id} style={{ padding: '0.5rem 0.4rem', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontWeight: 500, minWidth: 80 }}>
-                      <div style={{ fontSize: '0.7rem', whiteSpace: 'nowrap' }}>{m.home_team?.split(' ').pop()} v {m.away_team?.split(' ').pop()}</div>
-                      <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)' }}>{roundLabel[m.round] || m.round}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, fontSize: '0.68rem', whiteSpace: 'nowrap' }}>
+                        {hFlag && <img src={hFlag} style={{ width: 14, height: 10, objectFit: 'cover', borderRadius: 1 }} alt="" />}
+                        <span>{m.home_team?.split(' ').slice(-1)[0]}</span>
+                        <span style={{ opacity: 0.4 }}>v</span>
+                        <span>{m.away_team?.split(' ').slice(-1)[0]}</span>
+                        {aFlag && <img src={aFlag} style={{ width: 14, height: 10, objectFit: 'cover', borderRadius: 1 }} alt="" />}
+                      </div>
+                      <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.2)', marginTop: 1 }}>{roundLabel[m.round] || m.round}</div>
                       {m.status === 'completed' && <div style={{ fontSize: '0.65rem', color: '#4ade80' }}>{m.home_score}–{m.away_score}</div>}
                     </th>
-                  ))}
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -3325,14 +3338,14 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             })()}
             {match.group_name && <span className="badge badge-grey">{match.group_name}</span>}
             {match.status === 'completed' && match.home_score !== null && (
-              <span className="badge badge-green">Result: {match.home_score ?? 0}–{match.away_score ?? 0}</span>
+              <span className="badge badge-green">{t.lang === 'pt' ? 'Resultado' : 'Result'}: {match.home_score ?? 0}–{match.away_score ?? 0}</span>
             )}
             {match.status === 'live' && match.home_score !== null && (
               <span className="badge" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
                 🔴 LIVE {match.home_score}–{match.away_score}
               </span>
             )}
-            {isLocked && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />Locked</span>}
+            {isLocked && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />{t.lang === 'pt' ? 'Bloqueado' : 'Locked'}</span>}
           </div>
           {odds && !isLocked && (() => {
             const vals = [
@@ -3474,23 +3487,23 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
               </div>
             ) : (
               <select className="input" style={{ background: "#1a1a2e", color: "#fff" }} value={f.val} onChange={e => f.set(e.target.value)}>
-                <option value="">— Select a team —</option>
+                <option value="">— {t.lang === 'pt' ? 'Selecione um time' : 'Select a team'} —</option>
                 {WC2026_TEAMS.map(team => <option key={team} value={team}>{team}</option>)}
               </select>
             )}
             {existing && existing[`pts_${f.key}`] > 0 && (
-              <div style={{ fontSize: '0.75rem', color: '#4ade80', marginTop: '0.25rem' }}>✔ Correct! +{existing[`pts_${f.key}`]} pts</div>
+              <div style={{ fontSize: '0.75rem', color: '#4ade80', marginTop: '0.25rem' }}>{t.lang === 'pt' ? '✔ Correto!' : '✔ Correct!'} +{existing[`pts_${f.key}`]} pts</div>
             )}
           </div>
         ))}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-            <label className="label">Top Goal Scorer</label>
+            <label className="label">{t.lang === 'pt' ? 'Artilheiro' : 'Top Goal Scorer'}</label>
             <span className="badge badge-gold">{tournament.pts_top_scorer} pts</span>
           </div>
           {isLocked ? (
             <div style={{ padding: '0.65rem 0.9rem', background: 'rgba(255,255,255,0.04)', borderRadius: 10, fontSize: '0.9rem', color: topScorer ? '#e8f5ee' : 'rgba(255,255,255,0.25)' }}>
-              {topScorer || 'Not submitted'}
+              {topScorer || (t.lang === 'pt' ? 'Não enviado' : 'Not submitted')}
             </div>
           ) : (
             <>
@@ -3500,9 +3513,9 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
                 value={TOP_SCORERS.includes(topScorer) ? topScorer : topScorer ? '__other__' : ''}
                 onChange={e => { if (e.target.value === '__other__') setTopScorer(''); else setTopScorer(e.target.value) }}
               >
-                <option value="">— Select a player —</option>
+                <option value="">— {t.lang === 'pt' ? 'Selecione um jogador' : 'Select a player'} —</option>
                 {TOP_SCORERS.map(p => <option key={p} value={p}>{p}</option>)}
-                <option value="__other__">✏️ Other player...</option>
+                <option value="__other__">{t.lang === 'pt' ? '✏️ Outro jogador...' : '✏️ Other player...'}</option>
               </select>
               {(!TOP_SCORERS.includes(topScorer) && topScorer !== '') || topScorer === '' && false ? null : null}
               {topScorer === '' || TOP_SCORERS.includes(topScorer) ? null : (
