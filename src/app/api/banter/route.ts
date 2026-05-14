@@ -54,7 +54,7 @@ ${matchContext || 'No completed matches yet — the suffering is just beginning'
 
 Reply with ONLY a JSON array of 3 strings. Example: ["line1", "line2", "line3"]`
 
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest']
+    const models = ['gemini-1.5-flash-8b', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash-lite']
     let text = ''
 
     for (const model of models) {
