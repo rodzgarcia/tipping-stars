@@ -1045,7 +1045,7 @@ export default function TournamentPage() {
             onSave={loadAll}
           />
         )}
-      <HelpChat t={t} tournament={tournament} leaderboard={leaderboard} profilesMap={profilesMap} />
+
 
       {showWelcome && myProfile && (
         <div style={{
