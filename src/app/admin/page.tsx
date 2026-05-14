@@ -1762,31 +1762,12 @@ function MatchManager({ matches, tournamentId, supabase, onUpdate }: any) {
 
   async function toggleMatchLock(matchId: string, currentlyLocked: boolean) {
     setLockingMatch(matchId)
-    // Get the match details first so we can lock all copies across tournaments
-    const { data: matchData } = await supabase
+    const { error } = await supabase
       .from('matches')
-      .select('home_team, away_team, kickoff_at')
+      .update({ tip_lock_override: !currentlyLocked })
       .eq('id', matchId)
-      .single()
-
-    if (matchData) {
-      // Lock/unlock ALL copies of this match across all tournaments
-      const { error } = await supabase
-        .from('matches')
-        .update({ tip_lock_override: !currentlyLocked })
-        .eq('home_team', matchData.home_team)
-        .eq('away_team', matchData.away_team)
-        .eq('kickoff_at', matchData.kickoff_at)
-      if (error) alert('Lock failed: ' + error.message)
-    } else {
-      // Fallback: just update this one
-      const { error } = await supabase
-        .from('matches')
-        .update({ tip_lock_override: !currentlyLocked })
-        .eq('id', matchId)
-      if (error) alert('Lock failed: ' + error.message)
-    }
-    onUpdate()
+    if (error) alert('Lock failed: ' + error.message)
+    else onUpdate()
     setLockingMatch(null)
   }
 
