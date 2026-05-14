@@ -1,43 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const FALLBACKS = [
-  "Someone here tips with the same strategy as a broken compass.",
-  "The leaderboard is basically a monument to one person's suffering.",
-  "Statistically, a random number generator would outperform half this group.",
-]
-
 export async function POST(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) return NextResponse.json({ banter: FALLBACKS })
+  if (!apiKey) return NextResponse.json({ banter: ['No API key set — even the AI gave up on this group.'] })
 
   try {
     const { players, matchContext, seed, lang } = await req.json()
     const isPt = lang === 'pt'
 
-    const prompt = isPt
-      ? `Você é um bot de zoação hilarante para um grupo de amigos do WhatsApp que está jogando um bolão da Copa do Mundo. Gere exatamente 3 frases curtas e engraçadas (máx 18 palavras cada) sobre esta competição. Semente aleatória: ${seed}.
+    const ptPrompt = `Você é um bot de zoação IMPLACÁVEL para um grupo de amigos que está jogando um bolão da Copa do Mundo. Você conhece todo mundo há anos e não tem NENHUM filtro. Gere exatamente 3 zoações DIFERENTES e ENGRAÇADAS sobre essa competição. Semente: ${seed}.
 
-ESTILO: Como um amigo próximo que conhece todos há anos. Zoe sem piedade mas com carinho. Use os nomes reais. Seja específico sobre erros de palpite. Pode mencionar que alguém parece adivinhar no escuro, ou que está pagando para participar e perder, ou que talvez devesse apostar em time que não existe. Se a pessoa está em primeiro, faça graça que foi sorte. Se está em último, não deixe escapar.
+REGRAS DE OURO:
+- Use os apelidos/nomes reais das pessoas — quanto mais específico melhor
+- Zoação é sobre os PALPITES, não sobre futebol em geral
+- Quem está em último: destrua sem piedade
+- Quem está em primeiro: diga que foi sorte, que até um cego acertaria, que deve estar trapaceando
+- Mencione scores específicos se disponível (tipo "quem deu 3-0 num jogo que terminou 1-1?")
+- Invente teorias ridículas: tipou baseado no nome do time, no uniforme, pediu pro filho de 4 anos, consultou horóscopo
+- Pode falar que alguém paga pra perder, que está disputando com si mesmo pelo último lugar
+- Use expressões brasileiras: "tá de zueira", "meteu o pé", "palpite de padeiro", "apostou no errado de olho fechado"
+- NUNCA repita a mesma estrutura duas vezes
+- Máximo 20 palavras por frase — curto e certeiro
 
-Classificação e contexto:
+Classificação atual:
 ${players}
 
-Resultados recentes:
-${matchContext || 'Nenhum jogo encerrado ainda'}
+Resultados e palpites recentes:
+${matchContext || 'Nenhum jogo encerrado — o sofrimento mal começou'}
 
-Responda APENAS com um array JSON de 3 strings, nada mais. Exemplo: ["frase um", "frase dois", "frase três"]`
+Responda APENAS com array JSON de 3 strings. Exemplo: ["frase1", "frase2", "frase3"]`
 
-      : `You are a savage but loveable banter bot for a tight-knit WhatsApp group running a World Cup tipping comp. Generate exactly 3 short roast lines (max 18 words each) about this competition. Random seed: ${seed}.
+    const enPrompt = `You are a RUTHLESS roast bot for a tight WhatsApp group running a World Cup tipping comp. You've known everyone for years and have ZERO filter. Generate exactly 3 DIFFERENT savage roasts about this competition. Seed: ${seed}.
 
-STYLE: Like a close mate who's known everyone for years. Ruthless but affectionate. Use real names. Be brutally specific about bad tips. Roast the person in last place mercilessly. If someone is winning, imply it's pure luck or a fluke. Reference specific wrong scores if available. Feel free to suggest someone tips by asking their cat, throwing darts blindfolded, or consulting a Magic 8-Ball. Mention that someone clearly didn't watch a single match before tipping. If scores are very close, create drama. Throw in a football reference or two.
+GOLDEN RULES:
+- Use real names/nicknames — the more specific the better
+- Roast is about their TIPS, not football in general
+- Last place: absolutely destroy them, show no mercy
+- First place: imply pure dumb luck, suggest they're cheating, say even a goldfish could've done it
+- Reference SPECIFIC wrong scores if available (like "who actually tipped 4-0 on that 1-1 draw?")
+- Invent ridiculous theories: tipped based on kit colour, asked their dog, used a horoscope, let their toddler smash the keyboard
+- Suggest the last place person is competing against themselves for the wooden spoon
+- Call out anyone who tipped the exact wrong score (got winner wrong AND score wrong)
+- If scores are close: manufacture drama about who's about to collapse
+- Mix football banter: "hasn't watched a match", "tips from vibes only", "confusing this with cricket"
+- NEVER repeat the same structure twice — vary the format
+- Max 20 words per line — short and brutal
 
-Standings and context:
+Current standings:
 ${players}
 
-Recent results:
+Recent results and tips:
 ${matchContext || 'No completed matches yet — the suffering is just beginning'}
 
-Reply with ONLY a JSON array of 3 strings, nothing else. Example: ["line one", "line two", "line three"]`
+Reply with ONLY a JSON array of 3 strings. Example: ["line1", "line2", "line3"]`
 
     const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest']
     let text = ''
@@ -50,8 +65,8 @@ Reply with ONLY a JSON array of 3 strings, nothing else. Example: ["line one", "
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 1.3, maxOutputTokens: 400 },
+              contents: [{ parts: [{ text: isPt ? ptPrompt : enPrompt }] }],
+              generationConfig: { temperature: 1.6, maxOutputTokens: 500 },
             })
           }
         )
@@ -61,23 +76,29 @@ Reply with ONLY a JSON array of 3 strings, nothing else. Example: ["line one", "
       } catch {}
     }
 
-    if (!text) return NextResponse.json({ banter: FALLBACKS })
+    if (!text) return NextResponse.json({ banter: isPt
+      ? ['O bot tentou zoar mas deu erro — como os seus palpites.']
+      : ['The AI tried to roast but errored out — just like your tips.']
+    })
 
     let parsed: string[] = []
     try {
       const clean = text.replace(/```json\n?|\n?```/g, '').trim()
       parsed = JSON.parse(clean)
     } catch {
-      const matches = text.match(/"([^"]{10,100})"/g)
+      const matches = text.match(/"([^"]{10,150})"/g)
       if (matches) parsed = matches.map((s: string) => s.slice(1, -1))
     }
 
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      return NextResponse.json({ banter: FALLBACKS })
+      return NextResponse.json({ banter: isPt
+        ? ['Nem o AI conseguiu encontrar palavras para descrever esses palpites.']
+        : ['Even the AI was speechless at how bad these tips are.']
+      })
     }
 
     return NextResponse.json({ banter: parsed.slice(0, 3) })
   } catch (e) {
-    return NextResponse.json({ banter: FALLBACKS })
+    return NextResponse.json({ banter: ['Error generating banter — the tips were so bad it crashed the AI.'] })
   }
 }

@@ -263,7 +263,6 @@ function CountdownBar({ matches, myTips, tournament, t }: any) {
 
 // ── Head to Head ──────────────────────────────────────────────────────────────
 function HeadToHead({ leaderboard, allTips, profilesMap, userId, matches }: any) {
-  const { t } = useLang()
   const [opponent, setOpponent] = useState('')
   
   const me = leaderboard.find((r: any) => r.user_id === userId)
@@ -1045,7 +1044,7 @@ export default function TournamentPage() {
             onSave={loadAll}
           />
         )}
-      <HelpChat t={t} tournament={tournament} />
+      <HelpChat t={t} tournament={tournament} leaderboard={leaderboard} profilesMap={profilesMap} />
 
       {showWelcome && myProfile && (
         <div style={{
@@ -1666,7 +1665,7 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
 }
 
 
-function HelpChat({ t, tournament }: { t: any, tournament?: any }) {
+function HelpChat({ t, tournament, leaderboard, profilesMap }: { t: any, tournament?: any, leaderboard?: any[], profilesMap?: any }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<{ role: string, content: string }[]>([])
   const [input, setInput] = useState('')
@@ -1676,7 +1675,7 @@ function HelpChat({ t, tournament }: { t: any, tournament?: any }) {
 
   useEffect(() => {
     if (open && messages.length === 0) {
-      setMessages([{ role: 'assistant', content: ispt ? 'Olá! Como posso ajudar? Pode me perguntar sobre pontuação, palpites, regras ou como navegar no app.' : 'Hey! Ask me anything about how to tip, how points work, or how to navigate the app.' }])
+      setMessages([{ role: 'assistant', content: ispt ? `Olá! Sou o assistente do ${tournament?.name || 'seu bolão'}. Posso te ajudar com pontuação, palpites, classificação e como usar o app. O que quer saber?` : `Hey! I'm the assistant for ${tournament?.name || 'your tournament'}. Ask me about scoring, tips, the current standings, or how the app works.` }])
     }
   }, [open])
 
@@ -1695,19 +1694,32 @@ function HelpChat({ t, tournament }: { t: any, tournament?: any }) {
       const resp = await fetch('/api/help', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMsgs.map(m => ({ role: m.role, content: m.content })), tournamentContext: {
-          lockMins: tournament?.tip_lock_minutes ?? 120,
-          groupLockMode: tournament?.group_lock_mode ?? 'per_match',
-          pts_winner: tournament?.pts_winner,
-          pts_goal_diff: tournament?.pts_goal_diff,
-          pts_exact_score: tournament?.pts_exact_score,
-          pts_big_margin_bonus: tournament?.pts_big_margin_bonus,
-          pts_qualify: tournament?.pts_qualify,
-          pts_second_place: tournament?.pts_second_place,
-          pts_third_place: tournament?.pts_third_place,
-          pts_top_scorer: tournament?.pts_top_scorer,
-          name: tournament?.name,
-        } })
+        body: JSON.stringify({
+          messages: newMsgs.map(m => ({ role: m.role, content: m.content })),
+          lang: t.lang,
+          tournamentContext: {
+            lockMins: tournament?.tip_lock_minutes ?? 120,
+            groupLockMode: tournament?.group_lock_mode ?? 'per_match',
+            pts_winner: tournament?.pts_winner,
+            pts_goal_diff: tournament?.pts_goal_diff,
+            pts_exact_score: tournament?.pts_exact_score,
+            pts_big_margin_bonus: tournament?.pts_big_margin_bonus,
+            pts_qualify: tournament?.pts_qualify,
+            pts_second_place: tournament?.pts_second_place,
+            pts_third_place: tournament?.pts_third_place,
+            pts_top_scorer: tournament?.pts_top_scorer,
+            pts_tournament_winner: tournament?.pts_tournament_winner,
+            name: tournament?.name,
+          },
+          leaderboard: (leaderboard || []).map((r: any) => ({
+            display_name: r.display_name,
+            nickname: profilesMap?.[r.user_id]?.nickname,
+            total_points: r.total_points,
+            exact_scores: r.exact_scores,
+            correct_winners: r.correct_winners,
+            tips_submitted: r.tips_submitted,
+          })),
+        })
       })
       const data = await resp.json()
       if (data.reply && data.reply !== 'Something went wrong. Try again!') {
@@ -2949,8 +2961,8 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
   }
 
   const lockedMatches = matches.filter((m: any) => isLocked(m))
-  const lockedGroup = lockedMatches.filter((m: any) => !m.round || m.round === 'group')
-  const lockedKnockout = lockedMatches.filter((m: any) => m.round && m.round !== 'group')
+  const lockedGroup = lockedMatches.filter((m: any) => m.tip_lock_override || !m.round || m.round === 'group')
+  const lockedKnockout = lockedMatches.filter((m: any) => m.round && m.round !== 'group' && !m.tip_lock_override)
 
   const players = leaderboard.map((r: any) => ({
     id: r.user_id,
