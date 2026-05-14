@@ -1143,15 +1143,12 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches, 
   function isGroupLocked(group: string) {
     if (dbLocked) return true  // Admin has manually locked all qualifier tips
     const lockMins = tournament?.tip_lock_minutes ?? 120
-    const mode = tournament?.group_lock_mode ?? 'per_match'
-    if (mode === 'first_game') {
-      const first = (matches || []).filter((m: any) => m.round === 'group').sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0]
-      if (!first) return false
-      return new Date() >= new Date(new Date(first.kickoff_at).getTime() - lockMins * 60 * 1000)
-    }
-    const lockTime = GROUP_LOCK_TIMES[group]
-    if (!lockTime) return false
-    return new Date() >= new Date(new Date(lockTime).getTime() - lockMins * 60 * 1000)
+    // Always lock ALL qualifier picks x hours before the very first group match
+    const firstMatch = (matches || [])
+      .filter((m: any) => m.round === 'group')
+      .sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0]
+    if (!firstMatch) return false
+    return new Date() >= new Date(new Date(firstMatch.kickoff_at).getTime() - lockMins * 60 * 1000)
   }
 
   async function save() {
@@ -2116,8 +2113,8 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
         <Row label={ispt ? '🎯 Placar exato (além do vencedor + saldo)' : '🎯 Exact score (on top of winner + goal diff)'} value={`+${pExact} pts`} highlight="#fbbf24"
           example={ispt ? `Ex: Você tipou 1–0 → Resultado: 1–0 → +${pWinner} + ${pDiff} + ${pExact} = ${pWinner + pDiff + pExact} pts total` : `e.g. You tip 1–0 → Result: 1–0 → +${pWinner} + ${pDiff} + ${pExact} = ${pWinner + pDiff + pExact} pts total`} />
         {pBonus > 0 && (
-          <Row label={ispt ? `🚀 Bônus goleada (placar exato com ${tn.big_margin_threshold}+ gols de diferença)` : `🚀 Big margin bonus (exact score with ${tn.big_margin_threshold}+ goal difference)`} value={`+${pBonus} pts`} highlight="#f87171"
-            example={ispt ? `Ex: Você tipou 4–0 → Resultado: 4–0 → +${pWinner} + ${pDiff} + ${pExact} + ${pBonus} = ${pWinner + pDiff + pExact + pBonus} pts total` : `e.g. You tip 4–0 → Result: 4–0 → +${pWinner} + ${pDiff} + ${pExact} + ${pBonus} = ${pWinner + pDiff + pExact + pBonus} pts total`} />
+          <Row label={ispt ? `🚀 Bônus goleada (${tn.big_margin_threshold}+ gols de diferença — mesmo sem placar exato)` : `🚀 Big margin bonus (${tn.big_margin_threshold}+ goal difference — exact score NOT required)`} value={`+${pBonus} pts`} highlight="#f87171"
+            example={ispt ? `Ex: Você tipou 5–0 → Resultado: 6–0 → diferença de 5+ gols na dica e no resultado → bônus! +${pBonus} pts. Não precisa acertar o placar exato, só a diferença de gols acima de ${tn.big_margin_threshold}.` : `e.g. You tip 5–0 → Result is 6–0 → both tip and result have ${tn.big_margin_threshold}+ goal diff, same winner → bonus! +${pBonus} pts. Exact score is NOT needed, just the big margin in the right direction.`} />
         )}
         <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(96,165,250,0.05)', borderRadius: 8, border: '1px solid rgba(96,165,250,0.15)' }}>
           <div style={{ fontSize: '0.78rem', color: '#60a5fa', fontWeight: 600, marginBottom: '0.4rem' }}>
@@ -2195,6 +2192,12 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
             example={ispt ? `Ex: Você tipou Brasil 1º → Brasil termina 2º → +${Math.floor(pQualify / 2)} pts` : `e.g. You tip Brazil 1st → Brazil finishes 2nd → +${Math.floor(pQualify / 2)} pts`} />
           <Row label={ispt ? 'Seleção não avança' : "Team doesn't qualify"} value="0 pts" highlight="rgba(255,255,255,0.25)"
             example={ispt ? 'Ex: Você tipou Brasil 1º → Brasil é eliminado na fase de grupos → 0 pts' : 'e.g. You tip Brazil 1st → Brazil knocked out in group stage → 0 pts'} />
+          <div style={{ marginTop: '0.75rem', padding: '0.6rem 0.85rem', background: 'rgba(248,113,113,0.07)', borderRadius: 8, border: '1px solid rgba(248,113,113,0.2)', fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
+            <span style={{ color: '#f87171', fontWeight: 600 }}>⚠️ {ispt ? 'Importante:' : 'Important:'}</span>{' '}
+            {ispt
+              ? `Apenas os classificados em 1º e 2º de cada grupo contam para pontuação. Se você apostou em um time para 2º lugar e ele avançou como um dos melhores 3ºs colocados, ainda assim recebe 0 pontos — somente 1º e 2º posições do grupo valem.`
+              : `Only teams that finish 1st or 2nd in their group count for points. If you tipped a team to finish 2nd and they actually advance as one of the best 3rd-placed teams, you still get 0 points — only 1st and 2nd place in the group count.`}
+          </div>
         </Section>
       )}
 
