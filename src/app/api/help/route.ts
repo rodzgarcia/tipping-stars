@@ -71,7 +71,12 @@ Answer in max 4 sentences, specific to this tournament. If asked about standings
       parts: [{ text: m.content }]
     }))
 
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.0-pro']
+    const models = [
+      'gemini-1.5-flash-8b',
+      'gemini-1.5-pro',
+      'gemini-1.5-flash',
+      'gemini-2.0-flash-lite',
+    ]
 
     for (const model of models) {
       try {
@@ -88,11 +93,10 @@ Answer in max 4 sentences, specific to this tournament. If asked about standings
           }
         )
         const data = await resp.json()
-        console.log(`[help] ${model} status=${resp.status} error=${data.error?.message || 'none'}`)
-        if (resp.status === 429 || resp.status === 503) continue
+        console.log(`[help] ${model} status=${resp.status} error=${data.error?.message || 'none'} hasText=${!!data.candidates?.[0]?.content?.parts?.[0]?.text}`)
+        if (resp.status === 429 || resp.status === 503 || resp.status === 404) continue
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text
         if (text) return NextResponse.json({ reply: text })
-        if (data.error) continue
       } catch (e: any) {
         console.error(`[help] ${model} threw:`, e.message)
       }
