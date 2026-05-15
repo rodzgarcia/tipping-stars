@@ -1053,7 +1053,7 @@ export default function AdminPage() {
     const [membRes, matchRes, profilesRes, ttRes] = await Promise.all([
       supabase.from('tournament_members').select('*').eq('tournament_id', selectedTournament).order('joined_at'),
       supabase.from('matches').select('*').eq('tournament_id', selectedTournament).order('kickoff_at'),
-      supabase.from('profiles').select('id,display_name,email'),
+      supabase.from('profiles').select('id,display_name,email,jersey_team,tip_position'),
       supabase.from('tournaments').select('*').eq('id', selectedTournament).single(),
     ])
     const profiles = profilesRes.data || []
@@ -1269,10 +1269,30 @@ export default function AdminPage() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{m.profiles?.display_name}</div>
                       <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)' }}>{m.profiles?.email}</div>
+                      {m.profiles?.jersey_team && (
+                        <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)', marginTop: 2 }}>
+                          🏷️ {m.profiles.jersey_team} · {m.profiles.tip_position}
+                        </div>
+                      )}
                     </div>
                     <span className={`badge ${m.status === 'approved' ? 'badge-green' : m.status === 'rejected' ? 'badge-red' : 'badge-grey'}`}>{m.status}</span>
                     {m.status === 'approved' && (
-                      <EntryFeeToggle member={m} supabase={supabase} onUpdate={loadTournamentData} />
+                      <>
+                        <EntryFeeToggle member={m} supabase={supabase} onUpdate={loadTournamentData} />
+                        <button
+                          title="Reassign random team & position"
+                          onClick={async () => {
+                            const WC_TEAMS = ['Argentina','France','England','Spain','Brazil','Portugal','Netherlands','Germany','Italy','Morocco','Croatia','United States','Mexico','Japan','Uruguay','Colombia','Senegal','Switzerland','South Korea','Ecuador','Canada','Australia','Turkey','Poland','Serbia','Scotland','Belgium','Egypt','Iran','New Zealand']
+                            const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','WB','WB']
+                            const team = WC_TEAMS[Math.floor(Math.random() * WC_TEAMS.length)]
+                            const pos = POSITIONS[Math.floor(Math.random() * POSITIONS.length)]
+                            await supabase.from('profiles').update({ jersey_team: team, tip_position: pos }).eq('id', m.user_id)
+                            loadTournamentData()
+                            alert(`Reassigned ${m.profiles?.display_name} → ${team} · ${pos}`)
+                          }}
+                          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}
+                        >🎲</button>
+                      </>
                     )}
                   </div>
                 ))}
