@@ -1028,7 +1028,7 @@ export default function TournamentPage() {
         {tab === 'rules' && (
           <div>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', justifyContent: 'flex-end' }}>
-              <button onClick={() => exportRulesPDF(tournament, t.lang)} className="btn btn-ghost" style={{ fontSize: '0.78rem' }}>
+              <button onClick={() => exportRulesPDF(tournament, t.lang, approvedCount)} className="btn btn-ghost" style={{ fontSize: '0.78rem' }}>
                 📄 {t.lang === 'pt' ? 'Exportar Regras PDF' : 'Export Rules PDF'}
               </button>
             </div>
