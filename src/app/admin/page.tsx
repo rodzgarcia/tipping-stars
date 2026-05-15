@@ -2038,18 +2038,22 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
 
   async function handleSave(matchId: string) {
     const s = scores[matchId]
-    if (!s || s.home === '' || s.away === '') return
+    if (!s) return
+    const homeVal = s.home === '' || s.home === '-' ? 0 : Number(s.home)
+    const awayVal = s.away === '' || s.away === '-' ? 0 : Number(s.away)
     setSaving(matchId)
-    await onSave(matchId, Number(s.home), Number(s.away))
+    await onSave(matchId, homeVal, awayVal)
     setSaving(null)
   }
 
   async function handleLock(matchId: string) {
     const s = scores[matchId]
-    if (!s || s.home === '' || s.away === '') return
+    if (!s) return
+    const homeVal = s.home === '' || s.home === '-' ? 0 : Number(s.home)
+    const awayVal = s.away === '' || s.away === '-' ? 0 : Number(s.away)
     if (!confirm('Lock this result? Points will be calculated and players will see the score.')) return
     setSaving(matchId)
-    await onLock(matchId, Number(s.home), Number(s.away))
+    await onLock(matchId, homeVal, awayVal)
     setSaving(null)
   }
 
@@ -2114,9 +2118,9 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: '#f87171' }}>{m.home_score ?? 0}–{m.away_score ?? 0}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <input type="number" className="score-input" min={0} max={99} value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
+                    <input type="number" className="score-input" min={0} max={99} value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} onBlur={e => { if(e.target.value === '' || e.target.value === '-') setScore(m.id, 'home', '0') }} />
                     <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
-                    <input type="number" className="score-input" min={0} max={99} value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
+                    <input type="number" className="score-input" min={0} max={99} value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} onBlur={e => { if(e.target.value === '' || e.target.value === '-') setScore(m.id, 'away', '0') }} />
                     <button className="btn btn-ghost" style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem', color: '#f87171' }} disabled={isSaving} onClick={async () => { setSaving(m.id); await onUpdateLive(m.id, Number(s.home), Number(s.away)); setSaving(null) }}>
                       {isSaving ? '...' : '⚡ Update Score'}
                     </button>
@@ -2158,9 +2162,9 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
                   {hasSavedScore && <span className="badge badge-grey" style={{ marginLeft: '0.5rem' }}>Draft: {m.home_score}–{m.away_score}</span>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
+                  <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} onBlur={e => { if(e.target.value === '' || e.target.value === '-') setScore(m.id, 'home', '0') }} />
                   <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
-                  <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
+                  <input type="number" className="score-input" min={0} max={99} placeholder="0" value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} onBlur={e => { if(e.target.value === '' || e.target.value === '-') setScore(m.id, 'away', '0') }} />
                   <button className="btn btn-ghost" style={{ padding: '0.5rem 0.8rem', fontSize: '0.8rem' }} disabled={isSaving || s.home === '' || s.away === ''} onClick={() => handleSave(m.id)}>
                     {isSaving ? '...' : 'Save'}
                   </button>
@@ -2196,9 +2200,9 @@ function ResultsEntry({ matches, tournament, tournamentId, supabase, onSave, onL
                   </div>
                   {isEditing ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <input type="number" className="score-input" min={0} max={99} value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} />
+                      <input type="number" className="score-input" min={0} max={99} value={s.home} onChange={e => setScore(m.id, 'home', e.target.value)} onBlur={e => { if(e.target.value === '' || e.target.value === '-') setScore(m.id, 'home', '0') }} />
                       <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-display)', fontSize: '1.2rem' }}>–</span>
-                      <input type="number" className="score-input" min={0} max={99} value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} />
+                      <input type="number" className="score-input" min={0} max={99} value={s.away} onChange={e => setScore(m.id, 'away', e.target.value)} onBlur={e => { if(e.target.value === '' || e.target.value === '-') setScore(m.id, 'away', '0') }} />
                       <button className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} disabled={isSaving} onClick={async () => { setSaving(m.id); await onEdit(m.id, Number(s.home), Number(s.away)); setSaving(null); setEditing(null) }}>
                         {isSaving ? '...' : 'Save & Lock'}
                       </button>
