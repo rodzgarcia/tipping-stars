@@ -74,14 +74,39 @@ export default function ProfilePage() {
     const file = e.target.files?.[0]
     if (!file || !user) return
     setUploading(true)
-    const ext = file.name.split('.').pop()
-    const path = `${user.id}/avatar.${ext}`
-    const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-    if (!error) {
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
-      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
-      setProfile((p: any) => ({ ...p, avatar_url: publicUrl }))
+
+    // Normalise extension — treat HEIC as jpg
+    let ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+    if (ext === 'heic' || ext === 'heif') ext = 'jpg'
+
+    // Use timestamp in path so each upload is a new file — busts cache
+    const path = `${user.id}/avatar_${Date.now()}.${ext}`
+
+    // Delete old avatar first to avoid storage buildup
+    const oldUrl = profile?.avatar_url || ''
+    if (oldUrl.includes('/avatars/')) {
+      const oldPath = oldUrl.split('/avatars/')[1]?.split('?')[0]
+      if (oldPath) await supabase.storage.from('avatars').remove([oldPath])
     }
+
+    const { error } = await supabase.storage.from('avatars').upload(path, file, {
+      upsert: false,
+      contentType: file.type || 'image/jpeg',
+    })
+
+    if (error) {
+      console.error('Avatar upload error:', error.message)
+      alert('Upload failed: ' + error.message)
+      setUploading(false)
+      return
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+    // Add cache-busting param so browser loads new image
+    const urlWithCacheBust = publicUrl + '?t=' + Date.now()
+
+    await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
+    setProfile((p: any) => ({ ...p, avatar_url: urlWithCacheBust }))
     setUploading(false)
   }
 
@@ -155,7 +180,7 @@ export default function ProfilePage() {
               </div>
               <label style={{ position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, background: 'var(--green)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '2px solid var(--dark-card)' }}>
                 <Camera size={13} color="#0a0f0d" />
-                <input type="file" accept="image/*" onChange={uploadAvatar} style={{ display: 'none' }} />
+                <input type="file" accept="image/*,image/heic,image/heif" onChange={uploadAvatar} onClick={(e: any) => { e.target.value = '' }} style={{ display: 'none' }} />
               </label>
             </div>
 
