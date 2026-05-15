@@ -882,7 +882,7 @@ export default function TournamentPage() {
         {tab === 'leaderboard' && (
           <div style={{ paddingBottom: '3rem' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <button onClick={() => exportLeaderboardPDF(leaderboard, profilesMap, tournament, t.lang)} className="btn btn-ghost" style={{ fontSize: '0.72rem' }}>
+              <button onClick={() => exportLeaderboardPDF(leaderboard, profilesMap, tournament, t.lang, allTournamentTips)} className="btn btn-ghost" style={{ fontSize: '0.72rem' }}>
                 📄 {t.lang === 'pt' ? 'Exportar PDF' : 'Export PDF'}
               </button>
               <a href="/global" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 6, padding: '0.25rem 0.6rem', textDecoration: 'none', background: 'rgba(96,165,250,0.06)', whiteSpace: 'nowrap' }}>
