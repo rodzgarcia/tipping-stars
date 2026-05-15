@@ -248,15 +248,11 @@ export async function exportRulesPDF(tournament: any, lang: string, approvedCoun
     </div>
   </div>` : ''}
 
-  ${pool > 0 ? `<div class="section">
+  ${(tn.prize_split_1st != null || tn.prize_split_2nd != null) ? `<div class="section">
     <div class="section-hd">💰 ${isPt?'PREMIAÇÃO':'PRIZE POOL'}</div>
-    ${R(isPt?'Total':'Total pool', `${cur} ${pool.toLocaleString()}`, '#fbbf24')}
-    ${R(`🥇 ${isPt?'1º lugar':'1st place'} (${tn.prize_split_1st??60}%)`, `${cur} ${p1.toLocaleString()}`, '#fbbf24')}
-    ${R(`🥈 ${isPt?'2º lugar':'2nd place'} (${tn.prize_split_2nd??30}%)`, `${cur} ${p2.toLocaleString()}`, '#9ca3af')}
-    ${(tn.prize_split_3rd ?? 10) > 0 ? R(`🥉 ${isPt?'3º lugar':'3rd place'} (${tn.prize_split_3rd??10}%)`, `${cur} ${p3.toLocaleString()}`, '#b87333') : ''}
-    <div style="padding:8px 14px;font-size:11px;color:rgba(255,255,255,0.28)">
-      * ${isPt?`Baseado em ${approvedCount||0} jogadores × ${cur} ${tn.entry_fee} de entrada`:`Based on ${approvedCount||0} players × ${cur} ${tn.entry_fee} entry fee`}
-    </div>
+    ${R(`🥇 ${isPt?'1º lugar':'1st place'}`, `${tn.prize_split_1st??60}%`, '#fbbf24')}
+    ${R(`🥈 ${isPt?'2º lugar':'2nd place'}`, `${tn.prize_split_2nd??30}%`, '#9ca3af')}
+    ${(tn.prize_split_3rd ?? 0) > 0 ? R(`🥉 ${isPt?'3º lugar':'3rd place'}`, `${tn.prize_split_3rd}%`, '#b87333') : ''}
   </div>` : ''}
 
   <div class="section">
