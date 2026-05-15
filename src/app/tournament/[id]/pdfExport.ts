@@ -1,17 +1,25 @@
 function openPrint(html: string) {
   const win = window.open('', '_blank')
   if (!win) { alert('Please allow popups to export PDF'); return }
-  win.document.write(html)
+  // Inject a reminder bar at the top
+  const reminder = `<div style="position:fixed;top:0;left:0;right:0;background:#fbbf24;color:#0a0f0d;text-align:center;padding:8px;font-size:12px;font-weight:700;z-index:9999;font-family:Arial,sans-serif;">
+    📄 To save as PDF: In the print dialog → More settings → enable <strong>"Background graphics"</strong> so colours print correctly
+    <button onclick="this.parentElement.remove();window.print()" style="margin-left:12px;background:#0a0f0d;color:#fbbf24;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-weight:700;">Print / Save PDF</button>
+  </div><div style="height:40px"></div>`
+  win.document.write(html.replace('<body>', '<body>' + reminder))
   win.document.close()
   win.focus()
-  setTimeout(() => { win.print() }, 800)
 }
 
 const BASE_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background:#0a0f0d; color:#e8f5ee; font-family:'Inter',Arial,sans-serif; font-size:13px; padding:24px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  @media print { body { padding:10px; } @page { margin:8mm; } }
+  body { background:#0a0f0d !important; color:#e8f5ee !important; font-family:'Inter',Arial,sans-serif; font-size:13px; padding:24px; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
+  @media print {
+    body { padding:10px; background:#0a0f0d !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
+    * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; color-adjust:exact !important; }
+    @page { margin:8mm; }
+  }
   .app-header { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:14px; margin-bottom:18px; }
   .app-name { font-size:20px; font-weight:900; letter-spacing:4px; color:#e8f5ee; }
   .app-name span { color:#4ade80; }
