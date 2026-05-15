@@ -1511,8 +1511,27 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
 
   async function saveSettings() {
     setSaving(true)
-    await supabase.from('tournaments').update({ ...form, updated_at: new Date().toISOString() }).eq('id', tournament.id)
-    setSaved(true); setTimeout(() => setSaved(false), 2000); onSave(); setSaving(false)
+    // Parse numeric fields properly — keep decimals for multipliers
+    const numericFields = [
+      'pts_winner','pts_goal_diff','pts_exact_score','pts_big_margin_bonus','big_margin_threshold',
+      'pts_qualify','tip_lock_minutes','entry_fee',
+      'multiplier_group','multiplier_r32','multiplier_r16','multiplier_qf','multiplier_sf','multiplier_final',
+      'pts_tournament_winner','pts_second_place','pts_third_place','pts_top_scorer',
+      'prize_split_1st','prize_split_2nd','prize_split_3rd',
+    ]
+    const payload: any = { ...form, updated_at: new Date().toISOString() }
+    numericFields.forEach(f => {
+      if (payload[f] !== undefined && payload[f] !== '' && payload[f] !== null) {
+        const parsed = parseFloat(String(payload[f]))
+        if (!isNaN(parsed)) payload[f] = parsed
+      }
+    })
+    const { error } = await supabase.from('tournaments').update(payload).eq('id', tournament.id)
+    if (error) { alert('Save failed: ' + error.message); setSaving(false); return }
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+    onSave()
+    setSaving(false)
   }
 
   async function createTournament() {
@@ -1525,7 +1544,13 @@ function TournamentSetup({ tournament, onSave, onCreate, supabase }: any) {
   const field = (label: string, key: string, type = 'number') => (
     <div key={key}>
       <label className="label">{label}</label>
-      <input type={type} className="input" value={form[key]} onChange={e => setForm({ ...form, [key]: type === 'number' ? Number(e.target.value) : e.target.value })} />
+      <input
+        type={type}
+        step={type === 'number' ? 'any' : undefined}
+        className="input"
+        value={form[key] ?? ''}
+        onChange={e => setForm({ ...form, [key]: type === 'number' ? e.target.value : e.target.value })}
+      />
     </div>
   )
 
