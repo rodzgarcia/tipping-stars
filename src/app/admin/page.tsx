@@ -1240,6 +1240,38 @@ export default function AdminPage() {
         {/* Members */}
         {tab === 'members' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Recent joiners - last 24h */}
+            {(() => {
+              const recent = allMembers.filter((m: any) => {
+                const joined = new Date(m.joined_at || m.created_at)
+                return (Date.now() - joined.getTime()) < 24 * 60 * 60 * 1000
+              })
+              if (recent.length === 0) return null
+              return (
+                <div>
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', letterSpacing: '0.08em', color: '#4ade80', marginBottom: '0.75rem' }}>
+                    🆕 JOINED IN LAST 24H ({recent.length})
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    {recent.map((m: any) => (
+                      <div key={m.id} className="card" style={{ padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', borderLeft: '3px solid #4ade80' }}>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{m.profiles?.display_name}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem' }}>{m.profiles?.email}</span>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)' }}>
+                          {(() => {
+                            const mins = Math.round((Date.now() - new Date(m.joined_at || m.created_at).getTime()) / 60000)
+                            return mins < 60 ? `${mins}m ago` : `${Math.floor(mins/60)}h ago`
+                          })()}
+                        </span>
+                        <span className={`badge ${m.status === 'approved' ? 'badge-green' : 'badge-grey'}`}>{m.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
             {pendingMembers.length > 0 && (
               <div>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1rem', letterSpacing: '0.08em', color: '#f87171', marginBottom: '0.75rem' }}>PENDING APPROVAL</h3>
@@ -1286,7 +1318,13 @@ export default function AdminPage() {
                             const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','WB','WB']
                             const team = WC_TEAMS[Math.floor(Math.random() * WC_TEAMS.length)]
                             const pos = POSITIONS[Math.floor(Math.random() * POSITIONS.length)]
-                            await supabase.from('profiles').update({ jersey_team: team, tip_position: pos }).eq('id', m.user_id)
+                            const res = await fetch('/api/admin/reassign-profile', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ userId: m.user_id, jerseyTeam: team, tipPosition: pos })
+                            })
+                            const data = await res.json()
+                            if (data.error) { alert('Failed: ' + data.error); return }
                             loadTournamentData()
                             alert(`Reassigned ${m.profiles?.display_name} → ${team} · ${pos}`)
                           }}

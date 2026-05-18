@@ -80,12 +80,13 @@ export default function JoinPage() {
       return
     }
 
-    // Insert pending membership
+    // Insert auto-approved membership
     const { error } = await supabase.from('tournament_members').insert({
       tournament_id: tournament.id,
       user_id: userId,
-      status: 'pending',
-      joined_at: new Date().toISOString()
+      status: 'approved',
+      joined_at: new Date().toISOString(),
+      approved_at: new Date().toISOString()
     })
 
     if (error) {
@@ -95,9 +96,10 @@ export default function JoinPage() {
     }
 
     setStatus('done')
+    setTimeout(() => router.push(`/tournament/${tournament.id}`), 2500)
     setMessage(isPt
-      ? `Pedido enviado para ${tournament.name}! Aguarde a aprovação do admin.`
-      : `Join request sent for ${tournament.name}! Waiting for admin approval.`)
+      ? `Bem vindo ao ${tournament.name}! Você já pode dar palpites! 🎉`
+      : `Welcome to ${tournament.name}! You can start tipping right away! 🎉`)
   }
 
   return (

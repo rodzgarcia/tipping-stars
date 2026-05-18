@@ -52,15 +52,16 @@ function AuthForm() {
         const POSITIONS = ['ST','CF','LW','RW','CAM','CM','CDM','LB','RB','CB','GK','WB','WB']
         const randomTeam = WC_TEAMS[Math.floor(Math.random() * WC_TEAMS.length)]
         const randomPosition = POSITIONS[Math.floor(Math.random() * POSITIONS.length)]
+        const profilePayload = { jersey_team: randomTeam, tip_position: randomPosition, nickname: nickname.trim(), display_name: name.trim() }
         let attempts = 0
         const saveProfile = async () => {
           attempts++
           const { error: updateError } = await supabase.from('profiles')
-            .update({ jersey_team: randomTeam, tip_position: randomPosition, nickname: nickname.trim(), display_name: name.trim() })
+            .update(profilePayload)
             .eq('id', data.user!.id)
-          if (updateError && attempts < 5) setTimeout(saveProfile, 800)
+          if (updateError && attempts < 8) setTimeout(saveProfile, 1000 * attempts)
         }
-        setTimeout(saveProfile, 600)
+        setTimeout(saveProfile, 800)
         setSignedUp(true)
       }
     } else {
@@ -88,22 +89,22 @@ function AuthForm() {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}><LangSwitcher /></div>
         <div style={{ width: '100%', maxWidth: 420, textAlign: 'center' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📧</div>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
-            {isPt ? 'VERIFIQUE SEU E-MAIL' : 'CHECK YOUR EMAIL'}
+            {isPt ? 'BEM VINDO!' : 'WELCOME!'}
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '2rem', lineHeight: 1.6 }}>
             {isPt
-              ? `Enviamos um link de confirmação para ${email}. Clique no link para ativar sua conta e entrar no bolão.`
-              : `We sent a confirmation link to ${email}. Click the link to activate your account and join the competition.`}
+              ? `Conta criada com sucesso para ${email}. Clique abaixo para entrar no bolão!`
+              : `Account created for ${email}. Click below to sign in and start tipping!`}
           </p>
           <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem', background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.15)' }}>
             <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-              {isPt ? '💡 Após confirmar o e-mail, você será redirecionado automaticamente para o torneio.' : '💡 After confirming your email, you\'ll be redirected automatically to the tournament.'}
+              {isPt ? '💡 Nenhuma confirmação de e-mail necessária — sua conta já está ativa!' : '💡 No email confirmation needed — your account is already active!'}
             </p>
           </div>
-          <button onClick={() => { setSignedUp(false); setMode('signin') }} className="btn btn-ghost" style={{ width: '100%' }}>
-            {isPt ? 'Já confirmei → Entrar' : 'Already confirmed → Sign in'}
+          <button onClick={() => { setSignedUp(false); setMode('signin') }} className="btn btn-primary" style={{ width: '100%' }}>
+            {isPt ? 'Entrar agora →' : 'Sign in now →'}
           </button>
         </div>
       </div>

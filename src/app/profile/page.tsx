@@ -64,6 +64,7 @@ export default function ProfilePage() {
     ])
 
     setProfile(profRes.data)
+    setNicknameEdit(profRes.data?.nickname || profRes.data?.display_name || '')
     setLeaderboardRows(lbRes.data || [])
     setAllTips(tipsRes.data || [])
     setSelectedTourId(lbRes.data?.[0]?.tournament_id || '')
