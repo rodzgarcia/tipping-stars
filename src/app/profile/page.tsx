@@ -191,35 +191,6 @@ export default function ProfilePage() {
             {/* Avatar */}
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <div style={{ width: 88, height: 88, borderRadius: '50%', overflow: 'hidden', background: 'rgba(255,255,255,0.08)', border: '3px solid var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
-                {/* Nickname edit */}
-              <div style={{ marginTop: '1rem', width: '100%' }}>
-                <label style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '0.4rem' }}>
-                  {t.lang === 'pt' ? 'Apelido' : 'Nickname'} <span style={{ color: '#f87171' }}>*</span>
-                </label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input
-                    type="text"
-                    value={nicknameEdit}
-                    onChange={e => setNicknameEdit(e.target.value.slice(0, 20))}
-                    maxLength={20}
-                    placeholder={t.lang === 'pt' ? 'Seu apelido...' : 'Your nickname...'}
-                    className="input"
-                    style={{ flex: 1, fontSize: '0.9rem' }}
-                  />
-                  <button
-                    onClick={saveNickname}
-                    disabled={nicknameSaving || !nicknameEdit.trim() || nicknameEdit.trim() === profile?.nickname}
-                    className="btn btn-primary"
-                    style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem', flexShrink: 0 }}
-                  >
-                    {nicknameSaved ? '✓' : nicknameSaving ? '...' : t.lang === 'pt' ? 'Salvar' : 'Save'}
-                  </button>
-                </div>
-                <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
-                  {20 - nicknameEdit.length} {t.lang === 'pt' ? 'caracteres restantes' : 'characters remaining'}
-                </div>
-              </div>
-
               {profile?.avatar_url
                   ? <img src={profile.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                   : '👤'}
@@ -248,6 +219,35 @@ export default function ProfilePage() {
                 🔒 Team and position permanently assigned
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Nickname edit */}
+        <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '1.25rem' }}>
+          <label style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
+            {t.lang === 'pt' ? '✏️ Apelido' : '✏️ Nickname'} <span style={{ color: '#f87171' }}>*</span>
+          </label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="text"
+              value={nicknameEdit}
+              onChange={e => setNicknameEdit(e.target.value.slice(0, 20))}
+              maxLength={20}
+              placeholder={t.lang === 'pt' ? 'Seu apelido...' : 'Your nickname...'}
+              className="input"
+              style={{ flex: 1, fontSize: '0.9rem' }}
+            />
+            <button
+              onClick={saveNickname}
+              disabled={nicknameSaving || !nicknameEdit.trim() || nicknameEdit.trim() === profile?.nickname}
+              className="btn btn-primary"
+              style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem', flexShrink: 0 }}
+            >
+              {nicknameSaved ? '✓' : nicknameSaving ? '...' : t.lang === 'pt' ? 'Salvar' : 'Save'}
+            </button>
+          </div>
+          <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
+            {20 - nicknameEdit.length} {t.lang === 'pt' ? 'caracteres restantes' : 'characters remaining'}
           </div>
         </div>
 
