@@ -67,7 +67,12 @@ function AuthForm() {
     } else {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) setError(signInError.message)
-      else router.push(redirect)
+      else {
+        // If came from an invite link, go to join page so tournament gets attached
+        const code = inviteCode || manualCode.trim()
+        if (code) router.push('/join/' + code)
+        else router.push(redirect)
+      }
     }
     setLoading(false)
   }
@@ -103,8 +108,20 @@ function AuthForm() {
               {isPt ? '💡 Nenhuma confirmação de e-mail necessária — sua conta já está ativa!' : '💡 No email confirmation needed — your account is already active!'}
             </p>
           </div>
-          <button onClick={() => { setSignedUp(false); setMode('signin') }} className="btn btn-primary" style={{ width: '100%' }}>
-            {isPt ? 'Entrar agora →' : 'Sign in now →'}
+          <button onClick={async () => {
+            setLoading(true)
+            const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+            if (signInError) {
+              setSignedUp(false)
+              setMode('signin')
+              setError(signInError.message)
+            } else {
+              if (inviteCode) router.push('/join/' + inviteCode)
+              else router.push(redirect)
+            }
+            setLoading(false)
+          }} className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
+            {loading ? '...' : isPt ? 'Entrar agora →' : 'Sign in now →'}
           </button>
         </div>
       </div>
