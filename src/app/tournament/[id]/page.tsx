@@ -557,16 +557,63 @@ function FlagImg({ team, size = 20 }: { team: string, size?: number }) {
 
 
 const TOP_SCORERS = [
-  'Antoine Griezmann','Bukayo Saka','Bernardo Silva','Bruno Fernandes',
-  'Cody Gakpo','Dušan Vlahović','Éder Militão','Erling Haaland',
-  'Ferran Torres','Florian Wirtz','Gabriel Martinelli','Gavi',
-  'Harry Kane','Heung-Min Son','Jamal Musiala','João Félix',
-  'Jude Bellingham','Julián Álvarez','Kai Havertz','Kaoru Mitoma',
-  'Kylian Mbappé','Lautaro Martínez','Leroy Sané','Lionel Messi',
-  'Luka Modrić','Marcus Rashford','Memphis Depay','Neymar',
-  'Ousmane Dembélé','Pedri','Phil Foden','Randal Kolo Muani',
-  'Raphinha','Richarlison','Rodrygo','Romelu Lukaku',
-  'Viktor Gyökeres','Vinicius Jr.','Youssef En-Nesyri','Donyell Malen',
+  'Alexander Sørloth',
+  'Antoine Griezmann',
+  'Bernardo Silva',
+  'Bruno Fernandes',
+  'Bukayo Saka',
+  'Cody Gakpo',
+  'Cole Palmer',
+  'Cristiano Ronaldo',
+  'Dani Olmo',
+  'Darwin Núñez',
+  'Dušan Vlahović',
+  'Eberechi Eze',
+  'Erling Haaland',
+  'Estêvão',
+  'Ferran Torres',
+  'Florian Wirtz',
+  'Gabriel Martinelli',
+  'Gonçalo Ramos',
+  'Harry Kane',
+  'Heung-Min Son',
+  'Hugo Ekitike',
+  'Jamal Musiala',
+  'Jean-Philippe Mateta',
+  'João Félix',
+  'Jude Bellingham',
+  'Julián Álvarez',
+  'Kai Havertz',
+  'Kingsley Coman',
+  'Kylian Mbappé',
+  'Lamine Yamal',
+  'Lautaro Martínez',
+  'Lionel Messi',
+  'Lois Openda',
+  'Luis Díaz',
+  'Luka Modrić',
+  'Marcus Rashford',
+  'Mateo Retegui',
+  'Matheus Cunha',
+  'Mikel Oyarzabal',
+  'Mohamed Salah',
+  'Neymar',
+  'Nick Woltemade',
+  'Nico Williams',
+  'Ollie Watkins',
+  'Ousmane Dembélé',
+  'Pedri',
+  'Randal Kolo Muani',
+  'Raphinha',
+  'Richarlison',
+  'Rodrygo',
+  'Romelu Lukaku',
+  'Santiago Giménez',
+  'Serge Gnabry',
+  'Viktor Gyökeres',
+  'Vinicius Jr.',
+  'Youssef En-Nesyri',
+  'Álvaro Morata',
 ].sort()
 
 
@@ -3468,7 +3515,8 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
     const tournamentIds = memberships?.map((m: any) => m.tournament_id) || [tournament.id]
 
     for (const tid of tournamentIds) {
-      const payload = { tournament_id: tid, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: topScorer, updated_at: new Date().toISOString() }
+      const finalTopScorer = topScorer === '__custom__' ? '' : topScorer
+      const payload = { tournament_id: tid, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: finalTopScorer, updated_at: new Date().toISOString() }
       const { data: ex } = await supabase.from('tournament_tips').select('id').eq('tournament_id', tid).eq('user_id', userId).maybeSingle()
       if (ex?.id) await supabase.from('tournament_tips').update(payload).eq('id', ex.id)
       else await supabase.from('tournament_tips').insert(payload)
@@ -3527,17 +3575,29 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
               <select
                 className="input"
                 style={{ background: '#1a1a2e', color: '#fff' }}
-                value={TOP_SCORERS.includes(topScorer) ? topScorer : topScorer ? '__other__' : ''}
-                onChange={e => { if (e.target.value === '__other__') setTopScorer(''); else setTopScorer(e.target.value) }}
+                value={TOP_SCORERS.includes(topScorer) ? topScorer : topScorer !== '' ? '__other__' : ''}
+                onChange={e => {
+                  if (e.target.value === '__other__') {
+                    setTopScorer('__custom__')
+                  } else {
+                    setTopScorer(e.target.value)
+                  }
+                }}
               >
                 <option value="">— {t.lang === 'pt' ? 'Selecione um jogador' : 'Select a player'} —</option>
                 {TOP_SCORERS.map(p => <option key={p} value={p}>{p}</option>)}
                 <option value="__other__">{t.lang === 'pt' ? '✏️ Outro jogador...' : '✏️ Other player...'}</option>
               </select>
-              {(!TOP_SCORERS.includes(topScorer) && topScorer !== '') || topScorer === '' && false ? null : null}
-              {topScorer === '' || TOP_SCORERS.includes(topScorer) ? null : (
-                <input className="input" type="text" value={topScorer} onChange={e => setTopScorer(e.target.value)}
-                  placeholder="Type player name..." style={{ marginTop: '0.4rem' }} />
+              {(topScorer === '__custom__' || (!TOP_SCORERS.includes(topScorer) && topScorer !== '')) && (
+                <input
+                  className="input"
+                  type="text"
+                  value={topScorer === '__custom__' ? '' : topScorer}
+                  onChange={e => setTopScorer(e.target.value)}
+                  placeholder={t.lang === 'pt' ? 'Digite o nome do jogador...' : 'Type player name...'}
+                  style={{ marginTop: '0.4rem' }}
+                  autoFocus
+                />
               )}
             </>
           )}
