@@ -2,12 +2,14 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Star, ChevronRight, LogOut, Settings } from 'lucide-react'
 import { useLang, LangSwitcher } from './LanguageContext'
 
 export default function HomePage() {
   const { t } = useLang()
   const isPt = t.lang === 'pt'
+  const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [myMemberships, setMyMemberships] = useState<any[]>([])
@@ -50,7 +52,7 @@ export default function HomePage() {
 
   async function signOut() {
     await supabase.auth.signOut()
-    window.location.reload()
+    router.push('/')
   }
 
   if (loading) return (

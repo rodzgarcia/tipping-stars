@@ -5,38 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useLang, LangSwitcher } from '../LanguageContext'
 import { ChevronLeft, Camera } from 'lucide-react'
-
-const POSITION_NAMES: Record<string, string> = {
-  ST: 'Striker', CF: 'Centre Forward', LW: 'Left Winger', RW: 'Right Winger',
-  CAM: 'Attacking Mid', CM: 'Central Mid', CDM: 'Defensive Mid',
-  LB: 'Left Back', RB: 'Right Back', CB: 'Centre Back', GK: 'Goalkeeper', SS: 'Second Striker'
-}
-const POSITION_NAMES_PT: Record<string, string> = {
-  ST: 'Atacante', CF: 'Centro-Avante', LW: 'Ponta-Esquerda', RW: 'Ponta-Direita',
-  CAM: 'Meia-Atacante', CM: 'Meia-Central', CDM: 'Volante',
-  LB: 'Lateral-Esquerdo', RB: 'Lateral-Direito', CB: 'Zagueiro', GK: 'Goleiro', SS: 'Segundo Atacante'
-}
-const POSITION_EMOJI: Record<string, string> = {
-  ST: '⚽', CF: '🎯', LW: '💨', RW: '💨', CAM: '🪄',
-  CM: '🔄', CDM: '🛡️', LB: '🏃', RB: '🏃', CB: '🧱', GK: '🧤', SS: '⚡'
-}
-const TEAM_FLAGS: Record<string, string> = {
-  'Argentina':'ar','France':'fr','England':'gb-eng','Spain':'es','Brazil':'br',
-  'Portugal':'pt','Netherlands':'nl','Germany':'de','Italy':'it','Morocco':'ma',
-  'Croatia':'hr','United States':'us','USA':'us','Mexico':'mx','Japan':'jp',
-  'Uruguay':'uy','Colombia':'co','Senegal':'sn','Switzerland':'ch','Australia':'au',
-  'South Korea':'kr','Ecuador':'ec','Canada':'ca','Turkey':'tr','Ukraine':'ua',
-  'Poland':'pl','Serbia':'rs','Scotland':'gb-sct','Wales':'gb-wls','Belgium':'be',
-  'Ghana':'gh','Tunisia':'tn','Egypt':'eg','Algeria':'dz',
-  'Norway':'no','Sweden':'se','Austria':'at','Czech Republic':'cz','Czechia':'cz',
-  'Iran':'ir','Saudi Arabia':'sa','Qatar':'qa','Iraq':'iq','Jordan':'jo',
-  'New Zealand':'nz','Paraguay':'py','Bolivia':'bo','Peru':'pe',
-  'Chile':'cl','Venezuela':'ve','Honduras':'hn','Panama':'pa','Costa Rica':'cr',
-  'Jamaica':'jm','DR Congo':'cd','Ivory Coast':'ci','Mali':'ml','Cape Verde':'cv',
-  'South Africa':'za','Cameroon':'cm','Nigeria':'ng','Haiti':'ht','Uzbekistan':'uz',
-  'Slovakia':'sk','Slovenia':'si','Hungary':'hu','Greece':'gr','Albania':'al',
-  'Bosnia and Herzegovina':'ba','Curacao':'cw','Trinidad and Tobago':'tt',
-}
+import { TEAM_FLAGS, POSITION_NAMES_EN as POSITION_NAMES, POSITION_NAMES_PT, POSITION_EMOJI } from '@/lib/constants'
 
 export default function ProfilePage() {
   const { t } = useLang()
@@ -50,6 +19,8 @@ export default function ProfilePage() {
   const [nicknameEdit, setNicknameEdit] = useState('')
   const [nicknameSaving, setNicknameSaving] = useState(false)
   const [nicknameSaved, setNicknameSaved] = useState(false)
+  const [nicknameError, setNicknameError] = useState('')
+  const [uploadError, setUploadError] = useState('')
   const [loading, setLoading] = useState(true)
   const [selectedTourId, setSelectedTourId] = useState<string>('')
   const supabase = createClient()
@@ -82,10 +53,11 @@ export default function ProfilePage() {
   async function saveNickname() {
     const trimmed = nicknameEdit.trim()
     if (!trimmed || !user) return
-    if (trimmed.length > 20) { alert('Max 20 characters'); return }
+    if (trimmed.length > 20) { setNicknameError('Max 20 characters'); return }
+    setNicknameError('')
     setNicknameSaving(true)
     const { error } = await supabase.from('profiles').update({ nickname: trimmed }).eq('id', user.id)
-    if (error) { alert('Failed: ' + error.message); setNicknameSaving(false); return }
+    if (error) { setNicknameError(error.message); setNicknameSaving(false); return }
     setProfile((p: any) => ({ ...p, nickname: trimmed }))
     setNicknameSaved(true)
     setTimeout(() => setNicknameSaved(false), 2000)
@@ -118,10 +90,11 @@ export default function ProfilePage() {
 
     if (error) {
       console.error('Avatar upload error:', error.message)
-      alert('Upload failed: ' + error.message)
+      setUploadError(error.message)
       setUploading(false)
       return
     }
+    setUploadError('')
 
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
     // Add cache-busting param so browser loads new image
@@ -205,6 +178,11 @@ export default function ProfilePage() {
                 <Camera size={13} color="#0a0f0d" />
                 <input type="file" accept="image/*,image/heic,image/heif" onChange={uploadAvatar} onClick={(e: any) => { e.target.value = '' }} style={{ display: 'none' }} />
               </label>
+              {uploadError && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '0.5rem', color: '#f87171', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(239,68,68,0.1)', borderRadius: 8, whiteSpace: 'nowrap' }}>
+                  {uploadError}
+                </div>
+              )}
             </div>
 
             {/* Name + identity */}
@@ -255,6 +233,11 @@ export default function ProfilePage() {
           <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.25)', marginTop: '0.25rem' }}>
             {20 - nicknameEdit.length} {t.lang === 'pt' ? 'caracteres restantes' : 'characters remaining'}
           </div>
+          {nicknameError && (
+            <div style={{ color: '#f87171', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(239,68,68,0.1)', borderRadius: 8, marginTop: '0.5rem' }}>
+              {nicknameError}
+            </div>
+          )}
         </div>
 
         {/* Tournament selector — if in multiple tournaments */}
