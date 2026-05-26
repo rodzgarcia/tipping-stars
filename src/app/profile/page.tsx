@@ -11,6 +11,11 @@ const POSITION_NAMES: Record<string, string> = {
   CAM: 'Attacking Mid', CM: 'Central Mid', CDM: 'Defensive Mid',
   LB: 'Left Back', RB: 'Right Back', CB: 'Centre Back', GK: 'Goalkeeper', SS: 'Second Striker'
 }
+const POSITION_NAMES_PT: Record<string, string> = {
+  ST: 'Atacante', CF: 'Centro-Avante', LW: 'Ponta-Esquerda', RW: 'Ponta-Direita',
+  CAM: 'Meia-Atacante', CM: 'Meia-Central', CDM: 'Volante',
+  LB: 'Lateral-Esquerdo', RB: 'Lateral-Direito', CB: 'Zagueiro', GK: 'Goleiro', SS: 'Segundo Atacante'
+}
 const POSITION_EMOJI: Record<string, string> = {
   ST: '⚽', CF: '🎯', LW: '💨', RW: '💨', CAM: '🪄',
   CM: '🔄', CDM: '🛡️', LB: '🏃', RB: '🏃', CB: '🧱', GK: '🧤', SS: '⚡'
@@ -163,7 +168,8 @@ export default function ProfilePage() {
 
   const flagCode = TEAM_FLAGS[profile?.jersey_team]
   const posEmoji = POSITION_EMOJI[profile?.tip_position] || '⚽'
-  const posName = POSITION_NAMES[profile?.tip_position] || profile?.tip_position || '—'
+  const posNameMap = t.lang === 'pt' ? POSITION_NAMES_PT : POSITION_NAMES
+  const posName = posNameMap[profile?.tip_position] || profile?.tip_position || '—'
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--dark)' }}>

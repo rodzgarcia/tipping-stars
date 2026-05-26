@@ -2330,7 +2330,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
 
   const heroEmojis = ['🥇', '🥈', '🥉']
   const heroTitles = t.lang === 'pt' ? ['O Profeta', 'O Oráculo', 'O Visionário'] : ['The Prophet', 'The Oracle', 'The Visionary']
-  const zeroTitles = ['The Disaster', 'The Confused', 'The Optimist']
+  const zeroTitles = t.lang === 'pt' ? ['O Desastre', 'O Confuso', 'O Otimista'] : ['The Disaster', 'The Confused', 'The Optimist']
   const heroColors = ['#fbbf24', '#9ca3af', '#b87333']
   const zeroEmojis = ['💀', '🤡', '😵']
 
@@ -3423,7 +3423,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
                 onChange={e => { const v = e.target.value.replace(/[^0-9]/g,''); setAway(v === '' ? '' : String(Math.min(15, parseInt(v)))) }}
               />
               <button onClick={saveTip} disabled={saving} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
-                {saved ? '✔' : saving ? '...' : tip ? 'Update' : 'Tip'}
+                {saved ? '✔' : saving ? '...' : tip ? (t.lang === 'pt' ? 'Atualizar' : 'Update') : (t.lang === 'pt' ? 'Apostar' : 'Tip')}
               </button>
             </>
           )}
