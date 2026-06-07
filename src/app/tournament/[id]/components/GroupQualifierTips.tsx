@@ -82,6 +82,14 @@ export default function GroupQualifierTips({ tournament, userId, existing, onSav
   const unlockedGroups = Object.keys(GROUPS).filter(g => !isGroupLocked(g))
   const lockedGroups = Object.keys(GROUPS).filter(g => isGroupLocked(g))
 
+  const lockMins = tournament?.tip_lock_minutes ?? 120
+  const firstGroupMatch = (matches || [])
+    .filter((m: any) => m.round === 'group')
+    .sort((a: any, b: any) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0]
+  const tournamentLockTime = firstGroupMatch
+    ? new Date(new Date(firstGroupMatch.kickoff_at).getTime() - lockMins * 60 * 1000).toISOString()
+    : null
+
   return (
     <div style={{ paddingBottom: '3rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
@@ -97,7 +105,6 @@ export default function GroupQualifierTips({ tournament, userId, existing, onSav
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
           {unlockedGroups.map(group => {
             const teams = GROUPS[group]
-            const lockTime = GROUP_LOCK_TIMES[group]
             return (
               <div key={group} className="card" style={{ padding: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -105,7 +112,7 @@ export default function GroupQualifierTips({ tournament, userId, existing, onSav
                     {t.lang === 'pt' ? `GRUPO ${group}` : `GROUP ${group}`}
                   </span>
                   <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>
-                    {t.locksAt} {formatLocalTime(new Date(new Date(lockTime).getTime() - 2*60*60*1000).toISOString())}
+                    {tournamentLockTime ? `${t.locksAt} ${formatLocalTime(tournamentLockTime)}` : ''}
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
