@@ -85,7 +85,7 @@ export const T = {
 
     // Group qualifiers
     groupQualifiersTitle: 'Group Qualifiers',
-    groupQualifiersDesc: 'Pick the top 2 teams from each group. Locks 2 hours before the first match of each group.',
+    groupQualifiersDesc: 'Pick the top 2 teams from each group. Locks before the first match of the tournament.',
     fullPoints: 'Full points',
     halfPoints: 'Half points',
     correctTeamPosition: 'for correct team + correct position',

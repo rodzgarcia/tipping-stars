@@ -869,7 +869,7 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
 
       <Section emoji="🔒" title={ispt ? 'BLOQUEIO DAS DICAS' : 'TIP LOCK TIMES'}>
         <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-          {ispt ? "• Dicas de partidas: bloqueiam 2 horas antes do apito inicial.\n• Classificados por grupo: bloqueiam 2 horas antes do primeiro jogo de cada grupo.\n• Previsões do torneio (campeão, artilheiro): bloqueiam antes do primeiro jogo do torneio." : "• Match tips lock 2 hours before each match kicks off.\n• Group qualifier picks lock 2 hours before each group's first match.\n• Tournament predictions (winner, top scorer) lock before the first match of the tournament."}
+          {ispt ? "• Dicas de partidas: bloqueiam 2 horas antes do apito inicial.\n• Classificados por grupo: bloqueiam antes do primeiro jogo do torneio.\n• Previsões do torneio (campeão, artilheiro): bloqueiam antes do primeiro jogo do torneio." : "• Match tips lock 2 hours before each match kicks off.\n• Group qualifier picks lock before the first match of the tournament.\n• Tournament predictions (winner, top scorer) lock before the first match of the tournament."}
         </p>
       </Section>
 

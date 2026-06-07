@@ -215,8 +215,8 @@ export async function exportRulesPDF(tournament: any, lang: string, approvedCoun
     <div class="row" style="border-bottom:none">
       <div class="row-label" style="line-height:1.8">
         ${isPt
-          ? `• Palpites de partidas: bloqueiam ${lkM} minutos antes do apito inicial.<br>• Classificados por grupo: bloqueiam ${lkM} minutos antes do primeiro jogo do torneio.<br>• Previsões do torneio (campeão, artilheiro): bloqueiam antes do primeiro jogo do torneio.`
-          : `• Match tips lock ${lkM} minutes before each kickoff.<br>• Group qualifier picks lock ${lkM} minutes before the very first match of the tournament.<br>• Tournament predictions (winner, top scorer) lock before the first match of the tournament.`}
+          ? `• Palpites de partidas: bloqueiam ${lkM} minutos antes do apito inicial.<br>• Classificados por grupo: bloqueiam antes do primeiro jogo do torneio.<br>• Previsões do torneio (campeão, artilheiro): bloqueiam antes do primeiro jogo do torneio.`
+          : `• Match tips lock ${lkM} minutes before each kickoff.<br>• Group qualifier picks lock before the first match of the tournament.<br>• Tournament predictions (winner, top scorer) lock before the first match of the tournament.`}
       </div>
     </div>
   </div>
