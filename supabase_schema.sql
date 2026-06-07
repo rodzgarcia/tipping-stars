@@ -104,9 +104,18 @@ create table public.tournament_members (
 alter table public.tournament_members enable row level security;
 
 create policy "Members can view own membership" on public.tournament_members
-  for select using (auth.uid() = user_id or exists (
-    select 1 from public.profiles where id = auth.uid() and is_super_admin = true
-  ));
+  for select using (
+    auth.uid() = user_id
+    or exists (
+      select 1 from public.profiles where id = auth.uid() and is_super_admin = true
+    )
+    or exists (
+      select 1 from public.tournament_members tm2
+      where tm2.tournament_id = tournament_members.tournament_id
+        and tm2.user_id = auth.uid()
+        and tm2.status = 'approved'
+    )
+  );
 create policy "Anyone can request to join" on public.tournament_members
   for insert with check (auth.uid() = user_id);
 create policy "Admins can manage memberships" on public.tournament_members
