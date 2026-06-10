@@ -3355,7 +3355,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
     setSaving(true)
     const h = home === '' ? 0 : Number(home)
     const a = away === '' ? 0 : Number(away)
-    const payload = { match_id: match.id, user_id: userId, tournament_id: tournamentId, tip_home: h, tip_away: a }
+    const payload = { match_id: match.id, user_id: userId, tournament_id: tournament.id, tip_home: h, tip_away: a }
     if (tip?.id) {
       await supabase.from('match_tips').update({ tip_home: h, tip_away: a, updated_at: new Date().toISOString() }).eq('id', tip.id)
     } else {
@@ -3495,7 +3495,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
   async function save() {
     setSaving(true)
     const finalTopScorer = topScorer === '__custom__' ? '' : topScorer
-    const payload = { tournament_id: tournamentId, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: finalTopScorer, updated_at: new Date().toISOString() }
+    const payload = { tournament_id: tournament.id, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: finalTopScorer, updated_at: new Date().toISOString() }
     const { data: ex } = await supabase.from('tournament_tips').select('id').eq('tournament_id', tournamentId).eq('user_id', userId).maybeSingle()
     if (ex?.id) await supabase.from('tournament_tips').update(payload).eq('id', ex.id)
     else await supabase.from('tournament_tips').insert(payload)
