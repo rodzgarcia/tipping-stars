@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Star } from 'lucide-react'
@@ -12,18 +12,29 @@ function AuthForm() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/'
   const inviteCode = searchParams.get('invite') || ''
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot' | 'reset'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [name, setName] = useState('')
   const [nickname, setNickname] = useState('')
   const [manualCode, setManualCode] = useState('')
   const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
   const [signedUp, setSignedUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
   const isPt = t.lang === 'pt'
+
+  // Detect password reset token in URL hash
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('type=recovery')) {
+      setMode('reset')
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -64,14 +75,42 @@ function AuthForm() {
         setTimeout(saveProfile, 800)
         setSignedUp(true)
       }
-    } else {
+    } else if (mode === 'signin') {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) setError(signInError.message)
       else {
-        // If came from an invite link, go to join page so tournament gets attached
         const code = inviteCode || manualCode.trim()
         if (code) router.push('/join/' + code)
         else router.push(redirect)
+      }
+    } else if (mode === 'forgot') {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth',
+      })
+      if (resetError) {
+        setError(resetError.message)
+      } else {
+        setMessage(isPt
+          ? 'E-mail enviado! Verifique sua caixa de entrada e clique no link para redefinir sua senha.'
+          : 'Email sent! Check your inbox and click the link to reset your password.')
+      }
+    } else if (mode === 'reset') {
+      if (newPassword !== confirmPassword) {
+        setError(isPt ? 'As senhas não coincidem.' : 'Passwords do not match.')
+        setLoading(false)
+        return
+      }
+      if (newPassword.length < 6) {
+        setError(isPt ? 'A senha deve ter pelo menos 6 caracteres.' : 'Password must be at least 6 characters.')
+        setLoading(false)
+        return
+      }
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+      if (updateError) {
+        setError(updateError.message)
+      } else {
+        setMessage(isPt ? 'Senha atualizada com sucesso! Redirecionando...' : 'Password updated successfully! Redirecting...')
+        setTimeout(() => router.push('/'), 2000)
       }
     }
     setLoading(false)
@@ -128,6 +167,106 @@ function AuthForm() {
     )
   }
 
+  // ── Reset password screen ────────────────────────────────────────────────────
+  if (mode === 'reset') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}><LangSwitcher /></div>
+          <div className="text-center" style={{ marginBottom: '2.5rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, background: 'var(--green)', borderRadius: 16, marginBottom: '1rem' }}>
+              <Star size={24} fill="white" color="white" />
+            </div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', letterSpacing: '0.08em' }}>
+              {isPt ? 'NOVA SENHA' : 'NEW PASSWORD'}
+            </h1>
+          </div>
+          <div className="card" style={{ padding: '2rem' }}>
+            {message ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{message}</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                  {isPt ? 'Digite sua nova senha abaixo.' : 'Enter your new password below.'}
+                </p>
+                <div>
+                  <label className="label">{isPt ? 'Nova senha' : 'New password'}</label>
+                  <input className="input" type="password" placeholder="••••••••" value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)} required minLength={6} />
+                </div>
+                <div>
+                  <label className="label">{isPt ? 'Confirmar senha' : 'Confirm password'}</label>
+                  <input className="input" type="password" placeholder="••••••••" value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)} required minLength={6} />
+                </div>
+                {error && <div style={{ color: '#f87171', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(239,68,68,0.1)', borderRadius: 8 }}>{error}</div>}
+                <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}>
+                  {loading ? (isPt ? 'Aguarde...' : 'Loading...') : (isPt ? 'Salvar nova senha' : 'Save new password')}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Forgot password screen ───────────────────────────────────────────────────
+  if (mode === 'forgot') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}><LangSwitcher /></div>
+          <div className="text-center" style={{ marginBottom: '2.5rem' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, background: 'var(--green)', borderRadius: 16, marginBottom: '1rem' }}>
+              <Star size={24} fill="white" color="white" />
+            </div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', letterSpacing: '0.08em' }}>
+              {isPt ? 'RECUPERAR SENHA' : 'RESET PASSWORD'}
+            </h1>
+          </div>
+          <div className="card" style={{ padding: '2rem' }}>
+            {message ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📧</div>
+                <p style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{message}</p>
+                <button onClick={() => { setMode('signin'); setMessage(''); setError('') }}
+                  style={{ marginTop: '1.5rem', color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}>
+                  {isPt ? '← Voltar para o login' : '← Back to sign in'}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                  {isPt
+                    ? 'Digite seu e-mail e enviaremos um link para redefinir sua senha.'
+                    : 'Enter your email and we\'ll send you a link to reset your password.'}
+                </p>
+                <div>
+                  <label className="label">{t.email}</label>
+                  <input className="input" type="email" placeholder="your@email.com" value={email}
+                    onChange={e => setEmail(e.target.value)} required />
+                </div>
+                {error && <div style={{ color: '#f87171', fontSize: '0.85rem', padding: '0.5rem 0.75rem', background: 'rgba(239,68,68,0.1)', borderRadius: 8 }}>{error}</div>}
+                <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}>
+                  {loading ? (isPt ? 'Aguarde...' : 'Loading...') : (isPt ? 'Enviar link' : 'Send reset link')}
+                </button>
+                <button type="button" onClick={() => { setMode('signin'); setError('') }}
+                  style={{ color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                  {isPt ? '← Voltar para o login' : '← Back to sign in'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Main sign in / sign up screen ────────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div style={{ width: '100%', maxWidth: 420 }}>
@@ -194,6 +333,14 @@ function AuthForm() {
             <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}>
               {loading ? (isPt ? 'Aguarde...' : 'Loading...') : mode === 'signup' ? (isPt ? 'Criar conta' : 'Create account') : (isPt ? 'Entrar' : 'Sign in')}
             </button>
+
+            {/* Forgot password link */}
+            {mode === 'signin' && (
+              <button type="button" onClick={() => { setMode('forgot'); setError('') }}
+                style={{ color: 'rgba(255,255,255,0.35)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.78rem', textAlign: 'right', marginTop: '-0.25rem' }}>
+                {isPt ? 'Esqueceu sua senha?' : 'Forgot your password?'}
+              </button>
+            )}
           </form>
 
           {/* Manual invite code entry */}
