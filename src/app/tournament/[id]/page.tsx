@@ -721,7 +721,7 @@ export default function TournamentPage() {
         filter: 'tournament_id=eq.' + tournamentId,
       }, () => {
         // Reload just the matches
-        supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('kickoff_at')
+        supabase.from('matches').select('*').eq('tournament_id', tournament.id).order('kickoff_at')
           .then(({ data }) => { if (data) setMatches(data) })
       })
       .subscribe()
@@ -736,15 +736,15 @@ export default function TournamentPage() {
     const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes, allTtRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
-      supabase.from('tournament_members').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
-      supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('kickoff_at'),
-      supabase.from('match_tips').select('*, match:matches(round, kickoff_at, status, home_score, away_score)').eq('tournament_id', tournamentId).eq('user_id', user.id),
-      supabase.from('match_tips').select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)').eq('tournament_id', tournamentId),
-      supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
+      supabase.from('tournament_members').select('*').eq('tournament_id', tournament.id).eq('user_id', user.id).single(),
+      supabase.from('matches').select('*').eq('tournament_id', tournament.id).order('kickoff_at'),
+      supabase.from('match_tips').select('*, match:matches(round, kickoff_at, status, home_score, away_score)').eq('tournament_id', tournament.id).eq('user_id', user.id),
+      supabase.from('match_tips').select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)').eq('tournament_id', tournament.id),
+      supabase.from('leaderboard').select('*').eq('tournament_id', tournament.id).order('total_points', { ascending: false }),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position'),
-      supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
-      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).maybeSingle(),
-      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
+      supabase.from('tournament_members').select('id').eq('tournament_id', tournament.id).eq('status', 'approved'),
+      supabase.from('tournament_tips').select('*').eq('tournament_id', tournament.id).eq('user_id', user.id).maybeSingle(),
+      supabase.from('tournament_tips').select('*').eq('tournament_id', tournament.id),
     ])
 
     setProfile(profRes.data)
@@ -3495,8 +3495,8 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
   async function save() {
     setSaving(true)
     const finalTopScorer = topScorer === '__custom__' ? '' : topScorer
-    const payload = { tournament_id: tournamentId, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: finalTopScorer, updated_at: new Date().toISOString() }
-    const { data: ex } = await supabase.from('tournament_tips').select('id').eq('tournament_id', tournamentId).eq('user_id', userId).maybeSingle()
+    const payload = { tournament_id: tournament.id, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: finalTopScorer, updated_at: new Date().toISOString() }
+    const { data: ex } = await supabase.from('tournament_tips').select('id').eq('tournament_id', tournament.id).eq('user_id', userId).maybeSingle()
     if (ex?.id) await supabase.from('tournament_tips').update(payload).eq('id', ex.id)
     else await supabase.from('tournament_tips').insert(payload)
     setSaved(true); setTimeout(() => setSaved(false), 2000)
