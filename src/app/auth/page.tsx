@@ -33,7 +33,16 @@ function AuthForm() {
     const hash = window.location.hash
     if (hash.includes('type=recovery')) {
       setMode('reset')
+      // Let Supabase process the token from the URL
+      supabase.auth.getSession()
+      return
     }
+    // Also check if Supabase has already parsed the session (sometimes hash is cleared)
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setMode('reset')
+      }
+    })
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
