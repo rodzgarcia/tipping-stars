@@ -1216,7 +1216,7 @@ function GroupQualifierTips({ tournament, userId, existing, onSave, t, matches, 
     }
     const result = await supabase.rpc('save_qualifier_picks', {
       p_user_id: userId,
-      p_tournament_id: tournamentId,
+      p_tournament_id: tournament.id,
       ...picks,
     })
     if (result.error) {
