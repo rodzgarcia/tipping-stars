@@ -2204,7 +2204,7 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
 
       <Section emoji="🔒" title={ispt ? 'BLOQUEIO DAS DICAS' : 'TIP LOCK TIMES'}>
         <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-          {ispt ? "• Dicas de partidas: bloqueiam 2 horas antes do apito inicial.\n• Classificados por grupo: bloqueiam antes do primeiro jogo do torneio.\n• Previsões do torneio (campeão, artilheiro): bloqueiam antes do primeiro jogo do torneio." : "• Match tips lock 2 hours before each match kicks off.\n• Group qualifier picks lock before the first match of the tournament.\n• Tournament predictions (winner, top scorer) lock before the first match of the tournament."}
+          {ispt ? "• Dicas de partidas: bloqueiam 2 horas antes do apito inicial.\n• Classificados por grupo: bloqueiam 2 horas antes do primeiro jogo de cada grupo.\n• Previsões do torneio (campeão, artilheiro): bloqueiam antes do primeiro jogo do torneio." : "• Match tips lock 2 hours before each match kicks off.\n• Group qualifier picks lock 2 hours before each group's first match.\n• Tournament predictions (winner, top scorer) lock before the first match of the tournament."}
         </p>
       </Section>
 
@@ -3496,7 +3496,7 @@ function TournamentTipForm({ tournament, userId, existing, onSave }: any) { // t
     setSaving(true)
     const finalTopScorer = topScorer === '__custom__' ? '' : topScorer
     const payload = { tournament_id: tournament.id, user_id: userId, tip_winner: winner, tip_second: second, tip_third: third, tip_top_scorer: finalTopScorer, updated_at: new Date().toISOString() }
-    const { data: ex } = await supabase.from('tournament_tips').select('id').eq('tournament_id', tournamentId).eq('user_id', userId).maybeSingle()
+    const { data: ex } = await supabase.from('tournament_tips').select('id').eq('tournament_id', tournament.id).eq('user_id', userId).maybeSingle()
     if (ex?.id) await supabase.from('tournament_tips').update(payload).eq('id', ex.id)
     else await supabase.from('tournament_tips').insert(payload)
     setSaved(true); setTimeout(() => setSaved(false), 2000)
