@@ -436,7 +436,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
     Promise.all([
       supabase.from('tournament_members').select('user_id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('matches').select('id, home_team, away_team, kickoff_at, round, status, tip_lock_override').eq('tournament_id', tournamentId).order('kickoff_at'),
-      supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId),
+      supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId).limit(10000),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url'),
     ]).then(([membRes, matchRes, tipRes, ttRes, profRes]: any) => {
@@ -717,11 +717,20 @@ function BackupPanel({ supabase, tournaments }: any) {
   )
 
   async function fetchAll(table: string, filters?: Record<string, string>) {
-    let query = supabase.from(table).select('*')
-    if (filters) Object.entries(filters).forEach(([k, v]) => { query = query.eq(k, v) })
-    const { data, error } = await query
-    if (error) throw new Error(`${table}: ${error.message}`)
-    return data || []
+    let allData: any[] = []
+    let from = 0
+    const pageSize = 1000
+    while (true) {
+      let query = supabase.from(table).select('*').range(from, from + pageSize - 1)
+      if (filters) Object.entries(filters).forEach(([k, v]) => { query = query.eq(k, v) })
+      const { data, error } = await query
+      if (error) throw new Error(`${table}: ${error.message}`)
+      if (!data || data.length === 0) break
+      allData = allData.concat(data)
+      if (data.length < pageSize) break
+      from += pageSize
+    }
+    return allData
   }
 
   async function downloadXLSX(filename: string, sheets: Record<string, any[]>) {
