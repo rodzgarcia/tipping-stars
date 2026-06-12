@@ -467,7 +467,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
 
   // Group stage pending only
   const matchPending = upcomingMatches.filter((m: any) => !m.round || m.round === 'group').map((m: any) => {
-    const tipped = new Set(matchTips.filter((t: any) => t.match_id === m.id).map((t: any) => t.user_id))
+    const tipped = new Set(matchTips.filter((t: any) => String(t.match_id) === String(m.id)).map((t: any) => t.user_id))
     const missing = memberIds.filter(uid => !tipped.has(uid))
     const kickoff = new Date(m.kickoff_at)
     const lockTime = new Date(kickoff.getTime() - lockMins * 60 * 1000)
@@ -502,7 +502,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
         const allMissing: string[] = []
         const lines: string[] = []
         const pending = upcomingMatches.filter((m: any) => {
-          const tipped = new Set(matchTips.filter((t: any) => t.match_id === m.id).map((t: any) => t.user_id))
+          const tipped = new Set(matchTips.filter((t: any) => String(t.match_id) === String(m.id)).map((t: any) => t.user_id))
           const missing = memberIds.filter((uid: string) => !tipped.has(uid))
           if (missing.length === 0) return false
           const ROUND: Record<string,string> = { group: 'Grupo', r32: 'R32', r16: 'R16', qf: 'QF', sf: 'SF', third_place: '3º', final: 'Final' }
@@ -637,7 +637,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
               No upcoming knockout matches yet
             </div>
           ) : upcomingMatches.filter((m: any) => m.round && m.round !== 'group').map((m: any) => {
-            const tippedSet = new Set(matchTips.filter((t: any) => t.match_id === m.id).map((t: any) => t.user_id))
+            const tippedSet = new Set(matchTips.filter((t: any) => String(t.match_id) === String(m.id)).map((t: any) => t.user_id))
             const missingUids = memberIds.filter(uid => !tippedSet.has(uid))
             if (missingUids.length === 0) return null
             const lockTime = new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
