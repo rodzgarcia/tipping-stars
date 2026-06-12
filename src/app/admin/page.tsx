@@ -18,25 +18,7 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
   useEffect(() => {
     if (!tournamentId) return
     setLoading(true)
-    const fetchAllMatchTips = async () => {
-      let all: any[] = []
-      let from = 0
-      const pageSize = 1000
-      while (true) {
-        const { data, error } = await supabase
-          .from('match_tips')
-          .select('user_id, match_id')
-          .eq('tournament_id', tournamentId)
-          .order('user_id')
-          .range(from, from + pageSize - 1)
-        if (error || !data || data.length === 0) break
-        all = all.concat(data)
-        if (data.length < pageSize) break
-        from += pageSize
-      }
-      return all
-    }
-        Promise.all([
+    Promise.all([
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
       supabase.from('profiles').select('id, display_name, nickname').limit(20000),
     ]).then(([lbRes, profRes]: any) => {
@@ -451,6 +433,24 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
   useEffect(() => {
     if (!tournamentId) return
     setLoading(true)
+    const fetchAllMatchTips = async () => {
+      let all: any[] = []
+      let from = 0
+      const pageSize = 1000
+      while (true) {
+        const { data, error } = await supabase
+          .from('match_tips')
+          .select('user_id, match_id')
+          .eq('tournament_id', tournamentId)
+          .order('user_id')
+          .range(from, from + pageSize - 1)
+        if (error || !data || data.length === 0) break
+        all = all.concat(data)
+        if (data.length < pageSize) break
+        from += pageSize
+      }
+      return all
+    }
     Promise.all([
       supabase.from('tournament_members').select('user_id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('matches').select('id, home_team, away_team, kickoff_at, round, status, tip_lock_override').eq('tournament_id', tournamentId).order('kickoff_at'),
@@ -486,7 +486,6 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
   // Group stage pending only
   const matchPending = upcomingMatches.filter((m: any) => !m.round || m.round === 'group').map((m: any) => {
     const tipped = new Set(matchTips.filter((t: any) => String(t.match_id) === String(m.id)).map((t: any) => t.user_id))
-    console.log('Match:', m.home_team, 'vs', m.away_team, '| matchTips total:', matchTips.length, '| tipped:', tipped.size, '| match_id:', m.id)
     const missing = memberIds.filter(uid => !tipped.has(uid))
     const kickoff = new Date(m.kickoff_at)
     const lockTime = new Date(kickoff.getTime() - lockMins * 60 * 1000)
