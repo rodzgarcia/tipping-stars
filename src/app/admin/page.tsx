@@ -18,7 +18,25 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
   useEffect(() => {
     if (!tournamentId) return
     setLoading(true)
-    Promise.all([
+    const fetchAllMatchTips = async () => {
+      let all: any[] = []
+      let from = 0
+      const pageSize = 1000
+      while (true) {
+        const { data, error } = await supabase
+          .from('match_tips')
+          .select('user_id, match_id')
+          .eq('tournament_id', tournamentId)
+          .order('user_id')
+          .range(from, from + pageSize - 1)
+        if (error || !data || data.length === 0) break
+        all = all.concat(data)
+        if (data.length < pageSize) break
+        from += pageSize
+      }
+      return all
+    }
+        Promise.all([
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
       supabase.from('profiles').select('id, display_name, nickname').limit(20000),
     ]).then(([lbRes, profRes]: any) => {
@@ -436,14 +454,14 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
     Promise.all([
       supabase.from('tournament_members').select('user_id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('matches').select('id, home_team, away_team, kickoff_at, round, status, tip_lock_override').eq('tournament_id', tournamentId).order('kickoff_at'),
-      supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId).limit(20000),
+      fetchAllMatchTips(),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url').limit(20000),
-    ]).then(([membRes, matchRes, tipRes, ttRes, profRes]: any) => {
+    ]).then(([membRes, matchRes, allMatchTips, ttRes, profRes]: any) => {
       setMembers(membRes.data || [])
       setQualifierTips(ttRes.data || [])
       setMatches(matchRes.data || [])
-      setMatchTips(tipRes.data || [])
+      setMatchTips(allMatchTips || [])
       setTournamentTips(ttRes.data || [])
       const map: Record<string, any> = {}
       profRes.data?.forEach((p: any) => { map[p.id] = p })
