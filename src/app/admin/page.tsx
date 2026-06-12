@@ -20,7 +20,7 @@ function AdminLeaderboard({ tournamentId, supabase, tournaments }: any) {
     setLoading(true)
     Promise.all([
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
-      supabase.from('profiles').select('id, display_name, nickname'),
+      supabase.from('profiles').select('id, display_name, nickname').limit(20000),
     ]).then(([lbRes, profRes]: any) => {
       setLeaderboard(lbRes.data || [])
       const map: Record<string, any> = {}
@@ -438,7 +438,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
       supabase.from('matches').select('id, home_team, away_team, kickoff_at, round, status, tip_lock_override').eq('tournament_id', tournamentId).order('kickoff_at'),
       supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId).limit(20000),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
-      supabase.from('profiles').select('id, display_name, nickname, avatar_url'),
+      supabase.from('profiles').select('id, display_name, nickname, avatar_url').limit(20000),
     ]).then(([membRes, matchRes, tipRes, ttRes, profRes]: any) => {
       setMembers(membRes.data || [])
       setQualifierTips(ttRes.data || [])
