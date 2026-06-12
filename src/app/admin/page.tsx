@@ -436,7 +436,7 @@ function PendingTips({ tournamentId, supabase, tournaments }: any) {
     Promise.all([
       supabase.from('tournament_members').select('user_id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('matches').select('id, home_team, away_team, kickoff_at, round, status, tip_lock_override').eq('tournament_id', tournamentId).order('kickoff_at'),
-      supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId).limit(20000),
+      supabase.from('match_tips').select('user_id, match_id').eq('tournament_id', tournamentId).order('user_id').limit(20000),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url').limit(20000),
     ]).then(([membRes, matchRes, tipRes, ttRes, profRes]: any) => {
