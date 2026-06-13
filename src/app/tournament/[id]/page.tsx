@@ -625,17 +625,6 @@ const ROAST_LINES = {
   ],
 }
 
-function getRoastLine(nickname: string, seed: number): string {
-  const all = [...ROAST_LINES.skill, ...ROAST_LINES.tipping, ...ROAST_LINES.general]
-  const idx = seed % all.length
-  const line = all[idx]
-  // If line starts with lowercase "your/you", prepend name
-  if (line.startsWith('your') || line.startsWith('you')) {
-    return `${nickname}, ${line}`
-  }
-  // Otherwise it's a "nickname verb..." format
-  return `${nickname} ${line}`
-}
 
 const TOP_SCORERS = [
   'Alexander Sørloth',
@@ -1128,8 +1117,51 @@ export default function TournamentPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              {/* Roast of the Day */}
+              {leaderboard.length > 0 && (
+                <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '0.75rem', borderLeft: '2px solid rgba(251,191,36,0.25)', width: '100%' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: '0.6rem' }}>
+                    🎤 {t.lang === 'pt' ? 'ZOAÇÕES DO DIA' : 'ROAST OF THE DAY'}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {(() => {
+                      const usedLines = new Set<number>()
+                      const roasts: React.ReactNode[] = []
+                      const candidates = leaderboard.slice(0, Math.min(leaderboard.length, 8))
+                      const allLines = [...ROAST_LINES.skill, ...ROAST_LINES.tipping, ...ROAST_LINES.general]
+                      const topThreeIds = new Set(leaderboard.slice(0, 3).map((r: any) => r.user_id))
+                      const skillLines = ROAST_LINES.skill
+                      const generalLines = ROAST_LINES.general
+                      let count = 0
+                      for (let i = 0; i < candidates.length && count < 3; i++) {
+                        const row = candidates[i]
+                        const name = profilesMap?.[row.user_id]?.nickname || row.display_name?.split(' ')[0] || 'Someone'
+                        const isTop = topThreeIds.has(row.user_id)
+                        const pool = isTop ? [...skillLines, ...generalLines] : allLines
+                        const baseSeed = (name.charCodeAt(0) + (name.charCodeAt(name.length - 1) || 0) + i * 37 + leaderboard.length * 13)
+                        let lineIdx = baseSeed % pool.length
+                        let attempts = 0
+                        while (usedLines.has(lineIdx) && attempts < pool.length) {
+                          lineIdx = (lineIdx + 1) % pool.length
+                          attempts++
+                        }
+                        usedLines.add(lineIdx)
+                        const line = pool[lineIdx]
+                        const roastText = (line.startsWith('your') || line.startsWith('you')) ? `${name}, ${line}` : `${name} ${line}`
+                        roasts.push(
+                          <div key={row.user_id} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, fontStyle: 'italic' }}>
+                            "{roastText}"
+                          </div>
+                        )
+                        count++
+                      }
+                      return roasts
+                    })()}
+                  </div>
+                </div>
+              )}
               {/* H2H + Share sub-tabs */}
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
                 {([['cards',t.lang === 'pt' ? '🃏 Cartões' : '🃏 Cards'],['h2h',t.lang === 'pt' ? '⚔️ Confronto' : '⚔️ Head to Head'],['share',t.lang === 'pt' ? '📤 Compartilhar' : '📤 Share']] as const).map(([v,label]) => (
                   <button key={v} onClick={() => setLbSubTab(v)} style={{
                     padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.74rem', cursor: 'pointer',
@@ -1139,25 +1171,6 @@ export default function TournamentPage() {
                   }}>{label}</button>
                 ))}
               </div>
-              {/* Roast of the Day */}
-              {leaderboard.length > 0 && (
-                <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '0.75rem', borderLeft: '2px solid rgba(251,191,36,0.25)' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: '0.6rem' }}>
-                    🎤 {t.lang === 'pt' ? 'ZOAÇÕES DO DIA' : 'ROAST OF THE DAY'}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {leaderboard.slice(0, leaderboard.length).sort(() => 0).slice(0, 4).map((row: any, i: number) => {
-                      const name = profilesMap?.[row.user_id]?.nickname || row.display_name?.split(' ')[0] || 'Someone'
-                      const seed = (name.charCodeAt(0) + (name.charCodeAt(name.length - 1) || 0) + i * 37 + leaderboard.length * 13) % 1000
-                      return (
-                        <div key={row.user_id} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, fontStyle: 'italic' }}>
-                          "{getRoastLine(name, seed)}"
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
               {lbSubTab === 'cards' && <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />}
               {lbSubTab === 'h2h' && <HeadToHead leaderboard={leaderboard} allTips={allTips} profilesMap={profilesMap} userId={user.id} matches={matches} />}
               {lbSubTab === 'share' && <ShareCard row={leaderboard.find((r:any) => r.user_id === user.id)} leaderboard={leaderboard} profilesMap={profilesMap} tournament={tournament} />}
