@@ -1143,7 +1143,7 @@ export default function TournamentPage() {
               {leaderboard.length > 0 && (
                 <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '0.75rem', borderLeft: '2px solid rgba(251,191,36,0.25)' }}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: '0.6rem' }}>
-                    🎤 {ispt ? 'ZOAÇÕES DO DIA' : 'ROAST OF THE DAY'}
+                    🎤 {t.lang === 'pt' ? 'ZOAÇÕES DO DIA' : 'ROAST OF THE DAY'}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {leaderboard.slice(0, leaderboard.length).sort(() => 0).slice(0, 4).map((row: any, i: number) => {
