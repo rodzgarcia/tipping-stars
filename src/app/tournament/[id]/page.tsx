@@ -733,31 +733,13 @@ export default function TournamentPage() {
     if (!user) { router.push('/auth'); return }
     setUser(user)
 
-    const fetchAllTips = async () => {
-      let all: any[] = []
-      let from = 0
-      const pageSize = 1000
-      while (true) {
-        const { data, error } = await supabase
-          .from('match_tips')
-          .select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)')
-          .eq('tournament_id', tournamentId)
-          .order('match_id')
-          .range(from, from + pageSize - 1)
-        if (error || !data || data.length === 0) break
-        all = all.concat(data)
-        if (data.length < pageSize) break
-        from += pageSize
-      }
-      return { data: all }
-    }
     const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes, allTtRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
       supabase.from('tournament_members').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
       supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('kickoff_at'),
       supabase.from('match_tips').select('*, match:matches(round, kickoff_at, status, home_score, away_score)').eq('tournament_id', tournamentId).eq('user_id', user.id),
-      fetchAllTips(),
+      supabase.from('match_tips').select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)').eq('tournament_id', tournamentId),
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position'),
       supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
@@ -1439,12 +1421,34 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
       return tipOut === actOut
     })
     const acc = locked.length > 0 ? Math.round(correct.length / locked.length * 100) : 0
+
+    // Points efficiency: pts earned vs max possible per completed match
+    let ptsEarned = 0
+    let ptsPossible = 0
+    locked.forEach((tp: any) => {
+      const m = matches.find((mm: any) => mm.id === tp.match_id)
+      if (!m) return
+      const mult = multiplierLabel[m.round] || 1
+      const baseMax = tournament.pts_winner + tournament.pts_goal_diff + tournament.pts_exact_score
+      const bigMarginPossible = tournament.pts_big_margin_bonus || 0
+      // Max possible = exact score + big margin bonus (if match had big margin) × multiplier
+      const goalDiff = Math.abs((m.home_score || 0) - (m.away_score || 0))
+      const bigMarginThreshold = tournament.big_margin_threshold || 3
+      const maxPts = (baseMax + (goalDiff >= bigMarginThreshold ? bigMarginPossible : 0)) * mult
+      ptsPossible += maxPts
+      ptsEarned += Number(tp.pts_with_multiplier || 0)
+    })
+    const ptsEfficiency = ptsPossible > 0 ? Math.round(ptsEarned / ptsPossible * 100) : 0
+
     return {
       ...row,
       name: profilesMap?.[row.user_id]?.nickname || row.display_name,
       accuracy: acc,
       correct: correct.length,
       played: locked.length,
+      ptsEarned,
+      ptsPossible,
+      ptsEfficiency,
     }
   }).sort((a: any, b: any) => b.accuracy - a.accuracy)
 
@@ -1519,7 +1523,7 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
           🎯 {ispt ? 'PRECISÃO DOS PALPITEIROS' : 'TIPPER ACCURACY'}
         </h3>
         <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
-          {ispt ? 'Porcentagem de resultados acertados (vencedor correto)' : 'Percentage of correct outcomes (winner) across completed matches'}
+          {ispt ? 'Precisão do resultado (%) · Pontos conquistados / possíveis' : 'Outcome accuracy (%) · Points earned vs possible'}
         </p>
         {accuracyStats.map((row: any, i: number) => (
           <div key={row.user_id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem' }}>
@@ -1535,6 +1539,9 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
             </div>
             <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.25)', minWidth: 50, textAlign: 'right' }}>
               {row.correct}/{row.played}
+            </div>
+            <div style={{ fontSize: '0.7rem', minWidth: 70, textAlign: 'right', color: row.ptsEfficiency >= 60 ? '#4ade80' : row.ptsEfficiency >= 40 ? '#fbbf24' : '#f87171' }}>
+              {row.ptsEarned}/{row.ptsPossible}pts
             </div>
           </div>
         ))}
@@ -2151,7 +2158,7 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
         <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
           {ispt
             ? `Para cada jogo, você aposta o placar final aos 90 minutos. Os pontos são cumulativos — cada nível de acerto adiciona pontos ao anterior. As dicas bloqueiam ${tn.tip_lock_minutes || 120} minutos antes do apito inicial.`
-            : `For each match, tip the final score at 90 minutes. Points are cumulative — each level of accuracy adds on top of the previous. Tips lock ${tn.tip_lock_minutes || 120} minutes before kickoff.`}
+            : `For each match, tip the score at 90 minutes + extra time. Penalties are NOT counted — only the score at the end of extra time. Points are cumulative — each level adds on top. Tips lock ${tn.tip_lock_minutes || 120} minutes before kickoff.`}
         </p>
       </Section>
 
