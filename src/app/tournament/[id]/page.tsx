@@ -502,10 +502,25 @@ function WinnerPredictionWall({ allTournamentTips, profilesMap, leaderboard, t }
   })
   const sorted = Object.entries(byWinner).sort((a, b) => b[1].length - a[1].length)
 
-  const TEAM_FLAGS: Record<string, string> = {
-    'Argentina':'ar','France':'fr','England':'gb-eng','Spain':'es','Brazil':'br',
-    'Portugal':'pt','Netherlands':'nl','Germany':'de','Italy':'it','Morocco':'ma',
-    'Croatia':'hr','United States':'us','Mexico':'mx','Japan':'jp','Uruguay':'uy',
+  const TEAM_FLAGS_LOCAL: Record<string, string> = {
+    'Albania':'al','Argentina':'ar','Australia':'au','Austria':'at',
+    'Belgium':'be','Bolivia':'bo','Bosnia and Herzegovina':'ba','Brazil':'br',
+    'Canada':'ca','Cape Verde':'cv','Chile':'cl','Colombia':'co',
+    'Costa Rica':'cr','Croatia':'hr','Curacao':'cw','Czechia':'cz',
+    'Czech Republic':'cz','DR Congo':'cd','Ecuador':'ec','Egypt':'eg',
+    'England':'gb-eng','France':'fr','Germany':'de','Ghana':'gh',
+    'Greece':'gr','Haiti':'ht','Honduras':'hn','Hungary':'hu',
+    'IR Iran':'ir','Iran':'ir','Iraq':'iq','Italy':'it',
+    'Ivory Coast':'ci','Jamaica':'jm','Japan':'jp','Jordan':'jo',
+    'Mali':'ml','Mexico':'mx','Morocco':'ma','Netherlands':'nl',
+    'New Zealand':'nz','Nigeria':'ng','Norway':'no','Panama':'pa',
+    'Paraguay':'py','Peru':'pe','Poland':'pl','Portugal':'pt',
+    'Qatar':'qa','Saudi Arabia':'sa','Scotland':'gb-sct','Senegal':'sn',
+    'Serbia':'rs','Slovakia':'sk','Slovenia':'si','South Africa':'za',
+    'South Korea':'kr','Spain':'es','Sweden':'se','Switzerland':'ch',
+    'Trinidad & Tobago':'tt','Tunisia':'tn','Turkey':'tr','Ukraine':'ua',
+    'United States':'us','USA':'us','Uruguay':'uy','Uzbekistan':'uz',
+    'Venezuela':'ve','Wales':'gb-wls','Algeria':'dz','Cameroon':'cm',
   }
 
   return (
@@ -518,7 +533,7 @@ function WinnerPredictionWall({ allTournamentTips, profilesMap, leaderboard, t }
       </div>
       <div style={{ padding: '0.75rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
         {sorted.map(([team, names]) => {
-          const code = TEAM_FLAGS[team]
+          const code = TEAM_FLAGS_LOCAL[team]
           const pct = Math.round((names.length / tips.length) * 100)
           return (
             <div key={team}>
@@ -991,6 +1006,12 @@ export default function TournamentPage() {
                       {profilesMap[row.user_id]?.nickname && (
                         <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {row.display_name}
+                        </div>
+                      )}
+                      {profilesMap[row.user_id]?.jersey_team && (
+                        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
+                          <FlagImg team={profilesMap[row.user_id].jersey_team} size={12} />
+                          {profilesMap[row.user_id].jersey_team}
                         </div>
                       )}
                     </div>
@@ -2047,28 +2068,19 @@ function BanterGenerator({ matchStats, leaderboard, profilesMap, tournament, all
     const playerNames = Array.from(new Set(leaderboard.map((r: any) => profilesMap?.[r.user_id]?.nickname || r.display_name))).join(', ')
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/banter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `You are a hilarious football/soccer banter bot for a World Cup tipping competition. Generate 6 short, funny banter comments (1-2 sentences each) about these results and how people tipped. Be specific about names and scores. Mix: roasting wrong tippers, praising brave correct picks, teasing the majority who got it wrong, poking fun at anyone who always tips the favourite. Be playful, not mean. Use football culture references. Players: ${playerNames}.
-
-Match data:
-${context}
-
-Return ONLY a JSON array of 6 strings, no other text. Example format: ["comment 1", "comment 2", ...]`
-          }]
+          players: playerNames,
+          matchContext: context,
+          seed: Math.floor(Math.random() * 10000),
+          lang: t.lang
         })
       })
       const data = await response.json()
-      const text = data.content?.[0]?.text || '[]'
-      const clean = text.replace(/\`\`\`json|\`\`\`/g, '').trim()
-      const parsed = JSON.parse(clean)
-      setBanter(Array.isArray(parsed) ? parsed : [])
+      const parsed = Array.isArray(data.banter) ? data.banter : []
+      setBanter(parsed)
       setGenerated(true)
     } catch (e) {
       setBanter(['Could not generate banter — the ref must have disallowed it.'])
