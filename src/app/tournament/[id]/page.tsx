@@ -1052,13 +1052,7 @@ export default function TournamentPage() {
                 )})}
               </div>
             </div>
-            <LeaderboardBanter
-              leaderboard={leaderboard}
-              profilesMap={profilesMap}
-              allTips={allTips}
-              matches={matches}
-              tournament={tournament}
-            />
+
             <div style={{ marginTop: '0.75rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <span>🎯 {t.lang === 'pt' ? 'Placar exato' : 'Exact score'}</span>
               <span>⚖️ {t.lang === 'pt' ? 'Saldo de gols' : 'Goal difference'}</span>
@@ -1929,215 +1923,6 @@ function HelpChat({ t, tournament, leaderboard, profilesMap }: { t: any, tournam
 }
 
 
-function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournament }: any) {
-  const { t } = useLang()
-  const [banter, setBanter] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
-  const [loaded, setLoaded] = useState(false)
-  const [error, setError] = useState(false)
-
-  const fetchedRef = useRef(false)
-  const finishedCount = matches.filter((m: any) => m.status === 'completed').length
-
-  useEffect(() => {
-    if (leaderboard.length === 0) return
-    if (fetchedRef.current) return
-    fetchedRef.current = true
-    const timer = setTimeout(generateBanter, 3000)
-    return () => clearTimeout(timer)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leaderboard.length, finishedCount])
-
-
-  async function generateBanter() {
-    if (loading) return
-    setLoading(true)
-
-    // Build rich context
-    const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
-    const leader = sorted[0]
-    const last = sorted[sorted.length - 1]
-
-    const players = sorted.map((r: any, i: number) => {
-      const prof = profilesMap?.[r.user_id]
-      const name = prof?.nickname || prof?.display_name || r.display_name
-      const realName = prof?.display_name || r.display_name
-      const jersey = prof?.jersey_team || 'unknown team'
-      const position = prof?.tip_position || 'unknown position'
-      const acc = r.tips_submitted > 0 ? Math.round((r.correct_winners / r.tips_submitted) * 100) : 0
-      return `${i+1}. ${name}${name !== realName ? ` (${realName})` : ''} - ${r.total_points}pts, ${r.exact_scores} exact scores, ${r.correct_winners} correct winners, jersey: ${jersey}, position: ${position}, accuracy: ${acc}%`
-    }).join('\n')
-
-    const finishedMatches = matches.filter((m: any) => m.status === 'completed' && m.home_score !== null)
-    const matchContext = finishedMatches.slice(-5).map((m: any) => {
-      const tips = allTips.filter((tp: any) => tp.match_id === m.id)
-      const exact = tips.filter((tp: any) => tp.tip_home === m.home_score && tp.tip_away === m.away_score)
-        .map((tp: any) => profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name)
-      const wrong = tips.filter((tp: any) => {
-        const tipOut = tp.tip_home > tp.tip_away ? 'h' : tp.tip_home < tp.tip_away ? 'a' : 'd'
-        const actOut = m.home_score > m.away_score ? 'h' : m.home_score < m.away_score ? 'a' : 'd'
-        return tipOut !== actOut
-      }).map((tp: any) => ({
-        name: profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name || 'Someone',
-        tip: `${tp.tip_home}-${tp.tip_away}`
-      }))
-      return `${m.home_team} ${m.home_score}-${m.away_score} ${m.away_team}: exact: [${exact.join(', ')}], wrong: [${wrong.map((w: any) => `${w.name} tipped ${w.tip}`).join(', ')}]`
-    }).join('\n')
-
-    try {
-      console.log('Fetching /api/banter...')
-      const resp = await fetch('/api/banter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ players, matchContext, seed: Math.floor(Math.random() * 10000), lang: t.lang })
-      })
-      console.log('Response status:', resp.status)
-      const data = await resp.json()
-      console.log('Response data:', data)
-      const result = Array.isArray(data.banter) && data.banter.length > 0 ? data.banter : []
-      setBanter(result)
-    } catch (e) {
-      console.error('Banter fetch error:', e)
-      setError(true)
-    }
-    setLoading(false)
-  }
-
-  if (loading) return (
-    <div style={{ margin: '0.75rem 0', padding: '0.5rem 1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>
-      🎤 Loading banter...
-    </div>
-  )
-
-  const EMOJIS = ['🔥', '💀', '😂']
-
-  if (banter.length === 0) return null
-
-  return (
-    <div style={{ margin: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-      {banter.map((line, i) => (
-        <div key={i} style={{
-          padding: '0.6rem 1rem',
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.06)',
-          borderRadius: 10,
-          fontSize: '0.82rem',
-          color: 'rgba(255,255,255,0.65)',
-          lineHeight: 1.4,
-          fontStyle: 'italic',
-        }}>
-          {EMOJIS[i]} {line}
-        </div>
-      ))}
-      <button onClick={() => { setBanter([]); setTimeout(generateBanter, 50) }}
-        style={{ alignSelf: 'flex-end', background: 'none', border: 'none', fontSize: '0.68rem', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', padding: '0.1rem 0.25rem' }}>
-        🔄 refresh
-      </button>
-    </div>
-  )
-}
-
-
-function BanterGenerator({ matchStats, leaderboard, profilesMap, tournament, allTips }: any) {
-  const { t } = useLang()
-  const [banter, setBanter] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
-  const [generated, setGenerated] = useState(false)
-
-  async function generateBanter() {
-    setLoading(true)
-
-    // Build context for the AI
-    const finishedWithTips = matchStats.filter((ms: any) => ms.hasResult && ms.tips.length > 0)
-    if (finishedWithTips.length === 0) { setLoading(false); return }
-
-    const context = finishedWithTips.slice(0, 8).map((ms: any) => {
-      const { match: m, tips, homePct, awayPct, drawPct } = ms
-      const result = `${m.home_score}–${m.away_score}`
-      const tippers = tips.map((tp: any) => ({
-        name: profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name || 'Someone',
-        tip: `${tp.tip_home}–${tp.tip_away}`,
-        correct: tp.tip_home === m.home_score && tp.tip_away === m.away_score,
-        correctWinner: (tp.tip_home > tp.tip_away && m.home_score > m.away_score) ||
-                       (tp.tip_home < tp.tip_away && m.home_score < m.away_score) ||
-                       (tp.tip_home === tp.tip_away && m.home_score === m.away_score),
-      }))
-      return `${m.home_team} vs ${m.away_team}: result ${result}. Tippers: ${tippers.map((t: any) => `${t.name} tipped ${t.tip}${t.correct ? ' (exact!)' : t.correctWinner ? ' (got winner)' : ' (wrong)'}`).join(', ')}. Consensus: ${homePct}% backed ${m.home_team}, ${drawPct}% draw, ${awayPct}% ${m.away_team}.`
-    }).join('\n')
-
-    const playerNames = Array.from(new Set(leaderboard.map((r: any) => profilesMap?.[r.user_id]?.nickname || r.display_name))).join(', ')
-
-    try {
-      const response = await fetch('/api/banter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          players: playerNames,
-          matchContext: context,
-          seed: Math.floor(Math.random() * 10000),
-          lang: t.lang
-        })
-      })
-      const data = await response.json()
-      const parsed = Array.isArray(data.banter) ? data.banter : []
-      setBanter(parsed)
-      setGenerated(true)
-    } catch (e) {
-      setBanter(['Could not generate banter — the ref must have disallowed it.'])
-      setGenerated(true)
-    }
-    setLoading(false)
-  }
-
-  const finishedCount = matchStats.filter((ms: any) => ms.hasResult).length
-  if (finishedCount === 0) return null
-
-  return (
-    <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
-      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
-        🎤 AUTO BANTER
-      </h3>
-      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
-        AI-generated trash talk based on how everyone tipped
-      </p>
-      {!generated ? (
-        <button
-          onClick={generateBanter}
-          disabled={loading}
-          className="btn btn-primary"
-          style={{ padding: '0.6rem 1.5rem' }}
-        >
-          {loading ? (t.lang === 'pt' ? '⏳ Gerando zoação...' : '⏳ Generating banter...') : (t.lang === 'pt' ? '🎤 Gerar Zoação' : '🎤 Generate Banter')}
-        </button>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {banter.map((line, i) => (
-            <div key={i} style={{
-              padding: '0.75rem 1rem',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 10,
-              fontSize: '0.88rem',
-              lineHeight: 1.5,
-              color: '#e8f5ee',
-            }}>
-              {['🔥','😂','💀','🧢','👀','🏆'][i % 6]} {line}
-            </div>
-          ))}
-          <button
-            onClick={() => { setGenerated(false); setLoading(false) }}
-            className="btn btn-ghost"
-            style={{ fontSize: '0.78rem', marginTop: '0.25rem', alignSelf: 'flex-start' }}
-          >
-            🔄 Generate new banter
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-
 function TournamentRules({ tournament: tn, approvedCount, t }: any) {
   const ispt = t.lang === 'pt'
   const pool = (tn.entry_fee || 0) * approvedCount
@@ -2542,22 +2327,30 @@ function calcRating(row: any, leaderboard?: any[]): number {
 }
 
 const FLAG_URLS: Record<string, string> = {
-  Brazil:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/br.svg',
-  Argentina:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ar.svg',
-  France:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg',
-  England:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-eng.svg',
-  Germany:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/de.svg',
-  Spain:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/es.svg',
-  Portugal:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pt.svg',
-  Netherlands:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nl.svg',
-  USA:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg',
-  Mexico:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/mx.svg',
-  Australia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/au.svg',
-  Japan:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jp.svg',
-  Morocco:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ma.svg',
-  Senegal:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sn.svg',
-  Colombia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/co.svg',
-  Croatia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hr.svg',
+  'Albania':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/al.svg', 'Algeria':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/dz.svg', 'Argentina':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ar.svg',
+  'Australia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/au.svg', 'Austria':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/at.svg', 'Belgium':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/be.svg',
+  'Bolivia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/bo.svg', 'Bosnia and Herzegovina':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ba.svg', 'Brazil':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/br.svg',
+  'Canada':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ca.svg', 'Cape Verde':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cv.svg', 'Chile':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cl.svg',
+  'Colombia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/co.svg', 'Costa Rica':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cr.svg', 'Croatia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hr.svg',
+  'Curacao':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cw.svg', 'Czechia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cz.svg', 'Czech Republic':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cz.svg',
+  'DR Congo':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cd.svg', 'Ecuador':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ec.svg', 'Egypt':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/eg.svg',
+  'England':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-eng.svg', 'France':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg', 'Germany':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/de.svg',
+  'Ghana':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gh.svg', 'Greece':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gr.svg', 'Haiti':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ht.svg',
+  'Honduras':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hn.svg', 'Hungary':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hu.svg', 'Iran':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ir.svg',
+  'IR Iran':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ir.svg', 'Iraq':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/iq.svg', 'Italy':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/it.svg',
+  'Ivory Coast':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ci.svg', 'Jamaica':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jm.svg', 'Japan':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jp.svg',
+  'Jordan':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jo.svg', 'Mali':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ml.svg', 'Mexico':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/mx.svg',
+  'Morocco':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ma.svg', 'Netherlands':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nl.svg', 'New Zealand':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nz.svg',
+  'Nigeria':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ng.svg', 'Norway':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/no.svg', 'Panama':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pa.svg',
+  'Paraguay':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/py.svg', 'Peru':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pe.svg', 'Poland':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pl.svg',
+  'Portugal':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pt.svg', 'Qatar':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/qa.svg', 'Saudi Arabia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sa.svg',
+  'Scotland':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-sct.svg', 'Senegal':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sn.svg', 'Serbia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/rs.svg',
+  'Slovakia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sk.svg', 'Slovenia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/si.svg', 'South Africa':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/za.svg',
+  'South Korea':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/kr.svg', 'Spain':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/es.svg', 'Sweden':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/se.svg',
+  'Switzerland':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ch.svg', 'Tunisia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/tn.svg', 'Turkey':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/tr.svg',
+  'Ukraine':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ua.svg', 'United States':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg', 'USA':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg',
+  'Uruguay':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/uy.svg', 'Uzbekistan':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/uz.svg', 'Venezuela':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ve.svg',
+  'Wales':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-wls.svg', 'Cameroon':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cm.svg',
 }
 
 function JerseySVG({ colors, isGrey }: { colors: any, isGrey: boolean }) {
