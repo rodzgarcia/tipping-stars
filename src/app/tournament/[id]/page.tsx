@@ -1428,7 +1428,12 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
     locked.forEach((tp: any) => {
       const m = matches.find((mm: any) => mm.id === tp.match_id)
       if (!m) return
-      const mult = multiplierLabel[m.round] || 1
+      const multMap: Record<string, number> = {
+        group: tournament.multiplier_group, r32: tournament.multiplier_r32,
+        r16: tournament.multiplier_r16, qf: tournament.multiplier_qf,
+        sf: tournament.multiplier_sf, third_place: tournament.multiplier_sf, final: tournament.multiplier_final
+      }
+      const mult = multMap[m.round] || 1
       const baseMax = tournament.pts_winner + tournament.pts_goal_diff + tournament.pts_exact_score
       const bigMarginPossible = tournament.pts_big_margin_bonus || 0
       // Max possible = exact score + big margin bonus (if match had big margin) × multiplier
