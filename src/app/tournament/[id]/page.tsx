@@ -571,6 +571,72 @@ function FlagImg({ team, size = 20 }: { team: string, size?: number }) {
 }
 
 
+
+const ROAST_LINES = {
+  skill: [
+    "tackles like trying to hug someone you hate.",
+    "has a first touch so bad, the ball filed a restraining order.",
+    "has got the pace of a tax return.",
+    "shoots so off-target they're basically playing a different sport.",
+    "dribbles like walking on ice in socks.",
+    "is the only thing beaten all season being the buffet queue.",
+    "has two left feet — and they're both wrong.",
+    "has positioning so bad their own team marks them.",
+    "passes like they're scared of the ball making it to someone useful.",
+    "has a cross that never finds a teammate — it finds the car park.",
+    "has free kicks that are a danger to the crowd, not the goal.",
+    "couldn't dribble past a traffic cone — and the cone has more pace.",
+  ],
+  tipping: [
+    "your tipping record is proof that guessing blindly is a strategy.",
+    "you're last on the leaderboard so consistently it should be named after you.",
+    "your bracket looks like it was filled out by someone who hates sport.",
+    "your predictions have a 100% record — for being wrong.",
+    "you picked based on jersey colours, didn't you.",
+    "your tipping strategy is just choosing whichever team name sounds cooler.",
+    "you've watched every game and somehow gotten dumber.",
+    "the comp would be closer if you just tip the opposite of whatever you think.",
+    "you're so far behind on points, you're basically in a different tournament.",
+    "you've started calling it bad luck. We've started calling it you.",
+    "you're the reason this comp has a last-place prize.",
+    "your bracket looks like it was drawn up during a blackout.",
+    "you tip with the certainty of someone who is completely wrong about everything.",
+    "your tips have the accuracy of a weather forecast written by someone who hates weather.",
+    "you're so far back on points you'd need a miracle, a forfeit, and a rule change.",
+    "your picks are so reliably wrong, we could use them as a reverse oracle.",
+    "you've described yourself as unlucky with a straight face every single week.",
+  ],
+  general: [
+    "your hot takes are just cold takes with confidence.",
+    "you claim to follow football but confuse group stages with knockout rounds.",
+    "you get more emotionally invested in a comp you're losing than your actual life.",
+    "your football opinions are as reliable as your tips.",
+    "you've watched five games and suddenly you're a tactical expert.",
+    "you're the biggest talker and the worst tipper — a proud double.",
+    "you started trash-talking in week one and haven't won a round since.",
+    "you know exactly what everyone else did wrong in every game.",
+    "you've never been right about anything football-related but you've never been quiet either.",
+    "you've blamed the ref, the pitch, the weather, and the draw. The common factor is you.",
+    "you only follow football during the World Cup, and even then you're doing it wrong.",
+    "you joined this comp for banter and have accidentally taken it more seriously than your job.",
+    "you've been in this comp for three weeks and you've already suggested rule changes to help yourself.",
+    "you act like a football expert for four weeks every four years and somehow never improve.",
+    "you told the group chat to watch this space in week one. We watched. It was painful.",
+  ],
+}
+
+function getRoastLine(nickname: string, seed: number): string {
+  const all = [...ROAST_LINES.skill, ...ROAST_LINES.tipping, ...ROAST_LINES.general]
+  const idx = seed % all.length
+  const line = all[idx]
+  // If line starts with lowercase "your/you", prepend name
+  if (line.startsWith('your') || line.startsWith('you')) {
+    return `${nickname}, ${line}`
+  }
+  // Otherwise it's a "nickname verb..." format
+  return `${nickname} ${line}`
+}
+
 const TOP_SCORERS = [
   'Alexander Sørloth',
   'Antoine Griezmann',
@@ -1073,6 +1139,25 @@ export default function TournamentPage() {
                   }}>{label}</button>
                 ))}
               </div>
+              {/* Roast of the Day */}
+              {leaderboard.length > 0 && (
+                <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '0.75rem', borderLeft: '2px solid rgba(251,191,36,0.25)' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: '0.6rem' }}>
+                    🎤 {ispt ? 'ZOAÇÕES DO DIA' : 'ROAST OF THE DAY'}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {leaderboard.slice(0, leaderboard.length).sort(() => 0).slice(0, 4).map((row: any, i: number) => {
+                      const name = profilesMap?.[row.user_id]?.nickname || row.display_name?.split(' ')[0] || 'Someone'
+                      const seed = (name.charCodeAt(0) + (name.charCodeAt(name.length - 1) || 0) + i * 37 + leaderboard.length * 13) % 1000
+                      return (
+                        <div key={row.user_id} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, fontStyle: 'italic' }}>
+                          "{getRoastLine(name, seed)}"
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
               {lbSubTab === 'cards' && <PlayerCards leaderboard={leaderboard} allTips={allTips} avatars={avatars} profilesMap={profilesMap} userId={user.id} t={t} />}
               {lbSubTab === 'h2h' && <HeadToHead leaderboard={leaderboard} allTips={allTips} profilesMap={profilesMap} userId={user.id} matches={matches} />}
               {lbSubTab === 'share' && <ShareCard row={leaderboard.find((r:any) => r.user_id === user.id)} leaderboard={leaderboard} profilesMap={profilesMap} tournament={tournament} />}
@@ -2231,7 +2316,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
                 <span style={{ fontSize: '1rem', width: 20 }}>{heroEmojis[i]}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.82rem', fontWeight: 600, color: heroColors[i] }}>{profilesMap?.[row.user_id]?.nickname || row.display_name.split(' ')[0]}</div>
-                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{heroTitles[i]}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{heroTitles[i]}{profilesMap?.[row.user_id]?.display_name ? ` · ${profilesMap[row.user_id].display_name.split(' ')[0]}` : ''}</div>
                 </div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: heroColors[i] }}>{pts}</div>
               </div>
@@ -2252,7 +2337,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
                   <span style={{ fontSize: '1rem', width: 20 }}>{zeroEmojis[i]}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f87171' }}>{profilesMap?.[row.user_id]?.nickname || row.display_name.split(' ')[0]}</div>
-                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{zeroTitles[i]}</div>
+                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{zeroTitles[i]}{profilesMap?.[row.user_id]?.display_name ? ` · ${profilesMap[row.user_id].display_name.split(' ')[0]}` : ''}</div>
                   </div>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: '#f87171' }}>{pts}</div>
                 </div>
