@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { LanguageProvider } from './LanguageContext'
+import { Analytics } from '@vercel/analytics/react'
 
 export const metadata: Metadata = {
   title: 'Tipping Stars — FIFA World Cup 2026',
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           {children}
         </LanguageProvider>
+        <Analytics />
       </body>
     </html>
   )
