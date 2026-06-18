@@ -502,25 +502,10 @@ function WinnerPredictionWall({ allTournamentTips, profilesMap, leaderboard, t }
   })
   const sorted = Object.entries(byWinner).sort((a, b) => b[1].length - a[1].length)
 
-  const TEAM_FLAGS_LOCAL: Record<string, string> = {
-    'Albania':'al','Argentina':'ar','Australia':'au','Austria':'at',
-    'Belgium':'be','Bolivia':'bo','Bosnia and Herzegovina':'ba','Brazil':'br',
-    'Canada':'ca','Cape Verde':'cv','Chile':'cl','Colombia':'co',
-    'Costa Rica':'cr','Croatia':'hr','Curacao':'cw','Czechia':'cz',
-    'Czech Republic':'cz','DR Congo':'cd','Ecuador':'ec','Egypt':'eg',
-    'England':'gb-eng','France':'fr','Germany':'de','Ghana':'gh',
-    'Greece':'gr','Haiti':'ht','Honduras':'hn','Hungary':'hu',
-    'IR Iran':'ir','Iran':'ir','Iraq':'iq','Italy':'it',
-    'Ivory Coast':'ci','Jamaica':'jm','Japan':'jp','Jordan':'jo',
-    'Mali':'ml','Mexico':'mx','Morocco':'ma','Netherlands':'nl',
-    'New Zealand':'nz','Nigeria':'ng','Norway':'no','Panama':'pa',
-    'Paraguay':'py','Peru':'pe','Poland':'pl','Portugal':'pt',
-    'Qatar':'qa','Saudi Arabia':'sa','Scotland':'gb-sct','Senegal':'sn',
-    'Serbia':'rs','Slovakia':'sk','Slovenia':'si','South Africa':'za',
-    'South Korea':'kr','Spain':'es','Sweden':'se','Switzerland':'ch',
-    'Trinidad & Tobago':'tt','Tunisia':'tn','Turkey':'tr','Ukraine':'ua',
-    'United States':'us','USA':'us','Uruguay':'uy','Uzbekistan':'uz',
-    'Venezuela':'ve','Wales':'gb-wls','Algeria':'dz','Cameroon':'cm',
+  const TEAM_FLAGS: Record<string, string> = {
+    'Argentina':'ar','France':'fr','England':'gb-eng','Spain':'es','Brazil':'br',
+    'Portugal':'pt','Netherlands':'nl','Germany':'de','Italy':'it','Morocco':'ma',
+    'Croatia':'hr','United States':'us','Mexico':'mx','Japan':'jp','Uruguay':'uy',
   }
 
   return (
@@ -533,7 +518,7 @@ function WinnerPredictionWall({ allTournamentTips, profilesMap, leaderboard, t }
       </div>
       <div style={{ padding: '0.75rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
         {sorted.map(([team, names]) => {
-          const code = TEAM_FLAGS_LOCAL[team]
+          const code = TEAM_FLAGS[team]
           const pct = Math.round((names.length / tips.length) * 100)
           return (
             <div key={team}>
@@ -568,61 +553,6 @@ function FlagImg({ team, size = 20 }: { team: string, size?: number }) {
       style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4, borderRadius: 2 }}
     />
   )
-}
-
-
-
-const ROAST_LINES = {
-  skill: [
-    "tackles like trying to hug someone you hate.",
-    "has a first touch so bad, the ball filed a restraining order.",
-    "has got the pace of a tax return.",
-    "shoots so off-target they're basically playing a different sport.",
-    "dribbles like walking on ice in socks.",
-    "is the only thing beaten all season being the buffet queue.",
-    "has two left feet — and they're both wrong.",
-    "has positioning so bad their own team marks them.",
-    "passes like they're scared of the ball making it to someone useful.",
-    "has a cross that never finds a teammate — it finds the car park.",
-    "has free kicks that are a danger to the crowd, not the goal.",
-    "couldn't dribble past a traffic cone — and the cone has more pace.",
-  ],
-  tipping: [
-    "your tipping record is proof that guessing blindly is a strategy.",
-    "you're last on the leaderboard so consistently it should be named after you.",
-    "your bracket looks like it was filled out by someone who hates sport.",
-    "your predictions have a 100% record — for being wrong.",
-    "you picked based on jersey colours, didn't you.",
-    "your tipping strategy is just choosing whichever team name sounds cooler.",
-    "you've watched every game and somehow gotten dumber.",
-    "the comp would be closer if you just tip the opposite of whatever you think.",
-    "you're so far behind on points, you're basically in a different tournament.",
-    "you've started calling it bad luck. We've started calling it you.",
-    "you're the reason this comp has a last-place prize.",
-    "your bracket looks like it was drawn up during a blackout.",
-    "you tip with the certainty of someone who is completely wrong about everything.",
-    "your tips have the accuracy of a weather forecast written by someone who hates weather.",
-    "you're so far back on points you'd need a miracle, a forfeit, and a rule change.",
-    "your picks are so reliably wrong, we could use them as a reverse oracle.",
-    "you've described yourself as unlucky with a straight face every single week.",
-  ],
-  general: [
-    "your hot takes are just cold takes with confidence.",
-    "you claim to follow football but confuse group stages with knockout rounds.",
-    "you get more emotionally invested in a comp you're losing than your actual life.",
-    "your football opinions are as reliable as your tips.",
-    "you've watched five games and suddenly you're a tactical expert.",
-    "you're the biggest talker and the worst tipper — a proud double.",
-    "you started trash-talking in week one and haven't won a round since.",
-    "you know exactly what everyone else did wrong in every game.",
-    "you've never been right about anything football-related but you've never been quiet either.",
-    "you've blamed the ref, the pitch, the weather, and the draw. The common factor is you.",
-    "you only follow football during the World Cup, and even then you're doing it wrong.",
-    "you joined this comp for banter and have accidentally taken it more seriously than your job.",
-    "you've been in this comp for three weeks and you've already suggested rule changes to help yourself.",
-    "you act like a football expert for four weeks every four years and somehow never improve.",
-    "you told the group chat to watch this space in week one. We watched. It was painful.",
-  ],
 }
 
 
@@ -803,36 +733,18 @@ export default function TournamentPage() {
     if (!user) { router.push('/auth'); return }
     setUser(user)
 
-    const fetchAllTips = async () => {
-      let all: any[] = []
-      let from = 0
-      const pageSize = 1000
-      while (true) {
-        const { data, error } = await supabase
-          .from('match_tips')
-          .select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)')
-          .eq('tournament_id', tournamentId)
-          .order('match_id')
-          .range(from, from + pageSize - 1)
-        if (error || !data || data.length === 0) break
-        all = all.concat(data)
-        if (data.length < pageSize) break
-        from += pageSize
-      }
-      return { data: all }
-    }
     const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes, allTtRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
       supabase.from('tournament_members').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
       supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('kickoff_at'),
       supabase.from('match_tips').select('*, match:matches(round, kickoff_at, status, home_score, away_score)').eq('tournament_id', tournamentId).eq('user_id', user.id),
-      fetchAllTips(),
-      supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }).limit(500),
-      supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position').limit(20000),
+      supabase.from('match_tips').select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)').eq('tournament_id', tournamentId),
+      supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
+      supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position'),
       supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).maybeSingle(),
-      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).limit(500),
+      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
     ])
 
     setProfile(profRes.data)
@@ -1063,12 +975,6 @@ export default function TournamentPage() {
                           {row.display_name}
                         </div>
                       )}
-                      {profilesMap[row.user_id]?.jersey_team && (
-                        <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
-                          <FlagImg team={profilesMap[row.user_id].jersey_team} size={12} />
-                          {profilesMap[row.user_id].jersey_team}
-                        </div>
-                      )}
                     </div>
                     <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: winners > 0 ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>{winners}</div>
                     <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: '1rem', color: gd > 0 ? '#60a5fa' : 'rgba(255,255,255,0.25)' }}>{gd}</div>
@@ -1107,7 +1013,13 @@ export default function TournamentPage() {
                 )})}
               </div>
             </div>
-
+            <LeaderboardBanter
+              leaderboard={leaderboard}
+              profilesMap={profilesMap}
+              allTips={allTips}
+              matches={matches}
+              tournament={tournament}
+            />
             <div style={{ marginTop: '0.75rem', fontSize: '0.72rem', color: 'rgba(255,255,255,0.2)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <span>🎯 {t.lang === 'pt' ? 'Placar exato' : 'Exact score'}</span>
               <span>⚖️ {t.lang === 'pt' ? 'Saldo de gols' : 'Goal difference'}</span>
@@ -1117,51 +1029,8 @@ export default function TournamentPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-              {/* Roast of the Day */}
-              {leaderboard.length > 0 && (
-                <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '0.75rem', borderLeft: '2px solid rgba(251,191,36,0.25)', width: '100%' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.78rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: '0.6rem' }}>
-                    🎤 {t.lang === 'pt' ? 'ZOAÇÕES DO DIA' : 'ROAST OF THE DAY'}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {(() => {
-                      const usedLines = new Set<number>()
-                      const roasts: React.ReactNode[] = []
-                      const candidates = leaderboard.slice(0, Math.min(leaderboard.length, 8))
-                      const allLines = [...ROAST_LINES.skill, ...ROAST_LINES.tipping, ...ROAST_LINES.general]
-                      const topThreeIds = new Set(leaderboard.slice(0, 3).map((r: any) => r.user_id))
-                      const skillLines = ROAST_LINES.skill
-                      const generalLines = ROAST_LINES.general
-                      let count = 0
-                      for (let i = 0; i < candidates.length && count < 3; i++) {
-                        const row = candidates[i]
-                        const name = profilesMap?.[row.user_id]?.nickname || row.display_name?.split(' ')[0] || 'Someone'
-                        const isTop = topThreeIds.has(row.user_id)
-                        const pool = isTop ? [...skillLines, ...generalLines] : allLines
-                        const baseSeed = (name.charCodeAt(0) + (name.charCodeAt(name.length - 1) || 0) + i * 37 + leaderboard.length * 13)
-                        let lineIdx = baseSeed % pool.length
-                        let attempts = 0
-                        while (usedLines.has(lineIdx) && attempts < pool.length) {
-                          lineIdx = (lineIdx + 1) % pool.length
-                          attempts++
-                        }
-                        usedLines.add(lineIdx)
-                        const line = pool[lineIdx]
-                        const roastText = (line.startsWith('your') || line.startsWith('you')) ? `${name}, ${line}` : `${name} ${line}`
-                        roasts.push(
-                          <div key={row.user_id} style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, fontStyle: 'italic' }}>
-                            "{roastText}"
-                          </div>
-                        )
-                        count++
-                      }
-                      return roasts
-                    })()}
-                  </div>
-                </div>
-              )}
               {/* H2H + Share sub-tabs */}
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', marginBottom: '0.75rem' }}>
                 {([['cards',t.lang === 'pt' ? '🃏 Cartões' : '🃏 Cards'],['h2h',t.lang === 'pt' ? '⚔️ Confronto' : '⚔️ Head to Head'],['share',t.lang === 'pt' ? '📤 Compartilhar' : '📤 Share']] as const).map(([v,label]) => (
                   <button key={v} onClick={() => setLbSubTab(v)} style={{
                     padding: '0.3rem 0.75rem', borderRadius: 20, fontSize: '0.74rem', cursor: 'pointer',
@@ -2021,6 +1890,224 @@ function HelpChat({ t, tournament, leaderboard, profilesMap }: { t: any, tournam
 }
 
 
+function LeaderboardBanter({ leaderboard, profilesMap, allTips, matches, tournament }: any) {
+  const { t } = useLang()
+  const [banter, setBanter] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(false)
+
+  const fetchedRef = useRef(false)
+  const finishedCount = matches.filter((m: any) => m.status === 'completed').length
+
+  useEffect(() => {
+    if (leaderboard.length === 0) return
+    if (fetchedRef.current) return
+    fetchedRef.current = true
+    const timer = setTimeout(generateBanter, 3000)
+    return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaderboard.length, finishedCount])
+
+
+  async function generateBanter() {
+    if (loading) return
+    setLoading(true)
+
+    // Build rich context
+    const sorted = [...leaderboard].sort((a: any, b: any) => b.total_points - a.total_points)
+    const leader = sorted[0]
+    const last = sorted[sorted.length - 1]
+
+    const players = sorted.map((r: any, i: number) => {
+      const prof = profilesMap?.[r.user_id]
+      const name = prof?.nickname || prof?.display_name || r.display_name
+      const realName = prof?.display_name || r.display_name
+      const jersey = prof?.jersey_team || 'unknown team'
+      const position = prof?.tip_position || 'unknown position'
+      const acc = r.tips_submitted > 0 ? Math.round((r.correct_winners / r.tips_submitted) * 100) : 0
+      return `${i+1}. ${name}${name !== realName ? ` (${realName})` : ''} - ${r.total_points}pts, ${r.exact_scores} exact scores, ${r.correct_winners} correct winners, jersey: ${jersey}, position: ${position}, accuracy: ${acc}%`
+    }).join('\n')
+
+    const finishedMatches = matches.filter((m: any) => m.status === 'completed' && m.home_score !== null)
+    const matchContext = finishedMatches.slice(-5).map((m: any) => {
+      const tips = allTips.filter((tp: any) => tp.match_id === m.id)
+      const exact = tips.filter((tp: any) => tp.tip_home === m.home_score && tp.tip_away === m.away_score)
+        .map((tp: any) => profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name)
+      const wrong = tips.filter((tp: any) => {
+        const tipOut = tp.tip_home > tp.tip_away ? 'h' : tp.tip_home < tp.tip_away ? 'a' : 'd'
+        const actOut = m.home_score > m.away_score ? 'h' : m.home_score < m.away_score ? 'a' : 'd'
+        return tipOut !== actOut
+      }).map((tp: any) => ({
+        name: profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name || 'Someone',
+        tip: `${tp.tip_home}-${tp.tip_away}`
+      }))
+      return `${m.home_team} ${m.home_score}-${m.away_score} ${m.away_team}: exact: [${exact.join(', ')}], wrong: [${wrong.map((w: any) => `${w.name} tipped ${w.tip}`).join(', ')}]`
+    }).join('\n')
+
+    try {
+      console.log('Fetching /api/banter...')
+      const resp = await fetch('/api/banter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ players, matchContext, seed: Math.floor(Math.random() * 10000), lang: t.lang })
+      })
+      console.log('Response status:', resp.status)
+      const data = await resp.json()
+      console.log('Response data:', data)
+      const result = Array.isArray(data.banter) && data.banter.length > 0 ? data.banter : []
+      setBanter(result)
+    } catch (e) {
+      console.error('Banter fetch error:', e)
+      setError(true)
+    }
+    setLoading(false)
+  }
+
+  if (loading) return (
+    <div style={{ margin: '0.75rem 0', padding: '0.5rem 1rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>
+      🎤 Loading banter...
+    </div>
+  )
+
+  const EMOJIS = ['🔥', '💀', '😂']
+
+  if (banter.length === 0) return null
+
+  return (
+    <div style={{ margin: '0.75rem 0', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      {banter.map((line, i) => (
+        <div key={i} style={{
+          padding: '0.6rem 1rem',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: 10,
+          fontSize: '0.82rem',
+          color: 'rgba(255,255,255,0.65)',
+          lineHeight: 1.4,
+          fontStyle: 'italic',
+        }}>
+          {EMOJIS[i]} {line}
+        </div>
+      ))}
+      <button onClick={() => { setBanter([]); setTimeout(generateBanter, 50) }}
+        style={{ alignSelf: 'flex-end', background: 'none', border: 'none', fontSize: '0.68rem', color: 'rgba(255,255,255,0.2)', cursor: 'pointer', padding: '0.1rem 0.25rem' }}>
+        🔄 refresh
+      </button>
+    </div>
+  )
+}
+
+
+function BanterGenerator({ matchStats, leaderboard, profilesMap, tournament, allTips }: any) {
+  const { t } = useLang()
+  const [banter, setBanter] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [generated, setGenerated] = useState(false)
+
+  async function generateBanter() {
+    setLoading(true)
+
+    // Build context for the AI
+    const finishedWithTips = matchStats.filter((ms: any) => ms.hasResult && ms.tips.length > 0)
+    if (finishedWithTips.length === 0) { setLoading(false); return }
+
+    const context = finishedWithTips.slice(0, 8).map((ms: any) => {
+      const { match: m, tips, homePct, awayPct, drawPct } = ms
+      const result = `${m.home_score}–${m.away_score}`
+      const tippers = tips.map((tp: any) => ({
+        name: profilesMap?.[tp.user_id]?.nickname || profilesMap?.[tp.user_id]?.display_name || 'Someone',
+        tip: `${tp.tip_home}–${tp.tip_away}`,
+        correct: tp.tip_home === m.home_score && tp.tip_away === m.away_score,
+        correctWinner: (tp.tip_home > tp.tip_away && m.home_score > m.away_score) ||
+                       (tp.tip_home < tp.tip_away && m.home_score < m.away_score) ||
+                       (tp.tip_home === tp.tip_away && m.home_score === m.away_score),
+      }))
+      return `${m.home_team} vs ${m.away_team}: result ${result}. Tippers: ${tippers.map((t: any) => `${t.name} tipped ${t.tip}${t.correct ? ' (exact!)' : t.correctWinner ? ' (got winner)' : ' (wrong)'}`).join(', ')}. Consensus: ${homePct}% backed ${m.home_team}, ${drawPct}% draw, ${awayPct}% ${m.away_team}.`
+    }).join('\n')
+
+    const playerNames = Array.from(new Set(leaderboard.map((r: any) => profilesMap?.[r.user_id]?.nickname || r.display_name))).join(', ')
+
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: `You are a hilarious football/soccer banter bot for a World Cup tipping competition. Generate 6 short, funny banter comments (1-2 sentences each) about these results and how people tipped. Be specific about names and scores. Mix: roasting wrong tippers, praising brave correct picks, teasing the majority who got it wrong, poking fun at anyone who always tips the favourite. Be playful, not mean. Use football culture references. Players: ${playerNames}.
+
+Match data:
+${context}
+
+Return ONLY a JSON array of 6 strings, no other text. Example format: ["comment 1", "comment 2", ...]`
+          }]
+        })
+      })
+      const data = await response.json()
+      const text = data.content?.[0]?.text || '[]'
+      const clean = text.replace(/\`\`\`json|\`\`\`/g, '').trim()
+      const parsed = JSON.parse(clean)
+      setBanter(Array.isArray(parsed) ? parsed : [])
+      setGenerated(true)
+    } catch (e) {
+      setBanter(['Could not generate banter — the ref must have disallowed it.'])
+      setGenerated(true)
+    }
+    setLoading(false)
+  }
+
+  const finishedCount = matchStats.filter((ms: any) => ms.hasResult).length
+  if (finishedCount === 0) return null
+
+  return (
+    <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '0.85rem', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '0.25rem' }}>
+        🎤 AUTO BANTER
+      </h3>
+      <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.25)', marginBottom: '1rem' }}>
+        AI-generated trash talk based on how everyone tipped
+      </p>
+      {!generated ? (
+        <button
+          onClick={generateBanter}
+          disabled={loading}
+          className="btn btn-primary"
+          style={{ padding: '0.6rem 1.5rem' }}
+        >
+          {loading ? (t.lang === 'pt' ? '⏳ Gerando zoação...' : '⏳ Generating banter...') : (t.lang === 'pt' ? '🎤 Gerar Zoação' : '🎤 Generate Banter')}
+        </button>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {banter.map((line, i) => (
+            <div key={i} style={{
+              padding: '0.75rem 1rem',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 10,
+              fontSize: '0.88rem',
+              lineHeight: 1.5,
+              color: '#e8f5ee',
+            }}>
+              {['🔥','😂','💀','🧢','👀','🏆'][i % 6]} {line}
+            </div>
+          ))}
+          <button
+            onClick={() => { setGenerated(false); setLoading(false) }}
+            className="btn btn-ghost"
+            style={{ fontSize: '0.78rem', marginTop: '0.25rem', alignSelf: 'flex-start' }}
+          >
+            🔄 Generate new banter
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 function TournamentRules({ tournament: tn, approvedCount, t }: any) {
   const ispt = t.lang === 'pt'
   const pool = (tn.entry_fee || 0) * approvedCount
@@ -2259,9 +2346,14 @@ function PrizeBanner({ tournament, approvedCount, leaderboard, t }: any) {
 function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
   if (!leaderboard.length) return null
 
-  // Get today's points per player
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // Get today's points per player — 24h window resetting at 6pm Sydney time (08:00 UTC)
+  const now = new Date()
+  const cutoffUTCHour = 8 // 6pm Sydney (UTC+10) = 08:00 UTC
+  let windowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), cutoffUTCHour, 0, 0))
+  if (now.getTime() < windowStart.getTime()) {
+    windowStart.setUTCDate(windowStart.getUTCDate() - 1)
+  }
+  const today = windowStart
   const todayPtsMap: Record<string, number> = {}
   allTips.forEach((tip: any) => {
     const kickoff = new Date(tip.match?.kickoff_at || 0)
@@ -2329,7 +2421,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
                 <span style={{ fontSize: '1rem', width: 20 }}>{heroEmojis[i]}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.82rem', fontWeight: 600, color: heroColors[i] }}>{profilesMap?.[row.user_id]?.nickname || row.display_name.split(' ')[0]}</div>
-                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{heroTitles[i]}{profilesMap?.[row.user_id]?.display_name ? ` · ${profilesMap[row.user_id].display_name.split(' ')[0]}` : ''}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{heroTitles[i]}</div>
                 </div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: heroColors[i] }}>{pts}</div>
               </div>
@@ -2350,7 +2442,7 @@ function RoundStandings({ leaderboard, allTips, profilesMap, t }: any) {
                   <span style={{ fontSize: '1rem', width: 20 }}>{zeroEmojis[i]}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f87171' }}>{profilesMap?.[row.user_id]?.nickname || row.display_name.split(' ')[0]}</div>
-                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{zeroTitles[i]}{profilesMap?.[row.user_id]?.display_name ? ` · ${profilesMap[row.user_id].display_name.split(' ')[0]}` : ''}</div>
+                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.3)' }}>{zeroTitles[i]}</div>
                   </div>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', color: '#f87171' }}>{pts}</div>
                 </div>
@@ -2425,30 +2517,22 @@ function calcRating(row: any, leaderboard?: any[]): number {
 }
 
 const FLAG_URLS: Record<string, string> = {
-  'Albania':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/al.svg', 'Algeria':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/dz.svg', 'Argentina':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ar.svg',
-  'Australia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/au.svg', 'Austria':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/at.svg', 'Belgium':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/be.svg',
-  'Bolivia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/bo.svg', 'Bosnia and Herzegovina':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ba.svg', 'Brazil':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/br.svg',
-  'Canada':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ca.svg', 'Cape Verde':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cv.svg', 'Chile':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cl.svg',
-  'Colombia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/co.svg', 'Costa Rica':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cr.svg', 'Croatia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hr.svg',
-  'Curacao':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cw.svg', 'Czechia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cz.svg', 'Czech Republic':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cz.svg',
-  'DR Congo':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cd.svg', 'Ecuador':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ec.svg', 'Egypt':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/eg.svg',
-  'England':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-eng.svg', 'France':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg', 'Germany':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/de.svg',
-  'Ghana':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gh.svg', 'Greece':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gr.svg', 'Haiti':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ht.svg',
-  'Honduras':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hn.svg', 'Hungary':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hu.svg', 'Iran':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ir.svg',
-  'IR Iran':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ir.svg', 'Iraq':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/iq.svg', 'Italy':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/it.svg',
-  'Ivory Coast':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ci.svg', 'Jamaica':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jm.svg', 'Japan':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jp.svg',
-  'Jordan':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jo.svg', 'Mali':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ml.svg', 'Mexico':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/mx.svg',
-  'Morocco':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ma.svg', 'Netherlands':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nl.svg', 'New Zealand':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nz.svg',
-  'Nigeria':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ng.svg', 'Norway':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/no.svg', 'Panama':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pa.svg',
-  'Paraguay':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/py.svg', 'Peru':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pe.svg', 'Poland':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pl.svg',
-  'Portugal':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pt.svg', 'Qatar':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/qa.svg', 'Saudi Arabia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sa.svg',
-  'Scotland':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-sct.svg', 'Senegal':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sn.svg', 'Serbia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/rs.svg',
-  'Slovakia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sk.svg', 'Slovenia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/si.svg', 'South Africa':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/za.svg',
-  'South Korea':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/kr.svg', 'Spain':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/es.svg', 'Sweden':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/se.svg',
-  'Switzerland':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ch.svg', 'Tunisia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/tn.svg', 'Turkey':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/tr.svg',
-  'Ukraine':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ua.svg', 'United States':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg', 'USA':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg',
-  'Uruguay':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/uy.svg', 'Uzbekistan':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/uz.svg', 'Venezuela':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ve.svg',
-  'Wales':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-wls.svg', 'Cameroon':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cm.svg',
+  Brazil:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/br.svg',
+  Argentina:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ar.svg',
+  France:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg',
+  England:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-eng.svg',
+  Germany:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/de.svg',
+  Spain:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/es.svg',
+  Portugal:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pt.svg',
+  Netherlands:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nl.svg',
+  USA:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg',
+  Mexico:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/mx.svg',
+  Australia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/au.svg',
+  Japan:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jp.svg',
+  Morocco:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ma.svg',
+  Senegal:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sn.svg',
+  Colombia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/co.svg',
+  Croatia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hr.svg',
 }
 
 function JerseySVG({ colors, isGrey }: { colors: any, isGrey: boolean }) {
@@ -2602,9 +2686,14 @@ function PlayerCards({ leaderboard, allTips, avatars, profilesMap, userId, t }: 
   // My card
   const myRow = leaderboard.find((r: any) => r.user_id === userId)
 
-  // Today's tipper — who earned most pts today
-  const today = new Date()
-  today.setHours(0,0,0,0)
+  // Today's tipper — who earned most pts in the last 24h window, resetting at 6pm Sydney time (08:00 UTC)
+  const now = new Date()
+  const cutoffUTCHour = 8 // 6pm Sydney (UTC+10) = 08:00 UTC
+  let windowStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), cutoffUTCHour, 0, 0))
+  if (now.getTime() < windowStart.getTime()) {
+    windowStart.setUTCDate(windowStart.getUTCDate() - 1)
+  }
+  const today = windowStart
   const todayTips = allTips.filter((tip: any) => {
     const kickoff = new Date(tip.match?.kickoff_at || 0)
     return kickoff >= today && Number(tip.pts_with_multiplier) > 0
@@ -2951,8 +3040,9 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
   }
 
   const lockedMatches = matches.filter((m: any) => isLocked(m))
-  const lockedGroup = lockedMatches.filter((m: any) => m.tip_lock_override || !m.round || m.round === 'group')
-  const lockedKnockout = lockedMatches.filter((m: any) => m.round && m.round !== 'group' && !m.tip_lock_override)
+  // Show most recent matches first so people don't have to scroll past old games
+  const lockedGroup = lockedMatches.filter((m: any) => m.tip_lock_override || !m.round || m.round === 'group').slice().reverse()
+  const lockedKnockout = lockedMatches.filter((m: any) => m.round && m.round !== 'group' && !m.tip_lock_override).slice().reverse()
 
   const players = leaderboard.map((r: any) => ({
     id: r.user_id,
