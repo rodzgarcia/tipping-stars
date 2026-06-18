@@ -3381,16 +3381,7 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
   }, [tip?.id, tip?.tip_home, tip?.tip_away])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [odds, setOdds] = useState<{ home: string, draw: string, away: string, source?: string } | null>(null)
   const supabase = createClient()
-
-  useEffect(() => {
-    if (isLocked || match.status !== 'upcoming') return
-    fetch(`/api/odds?home=${encodeURIComponent(match.home_team)}&away=${encodeURIComponent(match.away_team)}`)
-      .then(r => r.json())
-      .then(d => { if (d.odds) setOdds(d.odds) })
-      .catch(() => {})
-  }, [match.id])
 
   async function saveTip() {
     setSaving(true)
@@ -3440,31 +3431,6 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
             )}
             {isLocked && <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.72rem', color: 'rgba(255,158,11,0.7)' }}><Lock size={10} />{t.lang === 'pt' ? 'Bloqueado' : 'Locked'}</span>}
           </div>
-          {odds && !isLocked && (() => {
-            const vals = [
-              { label: match.home_team.split(' ').pop(), pct: parseInt(odds.home) },
-              { label: 'Draw', pct: parseInt(odds.draw) },
-              { label: match.away_team.split(' ').pop(), pct: parseInt(odds.away) },
-            ]
-            const sorted = [...vals].sort((a, b) => b.pct - a.pct)
-            const getColor = (pct: number) => {
-              if (pct === sorted[0].pct) return { color: '#4ade80', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.2)' }
-              if (pct === sorted[sorted.length - 1].pct) return { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)' }
-              return { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)' }
-            }
-            return (
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.04em' }}>WIN%</span>
-                {vals.map(v => {
-                  const c = getColor(v.pct)
-                  return <span key={v.label} style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem', borderRadius: 4, background: c.bg, color: c.color, border: `1px solid ${c.border}` }}>
-                    {v.label} {v.pct}%
-                  </span>
-                })}
-                {odds.source && <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.15)', fontStyle: 'italic' }}>{odds.source}</span>}
-              </div>
-            )
-          })()}
         </div>
 
         {/* Tip input or display */}
