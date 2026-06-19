@@ -733,18 +733,36 @@ export default function TournamentPage() {
     if (!user) { router.push('/auth'); return }
     setUser(user)
 
+    const fetchAllTips = async () => {
+      let all: any[] = []
+      let from = 0
+      const pageSize = 1000
+      while (true) {
+        const { data, error } = await supabase
+          .from('match_tips')
+          .select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)')
+          .eq('tournament_id', tournamentId)
+          .order('match_id')
+          .range(from, from + pageSize - 1)
+        if (error || !data || data.length === 0) break
+        all = all.concat(data)
+        if (data.length < pageSize) break
+        from += pageSize
+      }
+      return { data: all }
+    }
     const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes, allTtRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
       supabase.from('tournament_members').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
       supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('kickoff_at'),
       supabase.from('match_tips').select('*, match:matches(round, kickoff_at, status, home_score, away_score)').eq('tournament_id', tournamentId).eq('user_id', user.id),
-      supabase.from('match_tips').select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)').eq('tournament_id', tournamentId),
-      supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }),
-      supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position'),
+      fetchAllTips(),
+      supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }).limit(500),
+      supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position').limit(20000),
       supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
       supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).maybeSingle(),
-      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId),
+      supabase.from('tournament_tips').select('*').eq('tournament_id', tournamentId).limit(500),
     ])
 
     setProfile(profRes.data)
@@ -851,7 +869,8 @@ export default function TournamentPage() {
               const lockMins = tournament?.tip_lock_minutes ?? 120
               const isMatchLocked = (m: any) => m.tip_lock_override || m.status !== 'upcoming' || new Date() >= new Date(new Date(m.kickoff_at).getTime() - lockMins * 60 * 1000)
               const openMatches = matches.filter((m: any) => !isMatchLocked(m))
-              const lockedMatches = matches.filter((m: any) => isMatchLocked(m))
+              // Show most recently locked/played matches first so people don't scroll to find current games
+              const lockedMatches = matches.filter((m: any) => isMatchLocked(m)).slice().reverse()
               return (
                 <>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -2517,22 +2536,30 @@ function calcRating(row: any, leaderboard?: any[]): number {
 }
 
 const FLAG_URLS: Record<string, string> = {
-  Brazil:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/br.svg',
-  Argentina:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ar.svg',
-  France:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg',
-  England:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-eng.svg',
-  Germany:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/de.svg',
-  Spain:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/es.svg',
-  Portugal:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pt.svg',
-  Netherlands:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nl.svg',
-  USA:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg',
-  Mexico:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/mx.svg',
-  Australia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/au.svg',
-  Japan:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jp.svg',
-  Morocco:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ma.svg',
-  Senegal:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sn.svg',
-  Colombia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/co.svg',
-  Croatia:'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hr.svg',
+  'Albania':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/al.svg', 'Algeria':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/dz.svg', 'Argentina':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ar.svg',
+  'Australia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/au.svg', 'Austria':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/at.svg', 'Belgium':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/be.svg',
+  'Bolivia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/bo.svg', 'Bosnia and Herzegovina':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ba.svg', 'Brazil':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/br.svg',
+  'Canada':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ca.svg', 'Cape Verde':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cv.svg', 'Chile':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cl.svg',
+  'Colombia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/co.svg', 'Costa Rica':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cr.svg', 'Croatia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hr.svg',
+  'Curacao':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cw.svg', 'Czechia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cz.svg', 'Czech Republic':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cz.svg',
+  'DR Congo':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cd.svg', 'Ecuador':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ec.svg', 'Egypt':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/eg.svg',
+  'England':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-eng.svg', 'France':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/fr.svg', 'Germany':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/de.svg',
+  'Ghana':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gh.svg', 'Greece':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gr.svg', 'Haiti':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ht.svg',
+  'Honduras':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hn.svg', 'Hungary':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/hu.svg', 'Iran':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ir.svg',
+  'IR Iran':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ir.svg', 'Iraq':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/iq.svg', 'Italy':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/it.svg',
+  'Ivory Coast':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ci.svg', 'Jamaica':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jm.svg', 'Japan':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jp.svg',
+  'Jordan':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/jo.svg', 'Mali':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ml.svg', 'Mexico':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/mx.svg',
+  'Morocco':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ma.svg', 'Netherlands':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nl.svg', 'New Zealand':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/nz.svg',
+  'Nigeria':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ng.svg', 'Norway':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/no.svg', 'Panama':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pa.svg',
+  'Paraguay':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/py.svg', 'Peru':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pe.svg', 'Poland':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pl.svg',
+  'Portugal':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/pt.svg', 'Qatar':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/qa.svg', 'Saudi Arabia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sa.svg',
+  'Scotland':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-sct.svg', 'Senegal':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sn.svg', 'Serbia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/rs.svg',
+  'Slovakia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/sk.svg', 'Slovenia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/si.svg', 'South Africa':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/za.svg',
+  'South Korea':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/kr.svg', 'Spain':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/es.svg', 'Sweden':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/se.svg',
+  'Switzerland':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ch.svg', 'Tunisia':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/tn.svg', 'Turkey':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/tr.svg',
+  'Ukraine':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ua.svg', 'United States':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg', 'USA':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/us.svg',
+  'Uruguay':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/uy.svg', 'Uzbekistan':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/uz.svg', 'Venezuela':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/ve.svg',
+  'Wales':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/gb-wls.svg', 'Cameroon':'https://cdn.jsdelivr.net/gh/lipis/flag-icons/flags/4x3/cm.svg',
 }
 
 function JerseySVG({ colors, isGrey }: { colors: any, isGrey: boolean }) {
