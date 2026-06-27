@@ -2221,13 +2221,13 @@ function TournamentRules({ tournament: tn, approvedCount, t }: any) {
           </div>
           <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
             {ispt
-              ? 'O placar considerado é sempre o resultado aos 90 minutos (tempo normal). Prorrogação e pênaltis não afetam o placar para fins de pontuação. Para o vencedor correto nas fases eliminatórias, conta o time que efetivamente avança — seja por gols no tempo normal, prorrogação ou pênaltis.'
-              : 'The score used for points is always the 90-minute result (regular time). Extra time and penalties do not affect the score for tipping purposes. For the correct winner point in knockout rounds, the team that actually advances counts — whether through regular time, extra time, or penalties.'}
+              ? 'O placar considerado é sempre o resultado aos 90 minutos (tempo normal)+ prorrogação. Pênaltis não afetam o placar para fins de pontuação.'
+              : 'The score used for points is always the 90-minute result (regular time) + Extra time. Penalties do not affect the score for tipping purposes.'}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.4rem', fontStyle: 'italic' }}>
             {ispt
-              ? 'Ex: Brasil 1–1 França após 90 min → pênaltis → Brasil avança. Placar para pontuação = 1–1. Vencedor correto = Brasil.'
-              : 'e.g. Brazil 1–1 France after 90 min → penalties → Brazil advances. Score for tips = 1–1. Correct winner = Brazil.'}
+              ? '.'
+              : '.'}
           </div>
         </div>
       </Section>
