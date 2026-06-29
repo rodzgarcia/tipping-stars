@@ -1446,7 +1446,7 @@ function StatsTab({ matches, allTips, allTournamentTips, leaderboard, tournament
       const v = tt[field]
       if (v) counts[v] = (counts[v] || 0) + 1
     })
-    return Object.entries(counts).sort((a: any, b: any) => b[1] - a[1]).slice(0, 8)
+    return Object.entries(counts).sort((a: any, b: any) => b[1] - a[1]).slice(0, 15)
   }
 
   // ── Accuracy stats ────────────────────────────────────────────────────────
