@@ -688,6 +688,7 @@ export default function TournamentPage() {
   const [leaderboard, setLeaderboard] = useState<any[]>([])
   const [myTournamentTip, setMyTournamentTip] = useState<any>(null)
   const [allTips, setAllTips] = useState<any[]>([])
+  const [allTipsLoaded, setAllTipsLoaded] = useState(false)
   const [allTournamentTips, setAllTournamentTips] = useState<any[]>([])
   const [avatars, setAvatars] = useState<Record<string, string>>({})
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
@@ -728,6 +729,27 @@ export default function TournamentPage() {
     return () => { supabase.removeChannel(channel) }
   }, [tournamentId])
 
+  async function loadAllTips() {
+    if (allTipsLoaded) return
+    let all: any[] = []
+    let from = 0
+    const pageSize = 1000
+    while (true) {
+      const { data, error } = await supabase
+        .from('match_tips')
+        .select('id, match_id, user_id, tip_home, tip_away, pts_with_multiplier, pts_exact_score, pts_goal_diff, pts_winner, pts_big_margin, match:matches(round, kickoff_at, status)')
+        .eq('tournament_id', tournamentId)
+        .order('match_id')
+        .range(from, from + pageSize - 1)
+      if (error || !data || data.length === 0) break
+      all = all.concat(data)
+      if (data.length < pageSize) break
+      from += pageSize
+    }
+    setAllTips(all)
+    setAllTipsLoaded(true)
+  }
+
   async function loadAll() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/auth'); return }
@@ -751,13 +773,12 @@ export default function TournamentPage() {
       }
       return { data: all }
     }
-    const [profRes, tourRes, memberRes, matchRes, tipsRes, allTipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes, allTtRes] = await Promise.all([
+    const [profRes, tourRes, memberRes, matchRes, tipsRes, lbRes, allProfilesRes, approvedMembersRes, ttRes, allTtRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('tournaments').select('*').eq('id', tournamentId).single(),
       supabase.from('tournament_members').select('*').eq('tournament_id', tournamentId).eq('user_id', user.id).single(),
       supabase.from('matches').select('*').eq('tournament_id', tournamentId).order('kickoff_at'),
       supabase.from('match_tips').select('*, match:matches(round, kickoff_at, status, home_score, away_score)').eq('tournament_id', tournamentId).eq('user_id', user.id),
-      fetchAllTips(),
       supabase.from('leaderboard').select('*').eq('tournament_id', tournamentId).order('total_points', { ascending: false }).limit(500),
       supabase.from('profiles').select('id, display_name, nickname, avatar_url, jersey_team, tip_position').limit(20000),
       supabase.from('tournament_members').select('id').eq('tournament_id', tournamentId).eq('status', 'approved'),
@@ -773,7 +794,7 @@ export default function TournamentPage() {
     tipsRes.data?.forEach((t: any) => { tipsMap[t.match_id] = t })
     setMyTips(tipsMap)
     setLeaderboard(lbRes.data || [])
-    setAllTips(allTipsRes.data || [])
+    // allTips loaded lazily when leaderboard/all-tips/stats tab is first opened
     const avatarMap: Record<string, string> = {}
     const profileMap: Record<string, any> = {}
     allProfilesRes.data?.forEach((p: any) => {
@@ -854,9 +875,9 @@ export default function TournamentPage() {
           <button data-tab="tips" className={`tab-btn ${tab === 'tips' ? 'active' : ''}`} onClick={() => setTab('tips')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '⚽ Palpites' : '⚽ Tips'}</button>
           <button className={`tab-btn ${tab === 'qualifiers' ? 'active' : ''}`} onClick={() => setTab('qualifiers')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '🗂️ Grupos' : '🗂️ Groups'}</button>
           <button className={`tab-btn ${tab === 'predictions' ? 'active' : ''}`} onClick={() => setTab('predictions')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '🏆 Previsões' : '🏆 Predict'}</button>
-          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📊 Ranking' : '📊 Board'}</button>
-          <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => setTab('tips_reveal')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '👁 Todos Palpites' : '👁 All Tips'}</button>
-          <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => setTab('stats')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📈 Stats' : '📈 Stats'}</button>
+          <button className={`tab-btn ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => { setTab('leaderboard'); loadAllTips() }} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📊 Ranking' : '📊 Board'}</button>
+          <button className={`tab-btn ${tab === 'tips_reveal' ? 'active' : ''}`} onClick={() => { setTab('tips_reveal'); loadAllTips() }} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '👁 Todos Palpites' : '👁 All Tips'}</button>
+          <button className={`tab-btn ${tab === 'stats' ? 'active' : ''}`} onClick={() => { setTab('stats'); loadAllTips() }} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📈 Stats' : '📈 Stats'}</button>
           <button className={`tab-btn ${tab === 'rules' ? 'active' : ''}`} onClick={() => setTab('rules')} style={{ flexShrink: 0, fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{t.lang === 'pt' ? '📋 Regras' : '📋 Rules'}</button>
         </div>
 
