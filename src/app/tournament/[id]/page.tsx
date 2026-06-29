@@ -3224,6 +3224,7 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                     </th>
                     )
                   })}
+                  <th style={{ textAlign: 'center', padding: '0.5rem 0.75rem', color: 'var(--gold)', fontWeight: 700, fontSize: '0.72rem', borderBottom: '1px solid rgba(255,255,255,0.08)', minWidth: 60 }}>PTS</th>
                 </tr>
               </thead>
               <tbody>
@@ -3241,16 +3242,27 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                       const tip = allTips.find((tp: any) => tp.match_id === m.id && tp.user_id === player.id)
                       const isExact = tip && m.status === 'completed' && tip.tip_home === m.home_score && tip.tip_away === m.away_score
                       const isWinner = tip && m.status === 'completed' && !isExact && Number(tip.pts_winner) > 0
+                      const hasResult = m.status === 'completed' && m.home_score !== null
                       return (
                         <td key={m.id} style={{ padding: '0.5rem 0.4rem', textAlign: 'center', background: isExact ? 'rgba(251,191,36,0.08)' : isWinner ? 'rgba(74,222,128,0.06)' : undefined }}>
                           {tip ? (
-                            <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: isExact ? '#fbbf24' : isWinner ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>
-                              {tip.tip_home}–{tip.tip_away}
-                            </span>
+                            <div>
+                              <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', color: isExact ? '#fbbf24' : isWinner ? '#4ade80' : 'rgba(255,255,255,0.5)' }}>
+                                {tip.tip_home}–{tip.tip_away}
+                              </span>
+                              {hasResult && <div style={{ fontSize: '0.6rem', marginTop: '0.1rem' }}>{isExact ? '🎯' : isWinner ? '✅' : '❌'}</div>}
+                              {hasResult && Number(tip.pts_with_multiplier) > 0 && <div style={{ fontSize: '0.6rem', color: '#fbbf24' }}>+{tip.pts_with_multiplier}</div>}
+                            </div>
                           ) : <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '0.75rem' }}>–</span>}
                         </td>
                       )
                     })}
+                    <td style={{ textAlign: 'center', padding: '0.5rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'var(--gold)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+                      {lockedKnockout.reduce((sum: number, m: any) => {
+                        const tip = allTips.find((tp: any) => tp.match_id === m.id && tp.user_id === player.id)
+                        return sum + Number(tip?.pts_with_multiplier || 0)
+                      }, 0)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -3284,6 +3296,7 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                       Group {g}
                     </th>
                   ))}
+                  <th style={{ textAlign: 'center', padding: '0.5rem 0.75rem', color: 'var(--gold)', fontWeight: 700, fontSize: '0.72rem', borderBottom: '1px solid rgba(255,255,255,0.08)', minWidth: 60 }}>PTS</th>
                 </tr>
               </thead>
               <tbody>
@@ -3304,12 +3317,25 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                       {['a','b','c','d','e','f','g','h','i','j','k','l'].map(g => {
                         const first = tt?.[`tip_group_${g}_1`]
                         const second = tt?.[`tip_group_${g}_2`]
+                        const actualFirst = tt?.[`actual_group_${g}_1`]
+                        const actualSecond = tt?.[`actual_group_${g}_2`]
+                        const firstCorrectPos = actualFirst && first === actualFirst
+                        const firstCorrectQual = actualFirst && actualSecond && (first === actualFirst || first === actualSecond)
+                        const secondCorrectPos = actualSecond && second === actualSecond
+                        const secondCorrectQual = actualFirst && actualSecond && (second === actualFirst || second === actualSecond)
+                        const hasActuals = actualFirst || actualSecond
                         return (
                           <td key={g} style={{ textAlign: 'center', padding: '0.4rem 0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '0.72rem' }}>
                             {first || second ? (
                               <div>
-                                {first && <div style={{ color: '#fbbf24', whiteSpace: 'nowrap' }}>🥇 <FlagImg team={first} size={14} />{first}</div>}
-                                {second && <div style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>🥈 <FlagImg team={second} size={14} />{second}</div>}
+                                {first && <div style={{ color: firstCorrectPos ? '#fbbf24' : firstCorrectQual ? '#4ade80' : hasActuals ? 'rgba(255,255,255,0.4)' : '#fbbf24', whiteSpace: 'nowrap' }}>
+                                  🥇 <FlagImg team={first} size={14} />{first}
+                                  {hasActuals && <span style={{ marginLeft: 2 }}>{firstCorrectPos ? '🎯' : firstCorrectQual ? '✅' : '❌'}</span>}
+                                </div>}
+                                {second && <div style={{ color: secondCorrectPos ? '#fbbf24' : secondCorrectQual ? '#4ade80' : hasActuals ? 'rgba(255,255,255,0.4)' : '#9ca3af', whiteSpace: 'nowrap' }}>
+                                  🥈 <FlagImg team={second} size={14} />{second}
+                                  {hasActuals && <span style={{ marginLeft: 2 }}>{secondCorrectPos ? '🎯' : secondCorrectQual ? '✅' : '❌'}</span>}
+                                </div>}
                               </div>
                             ) : (
                               <span style={{ color: 'rgba(255,255,255,0.15)' }}>–</span>
@@ -3317,6 +3343,9 @@ function TipsReveal({ matches, allTips, allTournamentTips, leaderboard, avatars,
                           </td>
                         )
                       })}
+                      <td style={{ textAlign: 'center', padding: '0.5rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'var(--gold)', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
+                        {tt?.pts_group_qualifiers ?? '–'}
+                      </td>
                     </tr>
                   )
                 })}
