@@ -910,7 +910,10 @@ export default function TournamentPage() {
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                               {(dateMatches as any[]).map((match: any) => (
-                                <MatchTipCard key={match.id} match={match} tip={myTips[match.id]} tournament={tournament} userId={user.id} onSave={loadAll} />
+                                <MatchTipCard key={match.id} match={match} tip={myTips[match.id]} tournament={tournament} userId={user.id} onSave={(savedTip: any) => {
+                                  if (savedTip) setMyTips((prev: any) => ({ ...prev, [match.id]: savedTip }))
+                                  else loadAll()
+                                }} />
                               ))}
                             </div>
                           </div>
@@ -3444,13 +3447,16 @@ function MatchTipCard({ match, tip, tournament, userId, onSave }: any) {
     const h = home === '' ? 0 : Number(home)
     const a = away === '' ? 0 : Number(away)
     const payload = { match_id: match.id, user_id: userId, tournament_id: tournament.id, tip_home: h, tip_away: a }
+    let savedTip: any = null
     if (tip?.id) {
-      await supabase.from('match_tips').update({ tip_home: h, tip_away: a, updated_at: new Date().toISOString() }).eq('id', tip.id)
+      const { data } = await supabase.from('match_tips').update({ tip_home: h, tip_away: a, updated_at: new Date().toISOString() }).eq('id', tip.id).select().single()
+      savedTip = data || { ...tip, tip_home: h, tip_away: a }
     } else {
-      await supabase.from('match_tips').insert(payload)
+      const { data } = await supabase.from('match_tips').insert(payload).select().single()
+      savedTip = data || { ...payload, id: 'pending' }
     }
     setSaved(true); setTimeout(() => setSaved(false), 2000)
-    setSaving(false); onSave()
+    setSaving(false); onSave(savedTip)
   }
 
   const multiplier = { group: tournament.multiplier_group, r32: tournament.multiplier_r32, r16: tournament.multiplier_r16, qf: tournament.multiplier_qf, sf: tournament.multiplier_sf, third_place: tournament.multiplier_sf, final: tournament.multiplier_final }[match.round as string] || 1
